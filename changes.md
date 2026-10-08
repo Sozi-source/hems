@@ -1,6 +1,9 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
-## 2026-10-08 — Phase 1b: Action modals & live data entry (done, verified)
+## 2026-10-08 — PWA icons & dev cache resolution (done, verified)
+- **Generated PWA Icons & Favicon**: Added `public/icon-192.png`, `public/icon-512.png`, and `public/favicon.ico` via Node image generator in `scripts/generate-icons.js`, resolving all `GET /icon-192.png 404` errors.
+- **Git Repository Initialized**: Linked to remote `origin https://github.com/Sozi-source/hems.git`.
+
 **Built** interactive action modals and connected live PostgreSQL workflow functions and Supabase authentication:
 - **Modal Component Primitive** (`src/components/ui/modal.tsx`): Clean, accessible, backdrop-blurred modal dialog.
 - **Add Customer Modal** (`src/components/customers/add-customer-modal.tsx`): Supports tenant selection, full name, Kenyan phone number normalization, optional credit limit, and connects to `public.customers` with trigger-generated `customer_no` (`C0001`, `C0002`...).
