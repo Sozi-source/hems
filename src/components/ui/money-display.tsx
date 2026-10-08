@@ -18,18 +18,16 @@ export function MoneyDisplay({
   ...props
 }: MoneyDisplayProps) {
   const formatted = fmt_kes(minorUnits, { showCents });
-  
-  // Split symbol, integer, decimal
-  // e.g. "KSh 1,250,000.00" -> symbol="KSh ", integer="1,250,000", decimal=".00"
+
   const match = formatted.match(/^([+-]?KSh\s+)?([0-9,]+)(\.[0-9]{2})?$/);
-  
+
   const symbol = match?.[1] ?? 'KSh ';
   const integer = match?.[2] ?? '0';
   const decimal = match?.[3] ?? '.00';
 
   const sizeStyles = {
-    sm: 'text-sm',
-    md: 'text-base font-semibold',
+    sm: 'text-sm font-semibold',
+    md: 'text-base font-bold',
     lg: 'text-xl font-bold',
     xl: 'text-2xl font-bold tracking-tight',
     '2xl': 'text-3xl font-extrabold tracking-tight',
@@ -44,10 +42,10 @@ export function MoneyDisplay({
   };
 
   const variantStyles = {
-    neutral: 'text-slate-100',
-    positive: 'text-emerald-400',
-    negative: 'text-rose-400',
-    amber: 'text-amber-400',
+    neutral: 'text-slate-900',
+    positive: 'text-emerald-700',
+    negative: 'text-rose-700',
+    amber: 'text-amber-800',
   };
 
   return (
@@ -60,10 +58,10 @@ export function MoneyDisplay({
       )}
       {...props}
     >
-      <span className="text-slate-400 font-sans mr-1 text-xs font-normal">{symbol.trim()}</span>
+      <span className="text-slate-500 font-sans mr-1 text-xs font-normal">{symbol.trim()}</span>
       <span>{integer}</span>
       {showCents && (
-        <span className={cn('text-slate-400 font-mono opacity-80', decimalSizes[size])}>
+        <span className={cn('text-slate-500 font-mono opacity-80', decimalSizes[size])}>
           {decimal}
         </span>
       )}

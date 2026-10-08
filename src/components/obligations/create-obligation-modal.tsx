@@ -48,7 +48,6 @@ export function CreateObligationModal({
       setPayeeName('');
       setCustomerId('');
 
-      // Default due date to 14 days from now
       const d = new Date();
       d.setDate(d.getDate() + 14);
       setDueDate(d.toISOString().split('T')[0]);
@@ -158,7 +157,7 @@ export function CreateObligationModal({
     <Modal isOpen={isOpen} onClose={onClose} title="New Debt or Bill" maxWidth="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-fintech bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
+          <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
             {error}
           </div>
         )}
@@ -166,17 +165,17 @@ export function CreateObligationModal({
         {/* Business Selector */}
         {isMasterView && businesses.length > 0 && (
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-300">
+            <label className="block text-xs font-semibold text-slate-700">
               Business
             </label>
             <select
               value={businessId}
               onChange={(e) => setBusinessId(e.target.value)}
-              className="flex h-10 w-full rounded-fintech border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60 transition-colors"
+              className="flex h-10 w-full rounded-fintech border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-colors"
               required
             >
               {businesses.map((b) => (
-                <option key={b.id || b.code} value={b.id} className="bg-surface text-slate-100">
+                <option key={b.id || b.code} value={b.id} className="bg-white text-slate-900">
                   {b.name}
                 </option>
               ))}
@@ -186,7 +185,7 @@ export function CreateObligationModal({
 
         {/* Kind / Type selector */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-medium text-slate-300">
+          <label className="block text-xs font-semibold text-slate-700">
             Type
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -199,10 +198,10 @@ export function CreateObligationModal({
                 key={tab.id}
                 type="button"
                 onClick={() => setKind(tab.id as any)}
-                className={`py-2 px-2 text-center text-xs font-medium rounded-fintech transition-all border ${
+                className={`py-2 px-2 text-center text-xs font-semibold rounded-fintech transition-all border ${
                   kind === tab.id
-                    ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-sm'
-                    : 'bg-surface-elevated/40 text-slate-400 border-surface-border hover:text-slate-200'
+                    ? 'bg-[#0F172A] text-white border-slate-900 shadow-sm'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
                 {tab.label}
@@ -214,22 +213,22 @@ export function CreateObligationModal({
         {/* Party Selection */}
         {kind === 'customer_debt' ? (
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-300">
+            <label className="block text-xs font-semibold text-slate-700">
               Customer
             </label>
             {customers.length === 0 ? (
-              <div className="text-xs text-amber-300 p-2.5 rounded bg-amber-500/10 border border-amber-500/20">
+              <div className="text-xs text-amber-800 p-2.5 rounded bg-amber-50 border border-amber-200 font-medium">
                 No customers found for this business. Please add a customer first.
               </div>
             ) : (
               <select
                 value={customerId}
                 onChange={(e) => setCustomerId(e.target.value)}
-                className="flex h-10 w-full rounded-fintech border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60 transition-colors"
+                className="flex h-10 w-full rounded-fintech border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-colors"
                 required
               >
                 {customers.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-surface text-slate-100">
+                  <option key={c.id} value={c.id} className="bg-white text-slate-900">
                     {c.customer_no} — {c.full_name}
                   </option>
                 ))}
@@ -284,7 +283,7 @@ export function CreateObligationModal({
           onChange={(e) => setDescription(e.target.value)}
         />
 
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-surface-border/60">
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>

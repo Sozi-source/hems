@@ -43,21 +43,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-xl bg-indigo-600 items-center justify-center font-bold text-white text-lg">
+          <div className="inline-flex w-12 h-12 rounded-xl bg-[#881337] items-center justify-center font-bold text-white text-lg shadow-sm border border-rose-700/30">
             H
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-white">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
             HEMS
           </h1>
         </div>
 
-        <Card className="border-surface-border bg-surface shadow-fintech-card">
+        <Card className="border-slate-200 bg-white shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-fintech bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
+              <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
                 {error}
               </div>
             )}

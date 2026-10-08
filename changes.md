@@ -1,6 +1,46 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
-## 2026-10-08 — PWA icons & dev cache resolution (done, verified)
+## 2026-10-08 — Phase 2: Safaricom Daraja M-Pesa Pipeline & Automated Matching Engine (done, verified)
+- **Daraja API Client & Security** (`src/lib/daraja/client.ts`, `types.ts`):
+  - Safaricom OAuth client credentials generator with in-memory token expiry caching.
+  - Timestamped SHA256/Base64 password generator for STK Push (`shortcode + passkey + timestamp`).
+  - Kenyan MSISDN telephone normalizer supporting `07...`, `+254...`, `254...`, and 9-digit formats into canonical `254XXXXXXXXX`.
+  - Admin Supabase client (`src/lib/supabase/admin.ts`) using `SUPABASE_SERVICE_ROLE_KEY` to execute privileged database procedures revoked from authenticated users.
+- **C2B Webhook Endpoints**:
+  - `/api/daraja/c2b/validation`: Standard Safaricom validation acknowledging incoming Paybill requests with zero latency (`{ ResultCode: 0, ResultDesc: 'Accepted' }`).
+  - `/api/daraja/c2b/confirmation`: Parses Safaricom C2B payloads into minor units (cents), normalizes Nairobi timestamps into ISO 8601 strings, resolves business shortcode/tenant attribution, invokes PostgreSQL procedure `public.ingest_payment()`, and dispatches the automated matching engine.
+- **STK Push Pipeline**:
+  - `/api/daraja/stk/push`: Sends STK Push PIN prompts directly to customer phones via Daraja `processrequest` API, auto-resolves or registers the business payment channel, and records tracking entries in `public.stk_requests`.
+  - `/api/daraja/stk/callback`: Processes customer PIN authorization or cancellation callbacks, extracts `MpesaReceiptNumber`, updates `stk_requests` status, ingests completed transactions via `public.ingest_payment()`, and triggers automated debt matching.
+- **Automated Multi-Layer Matching Engine** (`src/lib/daraja/matcher.ts`):
+  - Layer 1: Exact invoice reference match (`100% Exact Match`).
+  - Layer 2: Exact customer account number match (`100% Exact Match`).
+  - Layer 3: Payer phone number match against registered customers (`90% Phone Match`).
+  - Automatically attributes unassigned transactions to the matched customer's business and pre-selects the customer's oldest open receivable into `public.match_candidates`.
+- **UI & Cashier Workflow Enhancements**:
+  - **In-App Payment Simulator** (`SimulatePaymentModal`): Allows testing full C2B payment ingestion directly from the `/payments` UI with customer selector and randomized receipt references.
+  - **Prompt M-Pesa Buttons** (`StkPromptModal`): Embedded on `/obligations` and `/customers` for single-click STK PIN push to customer phones.
+  - **Approve Payment Modal** (`ApprovePaymentModal`): Auto-detects matched candidates from `public.match_candidates`, displaying confidence badges and pre-selecting open invoices for 1-click settlement.
+  - **Database Column Alignment**: Rendered `occurred_at`, `payer_msisdn`, `account_reference`, and match confidence tags across `/payments` and `PendingApprovalsCard`.
+- **Verification**: `npm run build` compiled 100% cleanly across all 16 routes with zero errors.
+
+## 2026-10-08 — Modal Viewport & Portal Teleportation Fix (done, verified)
+- **Resolved Header Modal Clipping**: Converted `Modal` (`src/components/ui/modal.tsx`) to use React `createPortal(..., document.body)`. This completely decouples the modal from `<header>`'s CSS containing block caused by `backdrop-blur-md`.
+- **Safe Viewport Positioning**: Replaced flexbox overflow centering with `items-start sm:items-center` inside a `min-h-full overflow-y-auto` container with bounded dialog `max-h-[calc(100vh-2rem)]` and scrollable body. Modals now always display their top title bar and fields clearly regardless of screen height.
+
+**Transformed** design system to retain deep navy exclusively on the navigation sidebar while giving the dashboard a clean white foundation with rich navy and maroon/crimson accents:
+- **Sidebar & Mobile Navigation**: Retained deep navy (`#0A1128` / `#0F172A`) with subtle slate-800 borders, rich maroon brand logo (`#881337`), and crisp navigation states.
+- **Dashboard Canvas**: Switched main content and header to clean white (`#FFFFFF` / `#F8FAFC`) with subtle slate-200 borders and dark slate typography (`text-slate-900`).
+- **Cards & Surfaces**: Clean white cards (`bg-white border-slate-200/90 shadow-sm`) with high contrast text.
+- **Maroon & Navy Component Accents**:
+  - Haron Fashion cards and badges styled in rich maroon (`#881337` / `#BE123C`).
+  - Zenith Plast cards and badges styled in authoritative deep navy (`#0F172A`).
+  - Primary CTAs and action buttons in deep navy (`bg-[#0F172A] hover:bg-slate-800 text-white`).
+  - Danger / Rejection CTAs in rich maroon (`bg-[#881337] hover:bg-[#70102D] text-white`).
+  - Filter pills and table headers updated to light slate styling.
+- **Modals & Forms**: Converted `AddCustomerModal`, `CreateObligationModal`, `ApprovePaymentModal`, and `RejectPaymentModal` to clean white dialog surfaces with light inputs and selects.
+- **Verification**: `npm run build` compiled 100% cleanly across all 12 routes with zero errors.
+
 - **Generated PWA Icons & Favicon**: Added `public/icon-192.png`, `public/icon-512.png`, and `public/favicon.ico` via Node image generator in `scripts/generate-icons.js`, resolving all `GET /icon-192.png 404` errors.
 - **Git Repository Initialized**: Linked to remote `origin https://github.com/Sozi-source/hems.git`.
 

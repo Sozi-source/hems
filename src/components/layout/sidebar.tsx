@@ -58,11 +58,11 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 bg-surface border-r border-surface-border h-screen sticky top-0 shrink-0">
+    <aside className="hidden lg:flex flex-col w-64 bg-[#0A1128] border-r border-slate-800/80 h-screen sticky top-0 shrink-0 select-none">
       {/* Brand Header */}
-      <div className="p-4 border-b border-surface-border">
+      <div className="p-4 border-b border-slate-800/80">
         <div className="flex items-center gap-2.5 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
+          <div className="w-8 h-8 rounded-lg bg-[#881337] flex items-center justify-center font-bold text-white text-sm shadow-sm border border-rose-700/40">
             H
           </div>
           <div className="text-sm font-bold text-white tracking-tight">HEMS</div>
@@ -85,14 +85,14 @@ export function Sidebar() {
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-fintech text-xs font-medium transition-colors',
                 isActive
-                  ? 'bg-indigo-600/15 text-indigo-300 border border-indigo-500/30'
-                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+                  ? 'bg-slate-800/90 text-white border-l-2 border-[#BE123C] shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
               )}
             >
               <Icon
                 className={cn(
                   'w-4 h-4',
-                  isActive ? 'text-indigo-400' : 'text-slate-400'
+                  isActive ? 'text-rose-400' : 'text-slate-400'
                 )}
               />
               <span>{item.label}</span>
@@ -102,8 +102,8 @@ export function Sidebar() {
       </nav>
 
       {/* User / Session Info */}
-      <div className="p-3 border-t border-surface-border">
-        <div className="flex items-center gap-2.5 p-2 rounded-fintech bg-white/5 text-xs text-slate-300">
+      <div className="p-3 border-t border-slate-800/80">
+        <div className="flex items-center gap-2.5 p-2 rounded-fintech bg-slate-800/40 border border-slate-700/50 text-xs text-slate-300">
           <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-white shrink-0">
             <Shield className="w-3.5 h-3.5 text-slate-300" />
           </div>

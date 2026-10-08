@@ -18,16 +18,16 @@ export function MetricCard({
   variant = 'neutral',
 }: MetricCardProps) {
   const iconBgStyles = {
-    neutral: 'bg-white/5 text-slate-300 border-white/10',
-    positive: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    negative: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    neutral: 'bg-slate-100 text-slate-700 border-slate-200',
+    positive: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    negative: 'bg-rose-50 text-rose-700 border-rose-200',
+    amber: 'bg-amber-50 text-amber-700 border-amber-200',
   };
 
   return (
-    <Card className="relative">
+    <Card className="relative bg-white border-slate-200/90 shadow-sm">
       <div className="flex items-start justify-between gap-3 mb-2">
-        <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
           {title}
         </span>
         <div

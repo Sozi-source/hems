@@ -40,6 +40,7 @@ export function ApprovePaymentModal({
   const [allocateToDebt, setAllocateToDebt] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [matchedCandidateInfo, setMatchedCandidateInfo] = useState<{ confidence: number } | null>(null);
 
   useEffect(() => {
     if (isOpen && payment) {
@@ -47,6 +48,7 @@ export function ApprovePaymentModal({
       setApprovalNote('Approved to customer account');
       setAllocateToDebt(false);
       setSelectedObligationId('');
+      setMatchedCandidateInfo(null);
       setAllocationAmount(payment.amount_minor ? (payment.amount_minor / 100).toFixed(2) : '');
 
       const biz = payment.business_id || activeBusinessId || (businesses.length > 0 ? businesses[0].id : '');
@@ -57,11 +59,11 @@ export function ApprovePaymentModal({
   // Load open obligations for matching/allocation
   useEffect(() => {
     async function fetchOpenDebts() {
-      if (!isOpen || !targetBusinessId) return;
+      if (!isOpen || !targetBusinessId || !payment) return;
 
       try {
         const supabase = createClient();
-        const { data } = await supabase
+        const { data: debts } = await supabase
           .from('v_obligation_overview')
           .select('id, reference_no, counterparty_name, balance_minor, kind')
           .eq('business_id', targetBusinessId)
@@ -69,11 +71,28 @@ export function ApprovePaymentModal({
           .gt('balance_minor', 0)
           .order('due_date', { ascending: true });
 
-        if (data) {
-          setOpenObligations(data as OpenObligationOption[]);
-          if (data.length > 0 && !selectedObligationId) {
-            setSelectedObligationId(data[0].id);
+        if (debts) {
+          setOpenObligations(debts as OpenObligationOption[]);
+        }
+
+        // Fetch intelligent match candidate if exists
+        const { data: candidate } = await supabase
+          .from('match_candidates')
+          .select('obligation_id, confidence, suggested_amount_minor')
+          .eq('payment_id', payment.id)
+          .order('confidence', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (candidate?.obligation_id) {
+          setSelectedObligationId(candidate.obligation_id);
+          setAllocateToDebt(true);
+          setMatchedCandidateInfo({ confidence: candidate.confidence });
+          if (candidate.suggested_amount_minor) {
+            setAllocationAmount((candidate.suggested_amount_minor / 100).toFixed(2));
           }
+        } else if (debts && debts.length > 0 && !selectedObligationId) {
+          setSelectedObligationId(debts[0].id);
         }
       } catch {
         setOpenObligations([]);
@@ -81,7 +100,7 @@ export function ApprovePaymentModal({
     }
 
     fetchOpenDebts();
-  }, [isOpen, targetBusinessId]);
+  }, [isOpen, targetBusinessId, payment]);
 
   if (!payment) return null;
 
@@ -139,28 +158,37 @@ export function ApprovePaymentModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Approve Payment" maxWidth="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-fintech bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
+          <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
             {error}
           </div>
         )}
 
         {/* Payment Summary */}
-        <div className="p-3.5 rounded-fintech bg-surface-elevated border border-surface-border space-y-2">
+        <div className="p-3.5 rounded-fintech bg-slate-50 border border-slate-200 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-bold text-slate-100">
+            <span className="font-mono text-xs font-bold text-slate-900">
               {payment.transaction_ref}
             </span>
             <MoneyDisplay minorUnits={payment.amount_minor} size="sm" variant="amber" />
           </div>
 
-          <div className="text-xs text-slate-300 flex items-center justify-between">
+          <div className="text-xs text-slate-700 flex items-center justify-between font-medium">
             <span>{payment.payer_name || 'Customer'}</span>
-            <span className="font-mono text-slate-400">{fmt_phone(payment.payer_phone)}</span>
+            <span className="font-mono text-slate-600">{fmt_phone(payment.payer_msisdn || payment.payer_phone)}</span>
           </div>
 
-          {payment.bill_ref_number && (
-            <div className="text-[11px] text-indigo-300 font-mono">
-              Account Ref: {payment.bill_ref_number}
+          {(payment.account_reference || payment.bill_ref_number) && (
+            <div className="text-[11px] text-slate-700 font-mono font-medium">
+              Account Ref: {payment.account_reference || payment.bill_ref_number}
+            </div>
+          )}
+
+          {matchedCandidateInfo && (
+            <div className="mt-2 p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
+              <span>Intelligent Match Found</span>
+              <span className="font-mono text-[10px] bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded">
+                {matchedCandidateInfo.confidence}% Confidence
+              </span>
             </div>
           )}
         </div>
@@ -168,17 +196,17 @@ export function ApprovePaymentModal({
         {/* Business Assignment if not assigned */}
         {!payment.business_id && businesses.length > 0 && (
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-300">
+            <label className="block text-xs font-semibold text-slate-700">
               Assign to Business
             </label>
             <select
               value={targetBusinessId}
               onChange={(e) => setTargetBusinessId(e.target.value)}
-              className="flex h-10 w-full rounded-fintech border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60 transition-colors"
+              className="flex h-10 w-full rounded-fintech border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-colors"
               required
             >
               {businesses.map((b) => (
-                <option key={b.id || b.code} value={b.id} className="bg-surface text-slate-100">
+                <option key={b.id || b.code} value={b.id} className="bg-white text-slate-900">
                   {b.name}
                 </option>
               ))}
@@ -187,15 +215,15 @@ export function ApprovePaymentModal({
         )}
 
         {/* Allocation Toggle */}
-        <div className="space-y-2 pt-2 border-t border-surface-border/50">
+        <div className="space-y-2 pt-2 border-t border-slate-200">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={allocateToDebt}
               onChange={(e) => setAllocateToDebt(e.target.checked)}
-              className="rounded bg-surface-elevated border-surface-border text-indigo-600 focus:ring-indigo-500/40"
+              className="rounded bg-white border-slate-300 text-slate-900 focus:ring-slate-900/20"
             />
-            <span className="text-xs font-medium text-slate-200">
+            <span className="text-xs font-semibold text-slate-800">
               Allocate to specific open invoice
             </span>
           </label>
@@ -203,22 +231,22 @@ export function ApprovePaymentModal({
           {allocateToDebt && (
             <div className="space-y-3 pl-6 pt-1">
               {openObligations.length === 0 ? (
-                <div className="text-xs text-amber-300 p-2 rounded bg-amber-500/10 border border-amber-500/20">
+                <div className="text-xs text-amber-800 p-2 rounded bg-amber-50 border border-amber-200 font-medium">
                   No open receivables found. Payment will be credited to customer account balance.
                 </div>
               ) : (
                 <>
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-medium text-slate-400">
+                    <label className="block text-[11px] font-semibold text-slate-600">
                       Select Invoice / Debt
                     </label>
                     <select
                       value={selectedObligationId}
                       onChange={(e) => setSelectedObligationId(e.target.value)}
-                      className="flex h-9 w-full rounded-fintech border border-surface-border bg-surface-elevated px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                      className="flex h-9 w-full rounded-fintech border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
                     >
                       {openObligations.map((o) => (
-                        <option key={o.id} value={o.id} className="bg-surface text-slate-100">
+                        <option key={o.id} value={o.id} className="bg-white text-slate-900">
                           {o.reference_no} — {o.counterparty_name} ({fmt_kes(o.balance_minor)})
                         </option>
                       ))}
@@ -249,7 +277,7 @@ export function ApprovePaymentModal({
           />
         )}
 
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-surface-border/60">
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>

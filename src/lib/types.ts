@@ -55,17 +55,21 @@ export interface PaymentTransaction {
   id: string;
   business_id: string | null;
   business_name?: string;
-  provider: PaymentProvider;
+  provider: PaymentProvider | string;
   transaction_ref: string;
   amount_minor: number;
-  payer_phone?: string;
+  occurred_at: string;
+  payer_msisdn?: string;
   payer_name?: string;
-  bill_ref_number?: string;
+  account_reference?: string;
   status: PaymentStatus;
-  allocated_minor: number;
-  unallocated_minor: number;
+  allocated_minor?: number;
+  unallocated_minor?: number;
   match_confidence?: number;
-  received_at: string;
+  decided_at?: string;
+  payer_phone?: string;
+  bill_ref_number?: string;
+  received_at?: string;
   approved_at?: string;
 }
 

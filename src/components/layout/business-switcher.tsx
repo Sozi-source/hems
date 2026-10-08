@@ -27,20 +27,20 @@ export function BusinessSwitcher() {
         return {
           name: 'Haron Fashion',
           badge: 'HF',
-          badgeBg: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+          badgeBg: 'bg-rose-900/40 text-rose-300 border-rose-700/50',
         };
       case 'ZENITH_PLAST':
         return {
           name: 'Zenith Plast',
           badge: 'ZP',
-          badgeBg: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
+          badgeBg: 'bg-sky-900/40 text-sky-300 border-sky-700/50',
         };
       case 'MASTER':
       default:
         return {
           name: 'All Businesses',
           badge: 'ALL',
-          badgeBg: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+          badgeBg: 'bg-purple-900/40 text-purple-300 border-purple-700/50',
         };
     }
   };
@@ -51,13 +51,13 @@ export function BusinessSwitcher() {
     <div className="relative w-full" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-2.5 rounded-fintech bg-surface-elevated hover:bg-surface-overlay border border-surface-border transition-colors text-left group"
+        className="w-full flex items-center justify-between p-2.5 rounded-fintech bg-slate-800/80 hover:bg-slate-800 border border-slate-700/70 transition-colors text-left group"
         aria-label="Select business"
       >
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div
             className={cn(
-              'w-8 h-8 rounded-md flex items-center justify-center font-bold text-xs border shrink-0',
+              'w-7 h-7 rounded flex items-center justify-center font-bold text-[11px] border shrink-0',
               currentInfo.badgeBg
             )}
           >
@@ -78,7 +78,7 @@ export function BusinessSwitcher() {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1.5 w-full bg-surface-elevated border border-surface-border rounded-card shadow-fintech-card p-1.5 z-50 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute top-full left-0 mt-1.5 w-full bg-[#0F172A] border border-slate-700 rounded-card shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
           <div className="space-y-1">
             {/* All Businesses Option */}
             <button
@@ -89,12 +89,12 @@ export function BusinessSwitcher() {
               className={cn(
                 'w-full flex items-center justify-between p-2 rounded-fintech transition-colors text-left text-xs',
                 activeBusinessCode === 'MASTER'
-                  ? 'bg-purple-500/15 text-purple-200 border border-purple-500/30'
-                  : 'hover:bg-white/5 text-slate-300'
+                  ? 'bg-purple-900/30 text-purple-200 border border-purple-700/40'
+                  : 'hover:bg-slate-800 text-slate-300'
               )}
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-6 h-6 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center text-[10px] font-bold">
+                <div className="w-6 h-6 rounded bg-purple-900/40 text-purple-300 border border-purple-700/50 flex items-center justify-center text-[10px] font-bold">
                   ★
                 </div>
                 <div className="font-semibold text-slate-100">All Businesses</div>
@@ -119,8 +119,8 @@ export function BusinessSwitcher() {
                   className={cn(
                     'w-full flex items-center justify-between p-2 rounded-fintech transition-colors text-left text-xs',
                     isSelected
-                      ? 'bg-white/10 text-slate-100 border border-white/15'
-                      : 'hover:bg-white/5 text-slate-300'
+                      ? 'bg-slate-800 text-slate-100 border border-slate-700'
+                      : 'hover:bg-slate-800/60 text-slate-300'
                   )}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">

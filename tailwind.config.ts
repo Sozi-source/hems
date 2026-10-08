@@ -10,21 +10,33 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Core fintech canvas & surfaces
+        // Deep Navy palette (reserved for sidebar and authoritative accents)
+        navy: {
+          50: '#F0F4F8',
+          100: '#D9E2EC',
+          200: '#BCCCDC',
+          700: '#1E293B',
+          800: '#0F172A',
+          900: '#0A1128',
+          DEFAULT: '#0F172A',
+        },
+        // Rich Maroon / Crimson palette (for Haron Fashion and high-priority indicators)
+        maroon: {
+          50: '#FFF1F2',
+          100: '#FFE4E6',
+          200: '#FECDD3',
+          600: '#E11D48',
+          700: '#BE123C',
+          800: '#9F1239',
+          900: '#881337',
+          DEFAULT: '#881337',
+        },
+        // Core surfaces: Dashboard is clean white; Sidebar retains deep navy
         canvas: {
-          light: '#F8FAFC',
-          dark: '#080B11',
-          DEFAULT: '#080B11',
+          light: '#FFFFFF',
+          DEFAULT: '#F8FAFC',
         },
         surface: {
-          DEFAULT: '#0F1420',
-          elevated: '#151C2C',
-          overlay: '#1B2438',
-          border: 'rgba(255, 255, 255, 0.08)',
-          'border-subtle': 'rgba(255, 255, 255, 0.04)',
-        },
-        // Light-mode counterparts
-        'surface-light': {
           DEFAULT: '#FFFFFF',
           elevated: '#F8FAFC',
           overlay: '#F1F5F9',
@@ -34,47 +46,42 @@ const config: Config = {
         // Semantic financial indicators
         fintech: {
           green: {
-            DEFAULT: '#10B981',
-            muted: 'rgba(16, 185, 129, 0.12)',
-            border: 'rgba(16, 185, 129, 0.25)',
+            DEFAULT: '#059669',
+            muted: 'rgba(5, 150, 105, 0.08)',
+            border: 'rgba(5, 150, 105, 0.2)',
           },
           amber: {
-            DEFAULT: '#F59E0B',
-            muted: 'rgba(245, 158, 11, 0.12)',
-            border: 'rgba(245, 158, 11, 0.25)',
+            DEFAULT: '#D97706',
+            muted: 'rgba(217, 119, 6, 0.08)',
+            border: 'rgba(217, 119, 6, 0.2)',
           },
           red: {
-            DEFAULT: '#EF4444',
-            muted: 'rgba(239, 68, 68, 0.12)',
-            border: 'rgba(239, 68, 68, 0.25)',
+            DEFAULT: '#DC2626',
+            muted: 'rgba(220, 38, 38, 0.08)',
+            border: 'rgba(220, 38, 38, 0.2)',
           },
           blue: {
-            DEFAULT: '#3B82F6',
-            muted: 'rgba(59, 130, 246, 0.12)',
-            border: 'rgba(59, 130, 246, 0.25)',
-          },
-          purple: {
-            DEFAULT: '#8B5CF6',
-            muted: 'rgba(139, 92, 246, 0.12)',
-            border: 'rgba(139, 92, 246, 0.25)',
+            DEFAULT: '#2563EB',
+            muted: 'rgba(37, 99, 235, 0.08)',
+            border: 'rgba(37, 99, 235, 0.2)',
           },
         },
         // Business identity tags
         biz: {
           haron: {
-            DEFAULT: '#F43F5E',
-            bg: 'rgba(244, 63, 94, 0.12)',
-            border: 'rgba(244, 63, 94, 0.24)',
+            DEFAULT: '#881337',
+            bg: '#FFF1F2',
+            border: '#FECDD3',
           },
           zenith: {
-            DEFAULT: '#0284C7',
-            bg: 'rgba(2, 132, 199, 0.12)',
-            border: 'rgba(2, 132, 199, 0.24)',
+            DEFAULT: '#0F172A',
+            bg: '#F1F5F9',
+            border: '#CBD5E1',
           },
           master: {
-            DEFAULT: '#8B5CF6',
-            bg: 'rgba(139, 92, 246, 0.12)',
-            border: 'rgba(139, 92, 246, 0.24)',
+            DEFAULT: '#6B21A8',
+            bg: '#FAF5FF',
+            border: '#E9D5FF',
           },
         },
       },
@@ -84,10 +91,8 @@ const config: Config = {
         modal: '14px',
       },
       boxShadow: {
-        'fintech-subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.2)',
-        'fintech-card': '0 4px 20px -2px rgba(0, 0, 0, 0.35)',
-        'fintech-glow-green': '0 0 24px -4px rgba(16, 185, 129, 0.2)',
-        'fintech-glow-amber': '0 0 24px -4px rgba(245, 158, 11, 0.2)',
+        'fintech-subtle': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        'fintech-card': '0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08)',
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],

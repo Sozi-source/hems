@@ -161,7 +161,7 @@ export default function DashboardOverviewPage() {
     <div className="space-y-6">
       {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
           {isMasterView ? 'All Businesses' : activeBusiness?.name || activeBusinessCode}
         </h1>
 
@@ -210,20 +210,21 @@ export default function DashboardOverviewPage() {
       {/* Business Breakdown in Master View */}
       {isMasterView && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="border-rose-500/20 bg-gradient-to-br from-rose-500/5 to-surface">
+          {/* Haron Fashion (Rich Maroon Accent) */}
+          <Card className="border border-slate-200 border-l-4 border-l-[#881337] bg-white shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded bg-rose-500/20 border border-rose-500/30 flex items-center justify-center font-bold text-xs text-rose-400">
+                <div className="w-8 h-8 rounded bg-rose-100 border border-rose-200 flex items-center justify-center font-bold text-xs text-[#881337]">
                   HF
                 </div>
-                <h4 className="text-sm font-semibold text-white">Haron Fashion</h4>
+                <h4 className="text-sm font-bold text-slate-900">Haron Fashion</h4>
               </div>
               <Badge variant="danger" size="sm">Active</Badge>
             </div>
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
               <div>
-                <span className="text-[11px] text-slate-400">Customer Debts</span>
-                <div className="text-base font-bold text-white">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase">Customer Debts</span>
+                <div className="text-base font-bold text-slate-900 mt-0.5">
                   <MoneyDisplay
                     minorUnits={businessCardsData['HARON_FASHION']?.debt || 0}
                     size="md"
@@ -231,8 +232,8 @@ export default function DashboardOverviewPage() {
                 </div>
               </div>
               <div>
-                <span className="text-[11px] text-slate-400">Collected</span>
-                <div className="text-base font-bold text-emerald-400">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase">Collected</span>
+                <div className="text-base font-bold text-emerald-700 mt-0.5">
                   <MoneyDisplay
                     minorUnits={businessCardsData['HARON_FASHION']?.collected || 0}
                     size="md"
@@ -243,20 +244,21 @@ export default function DashboardOverviewPage() {
             </div>
           </Card>
 
-          <Card className="border-sky-500/20 bg-gradient-to-br from-sky-500/5 to-surface">
+          {/* Zenith Plast (Deep Navy Accent) */}
+          <Card className="border border-slate-200 border-l-4 border-l-[#0F172A] bg-white shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded bg-sky-500/20 border border-sky-500/30 flex items-center justify-center font-bold text-xs text-sky-400">
+                <div className="w-8 h-8 rounded bg-slate-100 border border-slate-300 flex items-center justify-center font-bold text-xs text-[#0F172A]">
                   ZP
                 </div>
-                <h4 className="text-sm font-semibold text-white">Zenith Plast Distributors Ltd</h4>
+                <h4 className="text-sm font-bold text-slate-900">Zenith Plast Distributors Ltd</h4>
               </div>
               <Badge variant="info" size="sm">Active</Badge>
             </div>
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
               <div>
-                <span className="text-[11px] text-slate-400">Customer Debts</span>
-                <div className="text-base font-bold text-white">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase">Customer Debts</span>
+                <div className="text-base font-bold text-slate-900 mt-0.5">
                   <MoneyDisplay
                     minorUnits={businessCardsData['ZENITH_PLAST']?.debt || 0}
                     size="md"
@@ -264,8 +266,8 @@ export default function DashboardOverviewPage() {
                 </div>
               </div>
               <div>
-                <span className="text-[11px] text-slate-400">Collected</span>
-                <div className="text-base font-bold text-emerald-400">
+                <span className="text-[11px] font-semibold text-slate-500 uppercase">Collected</span>
+                <div className="text-base font-bold text-emerald-700 mt-0.5">
                   <MoneyDisplay
                     minorUnits={businessCardsData['ZENITH_PLAST']?.collected || 0}
                     size="md"

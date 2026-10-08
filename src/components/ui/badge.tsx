@@ -16,32 +16,32 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const variantStyles = {
-    neutral: 'bg-white/5 text-slate-300 border-white/10 dark:bg-white/5 dark:text-slate-300 dark:border-white/10',
-    success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    danger: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-    info: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-    purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    neutral: 'bg-slate-100 text-slate-700 border-slate-200',
+    success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    warning: 'bg-amber-50 text-amber-800 border-amber-200',
+    danger: 'bg-rose-50 text-rose-800 border-rose-200',
+    info: 'bg-slate-100 text-slate-800 border-slate-300',
+    purple: 'bg-purple-50 text-purple-800 border-purple-200',
   };
 
   const dotColors = {
-    neutral: 'bg-slate-400',
-    success: 'bg-emerald-400',
-    warning: 'bg-amber-400',
-    danger: 'bg-rose-400',
-    info: 'bg-sky-400',
-    purple: 'bg-purple-400',
+    neutral: 'bg-slate-500',
+    success: 'bg-emerald-600',
+    warning: 'bg-amber-600',
+    danger: 'bg-rose-600',
+    info: 'bg-slate-700',
+    purple: 'bg-purple-600',
   };
 
   const sizeStyles = {
-    sm: 'text-[11px] px-2 py-0.5 tracking-tight',
-    md: 'text-xs px-2.5 py-1 tracking-normal',
+    sm: 'text-[11px] px-2 py-0.5 font-medium',
+    md: 'text-xs px-2.5 py-1 font-semibold',
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center font-medium border rounded-full transition-colors whitespace-nowrap',
+        'inline-flex items-center border rounded-full transition-colors whitespace-nowrap',
         variantStyles[variant],
         sizeStyles[size],
         className

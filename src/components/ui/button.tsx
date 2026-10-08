@@ -11,21 +11,21 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading = false, children, disabled, ...props }, ref) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-fintech transition-all select-none disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50';
+      'inline-flex items-center justify-center font-medium rounded-fintech transition-all select-none disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20';
 
     const variantStyles = {
       primary:
-        'bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm shadow-indigo-600/30 border border-indigo-500/30',
+        'bg-[#0F172A] text-white hover:bg-slate-800 border border-slate-900 shadow-sm',
       secondary:
-        'bg-white/10 text-slate-100 hover:bg-white/15 border border-white/10 shadow-sm',
+        'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200 shadow-sm',
       outline:
-        'bg-transparent text-slate-200 hover:bg-white/5 border border-white/15 hover:border-white/25',
+        'bg-white text-slate-700 hover:bg-slate-50 border border-slate-300 shadow-sm',
       ghost:
-        'bg-transparent text-slate-300 hover:text-white hover:bg-white/5',
+        'bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100',
       danger:
-        'bg-rose-600/90 text-white hover:bg-rose-500 border border-rose-500/30 shadow-sm shadow-rose-600/20',
+        'bg-[#881337] text-white hover:bg-[#70102D] border border-[#70102D] shadow-sm',
       success:
-        'bg-emerald-600/90 text-white hover:bg-emerald-500 border border-emerald-500/30 shadow-sm shadow-emerald-600/20',
+        'bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-700 shadow-sm',
     };
 
     const sizeStyles = {

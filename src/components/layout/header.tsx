@@ -42,11 +42,11 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md border-b border-surface-border px-4 py-3">
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3">
       <div className="flex items-center justify-between gap-4">
         {/* Mobile: Switcher */}
         <div className="flex lg:hidden items-center gap-3 w-full max-w-xs">
-          <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0">
+          <div className="w-7 h-7 rounded-md bg-[#881337] flex items-center justify-center font-bold text-white text-xs shrink-0">
             H
           </div>
           <div className="flex-1 min-w-0">
@@ -56,18 +56,19 @@ export function Header() {
 
         {/* Desktop: Current View Scope */}
         <div className="hidden lg:flex items-center gap-2 text-xs">
-          <span className="text-slate-400">Viewing:</span>
+          <span className="text-slate-500 font-medium">Viewing:</span>
           {isMasterView ? (
             <Badge variant="purple" size="md">
               All Businesses
             </Badge>
+          ) : activeBusinessCode === 'HARON_FASHION' ? (
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200">
+              {activeBusiness?.name || 'Haron Fashion'}
+            </span>
           ) : (
-            <Badge
-              variant={activeBusinessCode === 'HARON_FASHION' ? 'danger' : 'info'}
-              size="md"
-            >
-              {activeBusiness?.name || activeBusinessCode}
-            </Badge>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-300">
+              {activeBusiness?.name || 'Zenith Plast'}
+            </span>
           )}
         </div>
 
@@ -83,16 +84,16 @@ export function Header() {
           </Button>
 
           {userEmail && (
-            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-surface-border text-xs text-slate-300">
+            <div className="hidden sm:flex items-center gap-1.5 pl-2 border-l border-slate-200 text-xs text-slate-600">
               <User className="w-3.5 h-3.5 text-slate-400" />
-              <span className="truncate max-w-[140px]">{userEmail}</span>
+              <span className="truncate max-w-[140px] font-medium">{userEmail}</span>
             </div>
           )}
 
           <button
             onClick={handleSignOut}
             title="Sign Out"
-            className="p-1.5 rounded-md text-slate-400 hover:text-rose-300 hover:bg-white/5 transition-colors"
+            className="p-1.5 rounded-md text-slate-400 hover:text-rose-700 hover:bg-slate-100 transition-colors"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -103,7 +104,6 @@ export function Header() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => {
-          // Trigger page reload / event
           window.location.reload();
         }}
       />

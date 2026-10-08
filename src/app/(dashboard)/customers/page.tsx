@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { MoneyDisplay } from '@/components/ui/money-display';
 import { fmt_phone } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Users, RefreshCw } from 'lucide-react';
+import { Plus, Users, RefreshCw, Smartphone } from 'lucide-react';
 import { AddCustomerModal } from '@/components/customers/add-customer-modal';
+import { StkPromptModal } from '@/components/payments/stk-prompt-modal';
 
 interface CustomerItem {
   id: string;
@@ -25,13 +26,13 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<CustomerItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [stkTarget, setStkTarget] = useState<CustomerItem | null>(null);
 
   async function loadCustomers() {
     setIsLoading(true);
     try {
       const supabase = createClient();
 
-      // Query v_customer_balances for real-time customer balances
       let query = supabase
         .from('v_customer_balances')
         .select('customer_id, business_id, customer_no, full_name, phone, outstanding_minor, open_debts')
@@ -56,7 +57,6 @@ export default function CustomersPage() {
           }))
         );
       } else {
-        // Fallback directly to customers table if view has no entries
         let fallbackQuery = supabase
           .from('customers')
           .select('id, business_id, customer_no, full_name, phone')
@@ -83,7 +83,7 @@ export default function CustomersPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
           Customers
         </h1>
 
@@ -99,11 +99,11 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      <Card>
+      <Card className="bg-white border-slate-200/90 shadow-sm p-0 overflow-hidden">
         {customers.length === 0 ? (
           <div className="text-center py-12 px-4">
-            <Users className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-            <div className="text-sm font-medium text-slate-300">
+            <Users className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+            <div className="text-sm font-medium text-slate-600">
               No customers added yet
             </div>
           </div>
@@ -111,27 +111,28 @@ export default function CustomersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-surface-border text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                   <th className="py-3 px-4">Account No</th>
                   <th className="py-3 px-4">Name</th>
                   <th className="py-3 px-4">Phone</th>
                   <th className="py-3 px-4 text-right">Current Debt</th>
+                  <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-border/40 text-xs">
+              <tbody className="divide-y divide-slate-100 text-xs">
                 {customers.map((cust) => (
-                  <tr key={cust.id} className="hover:bg-surface-elevated/40 transition-colors">
+                  <tr key={cust.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-3.5 px-4">
-                      <span className="font-mono font-bold text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">
+                      <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded border border-slate-200">
                         {cust.customer_no}
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4 font-semibold text-slate-200">
+                    <td className="py-3.5 px-4 font-bold text-slate-900">
                       {cust.full_name}
                     </td>
 
-                    <td className="py-3.5 px-4 font-mono text-slate-300">
+                    <td className="py-3.5 px-4 font-mono text-slate-600">
                       {fmt_phone(cust.phone)}
                     </td>
 
@@ -141,6 +142,23 @@ export default function CustomersPage() {
                         size="sm"
                         variant={(cust.outstanding_minor || 0) > 0 ? 'positive' : 'neutral'}
                       />
+                    </td>
+
+                    <td className="py-3.5 px-4 text-right">
+                      {(cust.outstanding_minor || 0) > 0 ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-slate-800"
+                          onClick={() => setStkTarget(cust)}
+                          title="Prompt customer via M-Pesa"
+                        >
+                          <Smartphone className="w-3.5 h-3.5 mr-1 text-emerald-700" />
+                          Prompt M-Pesa
+                        </Button>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -155,6 +173,20 @@ export default function CustomersPage() {
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={loadCustomers}
       />
+
+      {stkTarget && (
+        <StkPromptModal
+          isOpen={Boolean(stkTarget)}
+          onClose={() => setStkTarget(null)}
+          businessId={stkTarget.business_id}
+          customerId={stkTarget.id}
+          customerName={stkTarget.full_name}
+          customerPhone={stkTarget.phone || ''}
+          amountMinor={stkTarget.outstanding_minor || 0}
+          accountReference={stkTarget.customer_no}
+          onSuccess={loadCustomers}
+        />
+      )}
     </div>
   );
 }

@@ -96,7 +96,7 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
     <Modal isOpen={isOpen} onClose={onClose} title="Add Customer" maxWidth="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-fintech bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
+          <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
             {error}
           </div>
         )}
@@ -104,17 +104,17 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
         {/* Business Selector (shown if in Master view or multiple businesses) */}
         {isMasterView && businesses.length > 0 && (
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-300">
+            <label className="block text-xs font-semibold text-slate-700">
               Business
             </label>
             <select
               value={businessId}
               onChange={(e) => setBusinessId(e.target.value)}
-              className="flex h-10 w-full rounded-fintech border border-surface-border bg-surface-elevated px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60 transition-colors"
+              className="flex h-10 w-full rounded-fintech border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-colors"
               required
             >
               {businesses.map((b) => (
-                <option key={b.id || b.code} value={b.id} className="bg-surface text-slate-100">
+                <option key={b.id || b.code} value={b.id} className="bg-white text-slate-900">
                   {b.name}
                 </option>
               ))}
@@ -149,7 +149,7 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
           onChange={(e) => setCreditLimit(e.target.value)}
         />
 
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-surface-border/60">
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>

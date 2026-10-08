@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ArrowDownLeft, Receipt, Settings, Menu } from 'lucide-react';
+import { LayoutDashboard, ArrowDownLeft, Receipt, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function MobileNav() {
@@ -33,7 +33,7 @@ export function MobileNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-xl border-t border-surface-border px-2 py-1.5 z-40 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0A1128]/95 backdrop-blur-xl border-t border-slate-800 px-2 py-1.5 z-40 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="flex items-center justify-around">
         {items.map((item) => {
           const isActive = pathname === item.href;
@@ -44,13 +44,13 @@ export function MobileNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center justify-center py-1.5 px-3 rounded-lg text-[10px] font-medium transition-all select-none',
+                'flex flex-col items-center justify-center py-1 px-3 rounded-lg text-[10px] font-medium transition-all select-none',
                 isActive
-                  ? 'text-indigo-400 bg-indigo-500/10'
+                  ? 'text-white bg-slate-800/90'
                   : 'text-slate-400 hover:text-slate-200'
               )}
             >
-              <Icon className="w-5 h-5 mb-0.5" />
+              <Icon className={cn('w-5 h-5 mb-0.5', isActive ? 'text-rose-400' : 'text-slate-400')} />
               <span>{item.label}</span>
             </Link>
           );

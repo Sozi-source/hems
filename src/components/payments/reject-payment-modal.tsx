@@ -68,13 +68,13 @@ export function RejectPaymentModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Reject Payment" maxWidth="sm">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-fintech bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium">
+          <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
             {error}
           </div>
         )}
 
-        <div className="p-3 rounded-fintech bg-surface-elevated border border-surface-border text-xs text-slate-300">
-          <div className="font-mono font-bold text-slate-100 mb-1">
+        <div className="p-3 rounded-fintech bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-0.5">
+          <div className="font-mono font-bold text-slate-900">
             {payment.transaction_ref}
           </div>
           <div>From: {payment.payer_name || 'Customer'}</div>
@@ -90,7 +90,7 @@ export function RejectPaymentModal({
           autoFocus
         />
 
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-surface-border/60">
+        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>

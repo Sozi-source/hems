@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,11 @@ export function Modal({
   maxWidth = 'md',
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -41,7 +47,7 @@ export function Modal({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const maxWidthClasses = {
     sm: 'max-w-sm',
@@ -50,44 +56,49 @@ export function Modal({
     xl: 'max-w-xl',
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Modal Dialog */}
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        className={cn(
-          'relative w-full rounded-fintech border border-surface-border bg-surface shadow-2xl p-6 text-slate-100 z-10 my-8 transform transition-all',
-          maxWidthClasses[maxWidth]
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-surface-border/60">
-          <h3 id="modal-title" className="text-base font-semibold text-white tracking-tight">
-            {title}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors focus:outline-none"
-            aria-label="Close dialog"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+      {/* Centering wrapper that allows safe top-down scrolling on short viewports */}
+      <div className="flex min-h-full items-start sm:items-center justify-center p-3 sm:p-6 text-center">
+        {/* Modal Dialog */}
+        <div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          className={cn(
+            'relative w-full rounded-modal border border-slate-200 bg-white shadow-2xl p-5 sm:p-6 text-left text-slate-900 z-10 my-4 sm:my-8 transform transition-all max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col',
+            maxWidthClasses[maxWidth]
+          )}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200 shrink-0">
+            <h3 id="modal-title" className="text-base font-bold text-slate-900 tracking-tight">
+              {title}
+            </h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors focus:outline-none"
+              aria-label="Close dialog"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
-        {/* Body */}
-        <div>{children}</div>
+          {/* Body (scrollable if contents exceed screen height) */}
+          <div className="overflow-y-auto pr-1 -mr-1">{children}</div>
+        </div>
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
