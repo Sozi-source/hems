@@ -1,0 +1,92 @@
+export type BusinessCode = 'HARON_FASHION' | 'ZENITH_PLAST' | 'MASTER';
+
+export type UserRole = 'owner' | 'admin' | 'accountant' | 'cashier' | 'viewer';
+
+export interface Business {
+  id: string;
+  code: string;
+  name: string;
+  legal_name: string | null;
+  created_at?: string;
+}
+
+export type ObligationKind =
+  | 'customer_debt'
+  | 'supplier_payable'
+  | 'loan'
+  | 'bill'
+  | 'salary'
+  | 'staff_advance'
+  | 'tax';
+
+export type ObligationDirection = 'receivable' | 'payable';
+
+export type ObligationStatus =
+  | 'draft'
+  | 'pending'
+  | 'active'
+  | 'settled'
+  | 'overdue'
+  | 'written_off'
+  | 'cancelled';
+
+export interface Obligation {
+  id: string;
+  business_id: string;
+  kind: ObligationKind;
+  direction: ObligationDirection;
+  party_id: string;
+  party_name?: string;
+  party_phone?: string;
+  principal_minor: number;
+  balance_minor: number;
+  status: ObligationStatus;
+  due_date: string;
+  issue_date: string;
+  reference_no: string;
+  notes?: string;
+  created_at: string;
+}
+
+export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'reversed';
+export type PaymentProvider = 'mpesa_c2b' | 'mpesa_stk' | 'mpesa_b2c' | 'bank' | 'cash';
+
+export interface PaymentTransaction {
+  id: string;
+  business_id: string | null;
+  business_name?: string;
+  provider: PaymentProvider;
+  transaction_ref: string;
+  amount_minor: number;
+  payer_phone?: string;
+  payer_name?: string;
+  bill_ref_number?: string;
+  status: PaymentStatus;
+  allocated_minor: number;
+  unallocated_minor: number;
+  match_confidence?: number;
+  received_at: string;
+  approved_at?: string;
+}
+
+export interface BusinessDashboardStats {
+  business_id: string;
+  code: string;
+  name: string;
+  receivables_total_minor: number;
+  receivables_overdue_minor: number;
+  payables_total_minor: number;
+  collected_this_month_minor: number;
+  pending_payments_count: number;
+  pending_payments_total_minor: number;
+  active_customers_count: number;
+  overdue_obligations_count: number;
+}
+
+export interface MasterDashboardStats {
+  total_receivables_minor: number;
+  total_payables_minor: number;
+  total_collected_month_minor: number;
+  total_pending_approval_minor: number;
+  businesses: BusinessDashboardStats[];
+}
