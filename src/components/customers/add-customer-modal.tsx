@@ -68,7 +68,16 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
         }),
       });
 
-      const resData = await res.json();
+      let resData: any = {};
+      const responseText = await res.text();
+      try {
+        resData = JSON.parse(responseText);
+      } catch {
+        if (!res.ok) {
+          throw new Error('Server error. If dev server was running during build, please restart npm run dev in your terminal.');
+        }
+      }
+
       if (!res.ok || !resData.success) {
         throw new Error(resData.error || 'Failed to create customer');
       }
@@ -128,7 +137,6 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
           placeholder="0712 345 678"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          hint="Accepts 07..., 01..., or 254..."
         />
 
         <Input
