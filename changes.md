@@ -1,5 +1,9 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Restore contrast for selected app content
+- Replaced the global translucent indigo/light-indigo text selection with a solid maroon selection and white text, matching the app palette and keeping selected content readable on light surfaces.
+- Inspected shared fixed/sticky layers: the modal backdrop, header, and mobile navigation are intentional; no additional app-wide content blocking overlay was found.
+
 ## 2026-10-09 - Simplify dashboard recent debts and bills
 - Reduced each recent item to counterparty, obligation type, due date, remaining balance, collect/pay direction, and status. Removed the reference and original amount from this compact dashboard summary to prevent crowding; full details remain available under Obligations.
 

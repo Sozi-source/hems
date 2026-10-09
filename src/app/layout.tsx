@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-canvas-dark text-slate-100 antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
+      <body className="bg-canvas-dark text-slate-100 antialiased selection:bg-[#881337] selection:text-white">
         <BusinessProvider>
           {children}
         </BusinessProvider>

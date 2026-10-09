@@ -26,6 +26,11 @@
   }
 }
 
+::selection {
+  background: #881337;
+  color: #ffffff;
+}
+
 /* Custom Sleek Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
