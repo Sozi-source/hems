@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     const shortcode = textValue(payload.BusinessShortCode);
     const accountReference = textValue(payload.BillRefNumber);
-    if (!/^\d{5,6}$/.test(shortcode)) {
+    if (!/^\d{5,7}$/.test(shortcode)) {
       return NextResponse.json({ ResultCode: 'C2B00012', ResultDesc: 'Invalid account number' });
     }
 

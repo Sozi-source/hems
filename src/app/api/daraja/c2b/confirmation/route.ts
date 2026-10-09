@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     const amountMinor = parseKesMinor(textValue(payload.TransAmount));
     const occurredAt = parseMpesaDate(textValue(payload.TransTime));
     const shortcode = textValue(payload.BusinessShortCode);
-    if (!/^[a-z0-9]{1,32}$/i.test(transactionRef) || !amountMinor || !occurredAt || !/^\d{5,6}$/.test(shortcode)) {
+    if (!/^[a-z0-9]{1,32}$/i.test(transactionRef) || !amountMinor || !occurredAt || !/^\d{5,7}$/.test(shortcode)) {
       return NextResponse.json({ ResultCode: 1, ResultDesc: 'Invalid transaction details' }, { status: 400 });
     }
 

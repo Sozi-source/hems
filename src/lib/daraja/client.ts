@@ -18,7 +18,7 @@ export function getDarajaConfig(businessCode?: string): DarajaConfig {
 
   const shortcode = setting('SHORTCODE');
   const passkey = setting('PASSKEY');
-  if (!/^\d{5,6}$/.test(shortcode) || !passkey) {
+  if (!/^\d{5,7}$/.test(shortcode) || !passkey) {
     throw new Error('Set the Daraja shortcode and passkey for the selected environment');
   }
 
