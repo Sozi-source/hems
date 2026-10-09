@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { MoneyDisplay } from '@/components/ui/money-display';
 import { Obligation } from '@/lib/types';
 import { fmt_date } from '@/lib/format';
-import { ArrowUpRight, ArrowDownLeft, Receipt } from 'lucide-react';
+import { ArrowUpRight, Receipt } from 'lucide-react';
 import Link from 'next/link';
 
 interface RecentActivityListProps {
@@ -42,9 +42,7 @@ export function RecentActivityList({ obligations }: RecentActivityListProps) {
         {obligations.length === 0 ? (
           <div className="text-center py-8 rounded-fintech border border-dashed border-slate-200 bg-slate-50/50 p-6">
             <Receipt className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
-            <div className="text-xs font-medium text-slate-500">
-              No debts or bills yet
-            </div>
+            <div className="text-xs font-medium text-slate-500">No debts or bills yet</div>
           </div>
         ) : (
           obligations.map((ob) => {
@@ -53,52 +51,26 @@ export function RecentActivityList({ obligations }: RecentActivityListProps) {
             return (
               <div
                 key={ob.id}
-                className="flex items-center justify-between p-3 rounded-fintech bg-slate-50/70 border border-slate-200/80 hover:bg-slate-100/70 transition-colors"
+                className="flex items-center justify-between gap-3 p-3 rounded-fintech bg-slate-50/70 border border-slate-200/80 hover:bg-slate-100/70 transition-colors"
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
-                      isReceivable
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                        : 'bg-rose-50 border-rose-200 text-rose-700'
-                    }`}
-                  >
-                    {isReceivable ? (
-                      <ArrowDownLeft className="w-4 h-4" />
-                    ) : (
-                      <ArrowUpRight className="w-4 h-4" />
-                    )}
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900 truncate">
-                        {ob.party_name}
-                      </span>
-                      <span className="font-mono text-[10px] text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                        {ob.reference_no}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-500 flex items-center gap-2">
-                      <span className="capitalize">{ob.kind.replace('_', ' ')}</span>
-                      <span>•</span>
-                      <span>Due: {fmt_date(ob.due_date)}</span>
-                    </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-slate-900 truncate">{ob.party_name}</div>
+                  <div className="mt-1 text-[11px] text-slate-500 truncate">
+                    <span className="capitalize">{ob.kind.replace('_', ' ')}</span>
+                    <span className="mx-1.5 text-slate-300">·</span>
+                    <span>Due {fmt_date(ob.due_date)}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="text-right">
-                    <MoneyDisplay
-                      minorUnits={ob.balance_minor}
-                      size="sm"
-                      variant={isReceivable ? 'positive' : 'negative'}
-                    />
-                    <div className="text-[10px] text-slate-400">
-                      Original: <MoneyDisplay minorUnits={ob.principal_minor} size="sm" showCents={false} />
-                    </div>
+                <div className="shrink-0 text-right space-y-1">
+                  <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                    {isReceivable ? 'To collect' : 'To pay'}
                   </div>
-
+                  <MoneyDisplay
+                    minorUnits={ob.balance_minor}
+                    size="sm"
+                    variant={isReceivable ? 'positive' : 'negative'}
+                  />
                   <div>{getStatusBadge(ob.status)}</div>
                 </div>
               </div>

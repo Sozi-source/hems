@@ -1,5 +1,8 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Simplify dashboard recent debts and bills
+- Reduced each recent item to counterparty, obligation type, due date, remaining balance, collect/pay direction, and status. Removed the reference and original amount from this compact dashboard summary to prevent crowding; full details remain available under Obligations.
+
 ## 2026-10-09 - Improve mobile app navigation and dashboard density
 - Added a five-slot mobile bottom navigation with direct links to Home, Payments, Debts, and Customers, plus a More menu for Reminders, Activity Log, and Settings. Active routes are highlighted and navigation respects device bottom safe areas.
 - Tightened mobile header and page gutters, increased reserved space below content for the fixed navigation bar, and made dashboard actions compact at narrow widths. Existing `md`/`lg` desktop spacing and sidebar visibility are preserved.
