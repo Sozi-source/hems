@@ -34,12 +34,14 @@ export function StkPromptModal({
   const [amount, setAmount] = useState((amountMinor / 100).toFixed(2));
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setError(null);
       setStatusMessage(null);
+      setCheckoutRequestId(null);
       setPhone(customerPhone || '');
       setAmount(amountMinor > 0 ? (amountMinor / 100).toFixed(2) : '');
     }
@@ -83,7 +85,8 @@ export function StkPromptModal({
         throw new Error(data.error || 'Failed to send prompt');
       }
 
-      setStatusMessage(data.customerMessage || 'M-Pesa PIN prompt sent to customer phone!');
+      setStatusMessage(data.customerMessage || 'Daraja accepted the request. The customer still needs to receive and respond to the prompt.');
+      setCheckoutRequestId(typeof data.checkoutRequestId === 'string' ? data.checkoutRequestId : null);
       onSuccess?.();
     } catch (err: any) {
       setError(err?.message || 'Failed to initiate STK push');
@@ -107,11 +110,19 @@ export function StkPromptModal({
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div className="text-sm font-bold text-slate-900">
-              Prompt Sent Successfully
+              Request Accepted
             </div>
             <p className="text-xs text-slate-600 max-w-xs mx-auto">
               {statusMessage}
             </p>
+            <p className="text-xs text-slate-500 max-w-xs mx-auto">
+              This confirms Daraja accepted the request; it does not confirm delivery to the phone. Check the customer’s M-Pesa line and request status before retrying.
+            </p>
+            {checkoutRequestId && (
+              <p className="text-[11px] text-slate-500 break-all">
+                Checkout request: <span className="font-mono">{checkoutRequestId}</span>
+              </p>
+            )}
             <Button
               type="button"
               variant="primary"

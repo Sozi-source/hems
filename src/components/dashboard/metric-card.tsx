@@ -25,23 +25,23 @@ export function MetricCard({
   };
 
   return (
-    <Card className="relative bg-white border-slate-200/90 shadow-sm">
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+    <Card className="relative bg-white border-slate-200/90 shadow-sm p-3 sm:p-5">
+      <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
+        <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide leading-tight">
           {title}
         </span>
         <div
           className={cn(
-            'w-8 h-8 rounded-lg flex items-center justify-center border shrink-0',
+            'w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center border shrink-0',
             iconBgStyles[variant]
           )}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </div>
       </div>
 
       <div>
-        <MoneyDisplay minorUnits={minorUnits} size="xl" variant={variant} />
+        <MoneyDisplay minorUnits={minorUnits} size="lg" className="text-base sm:text-xl" variant={variant} />
       </div>
     </Card>
   );

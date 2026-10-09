@@ -1,5 +1,14 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Improve mobile app navigation and dashboard density
+- Added a five-slot mobile bottom navigation with direct links to Home, Payments, Debts, and Customers, plus a More menu for Reminders, Activity Log, and Settings. Active routes are highlighted and navigation respects device bottom safe areas.
+- Tightened mobile header and page gutters, increased reserved space below content for the fixed navigation bar, and made dashboard actions compact at narrow widths. Existing `md`/`lg` desktop spacing and sidebar visibility are preserved.
+- Dashboard KPI cards now use a compact two-column mobile grid with smaller labels, icons, and currency figures. Existing horizontal scrolling remains available for wide data tables.
+
+## 2026-10-09 - Clarify M-Pesa STK acceptance vs phone delivery
+- The STK prompt UI now says “Request Accepted” after Daraja accepts an API request, instead of claiming the prompt was successfully delivered. It explains that handset delivery is not confirmed and displays the `CheckoutRequestID` for Safaricom tracing/status checks.
+- No test prompt was sent. If the handset did not receive it, inspect the newest `public.stk_requests` row before retrying; `sent` means the API accepted it and the callback/status is still pending, while `failed` or `cancelled` has a `result_desc` to review.
+
 ## 2026-10-09 - Require authentication before dashboard access
 - Found that the public root route rendered the dashboard layout without a server-side user check. Added a server-side Supabase `getUser()` guard that redirects unauthenticated requests to `/login` before rendering dashboard pages.
 - Reviewed auth code: password sign-in is entered through the login form; the public app URL does not contain credentials. Supabase sessions use browser-scoped SSR cookies. This guard addresses anonymous dashboard access; it does not establish whether an existing session was shared on the same device/browser.

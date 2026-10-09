@@ -169,18 +169,20 @@ export default function DashboardOverviewPage() {
           <Link href="/payments">
             <Button variant="secondary" size="sm">
               <CreditCard className="w-3.5 h-3.5 mr-1" />
-              Payments
+              <span className="hidden sm:inline">Payments</span>
+              <span className="sr-only sm:hidden">Payments</span>
             </Button>
           </Link>
           <Button variant="primary" size="sm" onClick={() => setIsCreateModalOpen(true)}>
             <Plus className="w-3.5 h-3.5 mr-1" />
-            New Debt or Bill
+            <span className="hidden sm:inline">New Debt or Bill</span>
+            <span className="sr-only sm:hidden">New Debt or Bill</span>
           </Button>
         </div>
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <MetricCard
           title="Customer Debts"
           minorUnits={stats.receivablesTotalMinor}
