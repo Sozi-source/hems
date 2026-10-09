@@ -1,5 +1,9 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Require authentication before dashboard access
+- Found that the public root route rendered the dashboard layout without a server-side user check. Added a server-side Supabase `getUser()` guard that redirects unauthenticated requests to `/login` before rendering dashboard pages.
+- Reviewed auth code: password sign-in is entered through the login form; the public app URL does not contain credentials. Supabase sessions use browser-scoped SSR cookies. This guard addresses anonymous dashboard access; it does not establish whether an existing session was shared on the same device/browser.
+
 ## 2026-10-09 - Add separate M-Pesa Till STK channel support (migration pending)
 - Safaricom's docs distinguish `CustomerBuyGoodsOnline` for Till from `CustomerPayBillOnline` for Paybill. HEMS STK prompts now select exactly one active M-Pesa Paybill/Till channel and use the matching transaction type. For Till, the configured Daraja Business Short Code is sent as `BusinessShortCode`, while the registered Till channel number is sent as `PartyB`.
 - Added `business_shortcode` to payment channels for the Safaricom Store/Business Short Code, leaving `shortcode` as the receiving Till number. STK prompts fail closed unless the channel's business shortcode matches the configured credentials. C2B callbacks can resolve channels against either field.
