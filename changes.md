@@ -1,5 +1,8 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Tighten login vertical spacing
+- Removed the “Welcome back” subtitle and reduced the sign-in heading-to-form and form-to-signup-link spacing without changing signup or recovery page spacing.
+
 ## 2026-10-09 - Add a matching bordered signup container
 - Wrapped the signup fields and submit action in the same restrained gray border and compact padding used by the login form, keeping the page surface unchanged.
 

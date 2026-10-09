@@ -7,12 +7,14 @@ export function AuthShell({
   description,
   children,
   footer,
+  compact = false,
 }: {
   eyebrow: string;
   title: string;
   description: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  compact?: boolean;
 }) {
   return (
     <main className="min-h-dvh bg-[#f1f1f2] text-slate-900">
@@ -51,13 +53,13 @@ export function AuthShell({
             </span>
           </div>
           <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-2 sm:max-w-[420px] sm:py-4">
-            <div className="mb-6 sm:mb-8">
+            <div className={compact ? 'mb-3 sm:mb-4' : 'mb-6 sm:mb-8'}>
               {eyebrow && <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8d2947] sm:mb-3 sm:text-[11px]">{eyebrow}</p>}
               <h1 className="text-2xl font-semibold tracking-tight text-[#252126] sm:text-[34px]">{title}</h1>
               {description && <p className="mt-1.5 text-sm leading-5 text-slate-500 sm:mt-2.5 sm:leading-6">{description}</p>}
             </div>
             {children}
-            {footer && <div className="mt-5 text-center text-[13px] text-slate-500 sm:mt-7 sm:text-sm">{footer}</div>}
+            {footer && <div className={compact ? 'mt-3 text-center text-[13px] text-slate-500 sm:mt-4 sm:text-sm' : 'mt-5 text-center text-[13px] text-slate-500 sm:mt-7 sm:text-sm'}>{footer}</div>}
           </div>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[10px] text-slate-400 sm:mt-8 sm:text-[11px] lg:justify-between">
             <span>© {new Date().getFullYear()} HEMS</span>

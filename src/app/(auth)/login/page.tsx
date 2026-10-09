@@ -33,7 +33,7 @@ export default function LoginPage() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not sign in.'); setLoading(false); }
   }
 
-  return <AuthShell eyebrow="HEMS WORKSPACE" title="Sign in" description="Welcome back." footer={<>New here? <AuthLink href="/signup">Create account</AuthLink></>}>
+  return <AuthShell eyebrow="HEMS WORKSPACE" title="Sign in" description="" compact footer={<>New here? <AuthLink href="/signup">Create account</AuthLink></>}>
     <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-[#d9d2d5] p-4 sm:p-5">
       {error && <AuthError>{error}</AuthError>}
       <AuthInput id="email" label="Work email" type="email" placeholder="you@company.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
