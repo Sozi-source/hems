@@ -31,8 +31,8 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
       setCreditLimit('');
       if (!isMasterView && activeBusinessId) {
         setBusinessId(activeBusinessId);
-      } else if (businesses.length > 0 && businesses[0].id) {
-        setBusinessId(businesses[0].id);
+      } else if (businesses.length > 0) {
+        setBusinessId(businesses[0].id || businesses[0].code);
       }
     }
   }, [isOpen, activeBusinessId, isMasterView, businesses]);
@@ -55,32 +55,22 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-      const insertPayload: Record<string, any> = {
-        business_id: targetBiz,
-        full_name: fullName.trim(),
-      };
+      const parsedLimit = creditLimit.trim() ? parse_kes(creditLimit) : 0n;
 
-      if (phone.trim()) {
-        insertPayload.phone = phone.trim();
-      }
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: targetBiz,
+          fullName: fullName.trim(),
+          phone: phone.trim() || undefined,
+          creditLimitMinor: parsedLimit > 0n ? Number(parsedLimit) : undefined,
+        }),
+      });
 
-      if (creditLimit.trim()) {
-        const parsedLimit = parse_kes(creditLimit);
-        if (parsedLimit > 0n) {
-          insertPayload.credit_limit_minor = Number(parsedLimit);
-        }
-      }
-
-      const { error: insertError } = await supabase
-        .from('customers')
-        .insert(insertPayload);
-
-      if (insertError) {
-        if (insertError.message?.includes('Invalid Kenyan phone number')) {
-          throw new Error('Please enter a valid Kenyan phone number (e.g. 0712345678)');
-        }
-        throw new Error(insertError.message || 'Failed to create customer');
+      const resData = await res.json();
+      if (!res.ok || !resData.success) {
+        throw new Error(resData.error || 'Failed to create customer');
       }
 
       onSuccess();
@@ -114,7 +104,7 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
               required
             >
               {businesses.map((b) => (
-                <option key={b.id || b.code} value={b.id} className="bg-white text-slate-900">
+                <option key={b.id || b.code} value={b.id || b.code} className="bg-white text-slate-900">
                   {b.name}
                 </option>
               ))}

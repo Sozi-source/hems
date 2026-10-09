@@ -37,7 +37,14 @@ export async function POST(request: Request) {
 
     // 4. Resolve shortcode and business attribution
     let shortcode = payload.BusinessShortCode ? payload.BusinessShortCode.trim() : null;
-    const directBusinessId = (payload as any).business_id || null;
+    let directBusinessId = (payload as any).business_id || null;
+
+    if (directBusinessId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(directBusinessId)) {
+      const { data: b } = await supabase.from('businesses').select('id').eq('code', directBusinessId).maybeSingle();
+      if (b) {
+        directBusinessId = b.id;
+      }
+    }
 
     if (shortcode) {
       const { data: chan } = await supabase

@@ -1,5 +1,18 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 — Form Validation & Business Select Resolution Fix (done, verified)
+- **Resolved "Please select an item in the list" Validation Trap**:
+  - Bound `<option value={b.id || b.code}>` across `AddCustomerModal`, `CreateObligationModal`, and `SimulatePaymentModal`.
+  - When `b.id` was initially empty (`""`), the HTML5 `<select required>` treated the option as unselected and halted submission with a browser validation tooltip.
+- **Server-Side Business Resolution** (`/api/businesses`):
+  - Added dedicated API route that queries `public.businesses` using service role admin client (`createAdminClient()`), bypassing client-side RLS and authentication timing issues.
+  - Updated `BusinessProvider` (`src/context/business-context.tsx`) to hydrate business records from `/api/businesses`.
+- **Customer Creation Endpoint** (`/api/customers`):
+  - Created server endpoint to handle customer creation with code-to-UUID resolution (e.g. mapping `'HARON_FASHION'` to its database UUID).
+  - Handles Kenyan phone numbers and credit limits with clean server-side error formatting.
+  - Updated `AddCustomerModal` to invoke `/api/customers`.
+- **Verification**: `npm run build` compiled 100% cleanly across all 18 routes (exit code 0).
+
 ## 2026-10-08 — Phase 2: Safaricom Daraja M-Pesa Pipeline & Automated Matching Engine (done, verified)
 - **Daraja API Client & Security** (`src/lib/daraja/client.ts`, `types.ts`):
   - Safaricom OAuth client credentials generator with in-memory token expiry caching.

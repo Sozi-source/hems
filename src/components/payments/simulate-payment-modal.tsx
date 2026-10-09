@@ -54,8 +54,8 @@ export function SimulatePaymentModal({
       setReceiptRef(generateReceipt());
       if (!isMasterView && activeBusinessId) {
         setBusinessId(activeBusinessId);
-      } else if (businesses.length > 0 && businesses[0].id) {
-        setBusinessId(businesses[0].id);
+      } else if (businesses.length > 0) {
+        setBusinessId(businesses[0].id || businesses[0].code);
       }
     }
   }, [isOpen, activeBusinessId, isMasterView, businesses]);
@@ -184,7 +184,7 @@ export function SimulatePaymentModal({
               required
             >
               {businesses.map((b) => (
-                <option key={b.id || b.code} value={b.id} className="bg-white text-slate-900">
+                <option key={b.id || b.code} value={b.id || b.code} className="bg-white text-slate-900">
                   {b.name}
                 </option>
               ))}

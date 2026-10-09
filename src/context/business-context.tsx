@@ -43,9 +43,18 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
       setActiveCode(saved);
     }
 
-    // 2. Fetch real businesses from Supabase
+    // 2. Fetch real businesses from API / Supabase
     async function fetchRealBusinesses() {
       try {
+        const res = await fetch('/api/businesses');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.businesses && json.businesses.length > 0) {
+            setBusinesses(json.businesses as Business[]);
+            return;
+          }
+        }
+
         const supabase = createClient();
         const { data } = await supabase
           .from('businesses')
