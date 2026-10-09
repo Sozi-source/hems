@@ -45,13 +45,16 @@ export function AuthShell({
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7b263e] text-white"><Building2 className="h-5 w-5" /></span>
               <span className="text-sm font-bold tracking-[0.2em]">HEMS</span>
             </Link>
-            <span className="text-xs font-medium text-slate-500">Secure workspace</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#d9d2d5] bg-white/70 px-2.5 py-1.5 text-[10px] font-semibold tracking-wide text-[#7b263e] shadow-sm">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Secure workspace
+            </span>
           </div>
           <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-2 sm:max-w-[420px] sm:py-4">
             <div className="mb-6 sm:mb-8">
-              <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8d2947] sm:mb-3 sm:text-[11px]">{eyebrow}</p>
+              {eyebrow && <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8d2947] sm:mb-3 sm:text-[11px]">{eyebrow}</p>}
               <h1 className="text-2xl font-semibold tracking-tight text-[#252126] sm:text-[34px]">{title}</h1>
-              <p className="mt-1.5 text-sm leading-5 text-slate-500 sm:mt-2.5 sm:leading-6">{description}</p>
+              {description && <p className="mt-1.5 text-sm leading-5 text-slate-500 sm:mt-2.5 sm:leading-6">{description}</p>}
             </div>
             {children}
             {footer && <div className="mt-5 text-center text-[13px] text-slate-500 sm:mt-7 sm:text-sm">{footer}</div>}

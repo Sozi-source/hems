@@ -1,5 +1,14 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Style the mobile auth security label
+- Replaced the plain mobile “Secure workspace” text with a compact outlined pill and shield icon, using the existing gray and maroon auth palette.
+
+## 2026-10-09 - Remove signup intro text
+- Removed the signup eyebrow and description so the page goes straight to the Create account heading and form. AuthShell now omits empty eyebrow/description content.
+
+## 2026-10-09 - Reduce signup page copy
+- Shortened the signup heading and description, simplified the email confirmation notice, and removed the redundant policy paragraph and decorative button arrow. Kept required fields, password validation, confirmation, and administrator access guidance.
+
 ## 2026-10-09 - Compact and frame the login form
 - Added a restrained bordered login form container and tightened field, button, heading, and page spacing for mobile and desktop. Kept the existing gray/maroon palette and sign-in, recovery, and signup flows.
 
