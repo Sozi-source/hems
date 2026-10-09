@@ -1,5 +1,8 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Compact and frame the login form
+- Added a restrained bordered login form container and tightened field, button, heading, and page spacing for mobile and desktop. Kept the existing gray/maroon palette and sign-in, recovery, and signup flows.
+
 ## 2026-10-09 - Make recent obligation Open actions functional
 - Added an Open link to each Recent Debts & Bills entry. It navigates to Debts & Invoices and scrolls to the matching obligation row.
 - Mapped `open` and `partially_paid` database statuses to readable labels rather than exposing raw underscored values.

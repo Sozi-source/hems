@@ -15,8 +15,8 @@ export function AuthShell({
   footer?: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-[#f1f1f2] text-slate-900">
-      <div className="grid min-h-screen w-full lg:grid-cols-[0.95fr_1.05fr]">
+    <main className="min-h-dvh bg-[#f1f1f2] text-slate-900">
+      <div className="grid min-h-dvh w-full lg:grid-cols-[0.95fr_1.05fr]">
         <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#292629] p-10 text-white lg:flex xl:p-14">
           <div className="relative z-10">
             <Link href="/login" className="inline-flex items-center gap-3" aria-label="HEMS home">
@@ -39,24 +39,24 @@ export function AuthShell({
           </div>
         </aside>
 
-        <section className="flex min-h-screen flex-col bg-[#f1f1f2] px-6 py-7 sm:px-10 sm:py-10 lg:px-14 xl:px-20">
-          <div className="mb-10 flex items-center justify-between lg:hidden">
+        <section className="flex min-h-dvh flex-col bg-[#f1f1f2] px-4 py-4 sm:px-10 sm:py-10 lg:px-14 xl:px-20">
+          <div className="mb-6 flex items-center justify-between gap-3 lg:hidden sm:mb-10">
             <Link href="/login" className="inline-flex items-center gap-2.5" aria-label="HEMS home">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7b263e] text-white"><Building2 className="h-5 w-5" /></span>
               <span className="text-sm font-bold tracking-[0.2em]">HEMS</span>
             </Link>
             <span className="text-xs font-medium text-slate-500">Secure workspace</span>
           </div>
-          <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center py-4">
-            <div className="mb-8">
-              <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.2em] text-[#8d2947]">{eyebrow}</p>
-              <h1 className="text-3xl font-semibold tracking-tight text-[#252126] sm:text-[34px]">{title}</h1>
-              <p className="mt-2.5 text-sm leading-6 text-slate-500">{description}</p>
+          <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-2 sm:max-w-[420px] sm:py-4">
+            <div className="mb-6 sm:mb-8">
+              <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8d2947] sm:mb-3 sm:text-[11px]">{eyebrow}</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-[#252126] sm:text-[34px]">{title}</h1>
+              <p className="mt-1.5 text-sm leading-5 text-slate-500 sm:mt-2.5 sm:leading-6">{description}</p>
             </div>
             {children}
-            {footer && <div className="mt-7 text-center text-sm text-slate-500">{footer}</div>}
+            {footer && <div className="mt-5 text-center text-[13px] text-slate-500 sm:mt-7 sm:text-sm">{footer}</div>}
           </div>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] text-slate-400 lg:justify-between">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[10px] text-slate-400 sm:mt-8 sm:text-[11px] lg:justify-between">
             <span>© {new Date().getFullYear()} HEMS</span>
             <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Protected sign-in</span>
           </div>

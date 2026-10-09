@@ -34,11 +34,11 @@ export default function LoginPage() {
   }
 
   return <AuthShell eyebrow="HEMS WORKSPACE" title="Sign in" description="Welcome back." footer={<>New here? <AuthLink href="/signup">Create account</AuthLink></>}>
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-[#d9d2d5] p-4 sm:p-5">
       {error && <AuthError>{error}</AuthError>}
       <AuthInput id="email" label="Work email" type="email" placeholder="you@company.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
-      <div className="space-y-2">
-        <div className="flex items-center justify-between"><label htmlFor="password" className="text-[13px] font-semibold text-slate-700">Password</label><AuthLink href="/forgot-password">Forgot password?</AuthLink></div>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between gap-2"><label htmlFor="password" className="text-[13px] font-semibold text-slate-700">Password</label><AuthLink href="/forgot-password">Forgot password?</AuthLink></div>
         <AuthInput id="password" label="" type="password" placeholder="Enter your password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required />
       </div>
       <AuthSubmit loading={loading}>Sign in</AuthSubmit>
