@@ -122,6 +122,15 @@ export default function ObligationsPage() {
     loadObligations();
   }, [activeBusinessId, isMasterView, directionFilter]);
 
+  useEffect(() => {
+    if (!obligations.length || !window.location.hash) return;
+    const targetId = decodeURIComponent(window.location.hash.slice(1));
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [obligations]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -185,7 +194,7 @@ export default function ObligationsPage() {
                   const isReceivable = ob.direction === 'receivable';
 
                   return (
-                    <tr key={ob.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr id={ob.id} key={ob.id} className="hover:bg-slate-50/80 transition-colors scroll-mt-24">
                       <td className="py-3.5 px-4">
                         <div className="font-mono font-bold text-slate-900">{ob.reference_no}</div>
                         <div className="text-[11px] text-slate-500 capitalize">

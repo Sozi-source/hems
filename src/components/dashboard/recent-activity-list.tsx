@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { MoneyDisplay } from '@/components/ui/money-display';
 import { Obligation } from '@/lib/types';
 import { fmt_date } from '@/lib/format';
-import { ArrowUpRight, Receipt } from 'lucide-react';
+import { ArrowUpRight, ExternalLink, Receipt } from 'lucide-react';
 import Link from 'next/link';
 
 interface RecentActivityListProps {
@@ -18,10 +18,14 @@ export function RecentActivityList({ obligations }: RecentActivityListProps) {
         return <Badge variant="success" size="sm" dot>Paid</Badge>;
       case 'active':
         return <Badge variant="info" size="sm" dot>Active</Badge>;
+      case 'open':
+        return <Badge variant="info" size="sm" dot>Open</Badge>;
+      case 'partially_paid':
+        return <Badge variant="warning" size="sm" dot>Partially paid</Badge>;
       case 'overdue':
         return <Badge variant="danger" size="sm" dot>Overdue</Badge>;
       default:
-        return <Badge variant="neutral" size="sm">{status}</Badge>;
+        return <Badge variant="neutral" size="sm">{status.replaceAll('_', ' ')}</Badge>;
     }
   };
 
@@ -71,7 +75,17 @@ export function RecentActivityList({ obligations }: RecentActivityListProps) {
                     size="sm"
                     variant={isReceivable ? 'positive' : 'negative'}
                   />
-                  <div>{getStatusBadge(ob.status)}</div>
+                  <div className="flex items-center justify-end gap-2">
+                    {getStatusBadge(ob.status)}
+                    <Link
+                      href={`/obligations#${ob.id}`}
+                      className="inline-flex min-h-7 items-center gap-1 rounded-md border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#881337]/30"
+                      aria-label={`Open ${ob.party_name} obligation`}
+                    >
+                      Open
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             );
