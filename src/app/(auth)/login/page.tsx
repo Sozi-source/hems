@@ -1,105 +1,48 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ArrowRight } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { AuthError, AuthInput, AuthSubmit } from '@/components/auth/auth-form';
+import { AuthLink, AuthShell } from '@/components/auth/auth-shell';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsLoading(true);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('auth_error') === 'link') {
+      setError('That confirmation or reset link is invalid or expired. Request a new link and try again.');
+    }
+  }, []);
 
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setError(null); setLoading(true);
     try {
       const supabase = createClient();
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
+      const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (authError) {
-        const message = authError.code === 'invalid_credentials'
-          ? 'Email or password is incorrect. Use the credentials for a user in this Supabase project.'
-          : authError.code === 'email_not_confirmed'
-            ? 'Confirm this email address before signing in.'
-            : authError.code === 'email_provider_disabled'
-              ? 'Email and password sign-in is disabled for this Supabase project.'
-              : authError.message || 'Could not sign in.';
-        throw new Error(message);
+        if (authError.code === 'email_not_confirmed') throw new Error('Confirm your email address before signing in.');
+        if (authError.code === 'email_provider_disabled') throw new Error('Email and password sign-in is disabled for this project.');
+        throw new Error(authError.code === 'invalid_credentials' ? 'The email or password is incorrect.' : authError.message || 'Could not sign in.');
       }
+      router.replace('/'); router.refresh();
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not sign in.'); setLoading(false); }
+  }
 
-      if (data.session) {
-        window.location.href = '/';
-      } else {
-        router.push('/');
-      }
-    } catch (err: any) {
-      setError(err?.message || 'Failed to sign in');
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex w-12 h-12 rounded-xl bg-[#881337] items-center justify-center font-bold text-white text-lg shadow-sm border border-rose-700/30">
-            H
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            HEMS
-          </h1>
-        </div>
-
-        <Card className="border-slate-200 bg-white shadow-xl">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
-                {error}
-              </div>
-            )}
-
-            <Input
-              label="Email"
-              type="email"
-              placeholder="owner@hems.co.ke"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoFocus
-            />
-
-            <Input
-              label="Password"
-              type="password"
-              placeholder="••••••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full mt-2"
-              isLoading={isLoading}
-            >
-              Sign In
-              <ArrowRight className="w-4 h-4 ml-1.5" />
-            </Button>
-          </form>
-        </Card>
+  return <AuthShell eyebrow="Welcome back" title="Sign in to HEMS" description="Enter your work email and password to access your business workspace." footer={<>New to HEMS? <AuthLink href="/signup">Create an account</AuthLink></>}>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {error && <AuthError>{error}</AuthError>}
+      <AuthInput id="email" label="Work email" type="email" placeholder="you@company.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
+      <div className="space-y-2">
+        <div className="flex items-center justify-between"><label htmlFor="password" className="text-[13px] font-semibold text-slate-700">Password</label><AuthLink href="/forgot-password">Forgot password?</AuthLink></div>
+        <AuthInput id="password" label="" type="password" placeholder="Enter your password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required />
       </div>
-    </div>
-  );
+      <AuthSubmit loading={loading}>Sign in securely <span aria-hidden="true">→</span></AuthSubmit>
+      <p className="text-center text-xs leading-5 text-slate-400">Access is limited to users assigned to a HEMS business workspace.</p>
+    </form>
+  </AuthShell>;
 }

@@ -1,5 +1,11 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Enterprise gray and maroon authentication experience
+- Replaced the basic sign-in page with a responsive HEMS authentication shell using slate-gray surfaces and maroon accents, shared accessible form controls, password visibility toggles, inline status/error messaging, and account-navigation links.
+- Added Supabase email/password sign-up, forgot-password, and reset-password routes. Added `/auth/callback` to exchange confirmation/reset PKCE codes for sessions and safely redirect to local relative paths.
+- Sign-up confirms by email when Supabase requires it; self-created users are told to ask an administrator for business access. Reset emails do not disclose whether an account exists.
+- Deployment setup still needs the production app URLs allowed in Supabase Auth redirect settings (including `/auth/callback?next=/` and `/auth/callback?next=/reset-password`). No auth-provider changes were made.
+
 ## 2026-10-09 - Support Safaricom-issued seven-digit STK shortcode
 - Safaricom API Support's approval email confirms the supplied seven-digit number is the production Business Short Code for STK Push. Updated STK config and C2B callback validation to accept numeric shortcodes from 5–7 digits; the earlier 5–6 digit check incorrectly rejected this approved shortcode.
 - Keep the active business M-Pesa channel shortcode equal to the approved value, and ensure its channel type matches the app's STK flow before retrying.
