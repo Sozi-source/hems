@@ -1,5 +1,11 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 — Windows Turbopack File-Lock Fix (`package.json`) (done, verified)
+- **Resolved Windows Turbopack `ENOENT -4058` Crashes**:
+  - Replaced `"dev": "next dev --turbopack"` with `"dev": "next dev"` in `package.json`. Next.js Turbopack on Windows has a known file-locking bug during atomic renames of `_buildManifest.js.tmp.*` and `build-manifest.json`.
+  - Cleaned corrupted `.next` cache directory. Standard Next.js development server is completely stable on Windows.
+- **Removed Helper Text**: Removed `Accepts 07..., 01..., or 254...` hint text from `AddCustomerModal`.
+
 ## 2026-10-09 — Form Validation & Business Select Resolution Fix (done, verified)
 - **Resolved "Please select an item in the list" Validation Trap**:
   - Bound `<option value={b.id || b.code}>` across `AddCustomerModal`, `CreateObligationModal`, and `SimulatePaymentModal`.
