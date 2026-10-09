@@ -1,111 +1,114 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendStkPush, normalizePhone } from '@/lib/daraja/client';
+import { getDarajaConfig, normalizePhone, sendStkPush } from '@/lib/daraja/client';
+
+const ALLOWED_ROLES = ['owner', 'admin', 'accountant', 'cashier'];
 
 export async function POST(request: Request) {
+  let stkRequestId: string | null = null;
+  let adminSupabase: ReturnType<typeof createAdminClient> | null = null;
+
   try {
+    const origin = request.headers.get('origin');
+    if (!origin || origin !== new URL(request.url).origin) {
+      return NextResponse.json({ error: 'Request origin could not be verified' }, { status: 403 });
+    }
+    if (!request.headers.get('content-type')?.toLowerCase().includes('application/json')) {
+      return NextResponse.json({ error: 'Expected an application/json request' }, { status: 415 });
+    }
+
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const {
-      businessId,
-      customerId,
-      phone,
-      amountMinor,
-      accountReference,
-      description,
-    } = body;
-
-    if (!businessId || !phone || !amountMinor || Number(amountMinor) <= 0) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    const businessId = typeof body.businessId === 'string' ? body.businessId : '';
+    const customerId = typeof body.customerId === 'string' ? body.customerId : '';
+    const amountText = String(body.amountMinor ?? '');
+    if (!/^[0-9]+$/.test(amountText) || !businessId || !customerId) {
+      return NextResponse.json({ error: 'Business, customer, and a valid whole-KSh amount are required' }, { status: 400 });
     }
 
-    const adminSupabase = createAdminClient();
-
-    // 1. Resolve payment channel for the business
-    let channelId: string | null = null;
-    const { data: channel } = await adminSupabase
-      .from('payment_channels')
-      .select('id, shortcode')
-      .eq('business_id', businessId)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
-
-    if (channel) {
-      channelId = channel.id;
-    } else {
-      const defaultShortcode = process.env.DARAJA_SHORTCODE || '174379';
-      const { data: existingWithShortcode } = await adminSupabase
-        .from('payment_channels')
-        .select('id, business_id')
-        .eq('provider', 'mpesa_paybill')
-        .eq('shortcode', defaultShortcode)
-        .maybeSingle();
-
-      if (existingWithShortcode && existingWithShortcode.business_id === businessId) {
-        channelId = existingWithShortcode.id;
-      } else if (!existingWithShortcode) {
-        const { data: newChan } = await adminSupabase
-          .from('payment_channels')
-          .insert({
-            business_id: businessId,
-            provider: 'mpesa_paybill',
-            shortcode: defaultShortcode,
-            label: 'M-Pesa Paybill',
-          })
-          .select('id')
-          .single();
-        channelId = newChan?.id || null;
-      } else {
-        const fallbackCode = `${defaultShortcode}-${businessId.slice(0, 4)}`;
-        const { data: newChan } = await adminSupabase
-          .from('payment_channels')
-          .insert({
-            business_id: businessId,
-            provider: 'mpesa_paybill',
-            shortcode: fallbackCode,
-            label: 'M-Pesa Paybill',
-          })
-          .select('id')
-          .single();
-        channelId = newChan?.id || null;
-      }
+    const amountBigInt = BigInt(amountText);
+    if (amountBigInt < 100n || amountBigInt % 100n !== 0n || amountBigInt > BigInt(Number.MAX_SAFE_INTEGER)) {
+      return NextResponse.json({ error: 'STK amount must be at least KSh 1, in whole shillings, and within the supported range' }, { status: 400 });
     }
 
-    // 2. Format phone number & whole KSh amount
-    const formattedPhone = normalizePhone(phone);
-    const amountKes = Math.ceil(Number(amountMinor) / 100);
+    adminSupabase = createAdminClient();
 
-    // 3. Send STK Push request to Safaricom Daraja
-    const stkResponse = await sendStkPush({
-      phone: formattedPhone,
-      amount: amountKes,
-      accountReference: (accountReference || 'HEMS').slice(0, 12),
-      transactionDesc: (description || 'Debt Payment').slice(0, 13),
-    });
+    const [{ data: member }, { data: business }, { data: customer }, { data: channel }] = await Promise.all([
+      adminSupabase.from('business_members').select('role').eq('business_id', businessId).eq('user_id', user.id).eq('is_active', true).maybeSingle(),
+      adminSupabase.from('businesses').select('id, code').eq('id', businessId).eq('is_active', true).maybeSingle(),
+      adminSupabase.from('customers').select('id, business_id, phone, customer_no').eq('id', customerId).eq('business_id', businessId).maybeSingle(),
+      adminSupabase.from('payment_channels').select('id, shortcode').eq('business_id', businessId).eq('provider', 'mpesa_paybill').eq('is_active', true).maybeSingle(),
+    ]);
 
-    // 4. Record STK request in public.stk_requests
-    if (channelId && customerId) {
-      await adminSupabase.from('stk_requests').insert({
+    if (!member || !ALLOWED_ROLES.includes(member.role)) {
+      return NextResponse.json({ error: 'You are not allowed to send payment prompts for this business' }, { status: 403 });
+    }
+    if (!business || !customer || !channel) {
+      return NextResponse.json({ error: 'This business, customer, or active M-Pesa Paybill channel could not be verified' }, { status: 400 });
+    }
+
+    const config = getDarajaConfig(business.code);
+    if (!config.shortcode || channel.shortcode !== config.shortcode) {
+      return NextResponse.json({ error: 'The active Paybill channel does not match the configured Daraja shortcode. Correct the channel credentials before prompting a customer.' }, { status: 409 });
+    }
+
+    const phone = normalizePhone(typeof body.phone === 'string' ? body.phone : '');
+    const registeredPhone = normalizePhone(customer.phone || '');
+    if (!/^254[17][0-9]{8}$/.test(phone) || !registeredPhone || phone !== registeredPhone) {
+      return NextResponse.json({ error: 'Use the selected customer’s registered Kenyan mobile number. Update the customer record first if it is incorrect.' }, { status: 400 });
+    }
+
+    // Store the expected request before contacting Daraja so a fast callback can be correlated.
+    const { data: stkRequest, error: insertError } = await adminSupabase
+      .from('stk_requests')
+      .insert({
         business_id: businessId,
         customer_id: customerId,
-        channel_id: channelId,
+        channel_id: channel.id,
         purpose: 'debt_payment',
-        msisdn: formattedPhone,
-        amount_minor: Number(amountMinor),
-        account_reference: accountReference || null,
+        msisdn: phone,
+        amount_minor: Number(amountBigInt),
+        account_reference: customer.customer_no,
+        status: 'initiated',
+        requested_by: user.id,
+      })
+      .select('id')
+      .single();
+
+    if (insertError || !stkRequest) {
+      if (insertError?.code === 'P0001' && insertError.message.includes('rate limit')) {
+        return NextResponse.json({ error: insertError.message }, { status: 429 });
+      }
+      console.error('Could not persist STK request before provider call:', insertError?.message);
+      return NextResponse.json({ error: 'Could not safely record this payment prompt. No prompt was sent.' }, { status: 500 });
+    }
+    stkRequestId = stkRequest.id;
+
+    const stkResponse = await sendStkPush({
+      phone,
+      amount: Number(amountBigInt / 100n),
+      accountReference: customer.customer_no,
+      transactionDesc: 'Debt Payment',
+      businessCode: business.code,
+      config,
+    });
+
+    const { error: updateError } = await adminSupabase
+      .from('stk_requests')
+      .update({
         merchant_request_id: stkResponse.merchantRequestId,
         checkout_request_id: stkResponse.checkoutRequestId,
         status: 'sent',
-        requested_by: user.id,
-      });
+      })
+      .eq('id', stkRequest.id);
+
+    if (updateError) {
+      console.error('Provider accepted STK request but request correlation update failed:', updateError.message);
+      return NextResponse.json({ error: 'The provider accepted the prompt, but the system could not save its tracking reference. Check the payment inbox before retrying.' }, { status: 503 });
     }
 
     return NextResponse.json({
@@ -113,11 +116,16 @@ export async function POST(request: Request) {
       checkoutRequestId: stkResponse.checkoutRequestId,
       customerMessage: stkResponse.customerMessage,
     });
-  } catch (error: any) {
-    console.error('STK Push API error:', error);
-    return NextResponse.json(
-      { error: error?.message || 'Failed to initiate STK Push prompt' },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to initiate STK Push prompt';
+    if (stkRequestId && adminSupabase) {
+      const { error: updateError } = await adminSupabase
+        .from('stk_requests')
+        .update({ status: 'failed', result_desc: message.slice(0, 500), completed_at: new Date().toISOString() })
+        .eq('id', stkRequestId);
+      if (updateError) console.error('Could not mark failed STK request:', updateError.message);
+    }
+    console.error('STK Push API error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

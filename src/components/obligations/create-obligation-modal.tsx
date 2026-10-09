@@ -128,7 +128,7 @@ export function CreateObligationModal({
       const { data, error: rpcError } = await supabase.rpc('create_obligation', {
         p_business: targetBiz,
         p_kind: kind,
-        p_amount_minor: Number(minorUnits),
+        p_amount_minor: minorUnits.toString(),
         p_customer: kind === 'customer_debt' ? customerId : null,
         p_supplier: null,
         p_staff: null,
@@ -155,7 +155,7 @@ export function CreateObligationModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="New Debt or Bill" maxWidth="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && (
           <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
             {error}
@@ -283,7 +283,7 @@ export function CreateObligationModal({
           onChange={(e) => setDescription(e.target.value)}
         />
 
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
+        <div className="sticky bottom-0 z-10 flex items-center justify-end gap-2 border-t border-slate-200 bg-white pt-3 pb-1">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>

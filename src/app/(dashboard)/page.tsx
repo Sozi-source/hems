@@ -50,7 +50,7 @@ export default function DashboardOverviewPage() {
       // 1. Fetch pending payments
       let paymentsQuery = supabase
         .from('payment_transactions')
-        .select('*')
+        .select('id,business_id,provider,transaction_ref,amount_minor,occurred_at,payer_msisdn,payer_name,account_reference,status,unallocated_minor,match_confidence,conflict_flags')
         .eq('status', 'pending')
         .order('occurred_at', { ascending: false })
         .limit(5);

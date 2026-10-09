@@ -22,7 +22,7 @@ interface CustomerItem {
 }
 
 export default function CustomersPage() {
-  const { activeBusinessId, isMasterView } = useBusiness();
+  const { activeBusinessId, isMasterView, businesses } = useBusiness();
   const [customers, setCustomers] = useState<CustomerItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -113,6 +113,7 @@ export default function CustomersPage() {
               <thead>
                 <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                   <th className="py-3 px-4">Account No</th>
+                  {isMasterView && <th className="py-3 px-4">Business</th>}
                   <th className="py-3 px-4">Name</th>
                   <th className="py-3 px-4">Phone</th>
                   <th className="py-3 px-4 text-right">Current Debt</th>
@@ -127,6 +128,12 @@ export default function CustomersPage() {
                         {cust.customer_no}
                       </span>
                     </td>
+
+                    {isMasterView && (
+                      <td className="py-3.5 px-4 text-slate-600">
+                        {businesses.find((business) => business.id === cust.business_id)?.name || '—'}
+                      </td>
+                    )}
 
                     <td className="py-3.5 px-4 font-bold text-slate-900">
                       {cust.full_name}

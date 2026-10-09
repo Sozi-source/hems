@@ -34,6 +34,7 @@ export function ApprovePaymentModal({
   const { businesses, activeBusinessId } = useBusiness();
   const [targetBusinessId, setTargetBusinessId] = useState<string>('');
   const [approvalNote, setApprovalNote] = useState('Approved to customer account');
+  const [conflictResolutionNote, setConflictResolutionNote] = useState('');
   const [openObligations, setOpenObligations] = useState<OpenObligationOption[]>([]);
   const [selectedObligationId, setSelectedObligationId] = useState<string>('');
   const [allocationAmount, setAllocationAmount] = useState<string>('');
@@ -46,6 +47,7 @@ export function ApprovePaymentModal({
     if (isOpen && payment) {
       setError(null);
       setApprovalNote('Approved to customer account');
+      setConflictResolutionNote('');
       setAllocateToDebt(false);
       setSelectedObligationId('');
       setMatchedCandidateInfo(null);
@@ -117,17 +119,17 @@ export function ApprovePaymentModal({
 
     try {
       const supabase = createClient();
-      let allocationsPayload: Array<{ obligation_id: string; amount_minor: number }> = [];
+      let allocationsPayload: Array<{ obligation_id: string; amount_minor: string }> = [];
 
       if (allocateToDebt && selectedObligationId) {
-        const minor = Number(parse_kes(allocationAmount));
-        if (minor <= 0) {
+        const minor = parse_kes(allocationAmount);
+        if (minor <= 0n) {
           throw new Error('Allocation amount must be greater than zero');
         }
-        if (minor > payment.amount_minor) {
+        if (minor > BigInt(payment.amount_minor)) {
           throw new Error('Allocation cannot exceed the payment amount');
         }
-        allocationsPayload = [{ obligation_id: selectedObligationId, amount_minor: minor }];
+        allocationsPayload = [{ obligation_id: selectedObligationId, amount_minor: minor.toString() }];
       }
 
       if (allocationsPayload.length === 0 && !approvalNote.trim()) {
@@ -153,6 +155,32 @@ export function ApprovePaymentModal({
       setIsLoading(false);
     }
   };
+
+  const handleResolveConflicts = async () => {
+    setError(null);
+    if (conflictResolutionNote.trim().length < 20) {
+      setError('Describe how you independently verified this payment against the M-Pesa statement (at least 20 characters).');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const supabase = createClient();
+      const { error: resolveError } = await supabase.rpc('resolve_payment_conflicts', {
+        p_payment_id: payment.id,
+        p_resolution_note: conflictResolutionNote.trim(),
+      });
+      if (resolveError) throw new Error(resolveError.message || 'Could not record payment reconciliation');
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err?.message || 'Could not record payment reconciliation');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const hasConflicts = (payment.conflict_flags?.length || 0) > 0;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Approve Payment" maxWidth="md">
@@ -185,13 +213,41 @@ export function ApprovePaymentModal({
 
           {matchedCandidateInfo && (
             <div className="mt-2 p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
-              <span>Intelligent Match Found</span>
+              <span>Matching suggestion (not payment verification)</span>
               <span className="font-mono text-[10px] bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded">
-                {matchedCandidateInfo.confidence}% Confidence
+                {matchedCandidateInfo.confidence}% Match Score
               </span>
             </div>
           )}
         </div>
+
+        {hasConflicts && (
+          <div className="space-y-3 rounded-fintech border border-amber-300 bg-amber-50 p-3.5">
+            <div>
+              <p className="text-xs font-bold text-amber-950">Reconciliation required before approval</p>
+              <p className="mt-1 text-xs text-amber-900">
+                This payment has data conflicts ({payment.conflict_flags?.join(', ')}). Compare the receipt, amount, and receiving Paybill with the independent M-Pesa statement. Only an owner or admin can clear the hold.
+              </p>
+            </div>
+            <label className="block space-y-1.5 text-xs font-semibold text-slate-700">
+              Reconciliation details
+              <textarea
+                value={conflictResolutionNote}
+                onChange={(e) => setConflictResolutionNote(e.target.value)}
+                rows={3}
+                maxLength={1000}
+                placeholder="Record the independent statement or portal check performed"
+                className="w-full rounded-fintech border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+              />
+            </label>
+            <Button type="button" variant="primary" size="sm" isLoading={isLoading} onClick={handleResolveConflicts}>
+              Record Reconciliation
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
+              Cancel
+            </Button>
+          </div>
+        )}
 
         {/* Business Assignment if not assigned */}
         {!payment.business_id && businesses.length > 0 && (
@@ -277,14 +333,14 @@ export function ApprovePaymentModal({
           />
         )}
 
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
+        {!hasConflicts && <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
           <Button type="submit" variant="success" size="sm" isLoading={isLoading}>
             Confirm Approval
           </Button>
-        </div>
+        </div>}
       </form>
     </Modal>
   );

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useBusiness } from '@/context/business-context';
 import { parse_kes } from '@/lib/format';
-import { createClient } from '@/lib/supabase/client';
 
 interface AddCustomerModalProps {
   isOpen: boolean;
@@ -47,24 +46,42 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
       return;
     }
 
-    if (!fullName.trim()) {
-      setError('Full name is required');
+    const cleanName = fullName.trim().replace(/\s+/g, ' ');
+    if (cleanName.length < 2 || cleanName.length > 120) {
+      setError('Enter a customer name between 2 and 120 characters.');
+      return;
+    }
+
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phone.trim() && !(
+      /^0[17]\d{8}$/.test(phoneDigits) ||
+      /^254[17]\d{8}$/.test(phoneDigits) ||
+      /^[17]\d{8}$/.test(phoneDigits)
+    )) {
+      setError('Enter a valid Kenyan phone number, such as 0712345678 or 254712345678.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const parsedLimit = creditLimit.trim() ? parse_kes(creditLimit) : 0n;
+      const cleanLimit = creditLimit.trim();
+      if (cleanLimit && !/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(cleanLimit)) {
+        throw new Error('Enter a valid credit limit, such as 1000 or 1,000.00.');
+      }
+      const parsedLimit = cleanLimit ? parse_kes(cleanLimit) : 0n;
+      if (parsedLimit < 0n || parsedLimit > 9223372036854775807n) {
+        throw new Error('Credit limit must be between KSh 0 and KSh 92,233,720,368,547,758.07.');
+      }
 
       const res = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           businessId: targetBiz,
-          fullName: fullName.trim(),
+          fullName: cleanName,
           phone: phone.trim() || undefined,
-          creditLimitMinor: parsedLimit > 0n ? Number(parsedLimit) : undefined,
+          creditLimitMinor: cleanLimit ? parsedLimit.toString() : undefined,
         }),
       });
 

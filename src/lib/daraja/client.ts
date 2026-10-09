@@ -1,19 +1,33 @@
-import { DarajaConfig, StkInitiateParams } from './types';
+import { DarajaConfig } from './types';
+import { createHash } from 'node:crypto';
 
 // In-memory token cache
 let cachedToken: {
   accessToken: string;
   expiresAt: number;
+  credentialFingerprint: string;
 } | null = null;
 
-export function getDarajaConfig(): DarajaConfig {
-  const env = (process.env.DARAJA_ENVIRONMENT || 'sandbox') as 'sandbox' | 'production';
+export function getDarajaConfig(businessCode?: string): DarajaConfig {
+  const suffix = businessCode && /^[A-Z0-9_]+$/.test(businessCode) ? `_${businessCode}` : '';
+  const setting = (name: string) => process.env[`DARAJA_${name}${suffix}`]?.trim() || process.env[`DARAJA_${name}`]?.trim() || '';
+  const environment = setting('ENVIRONMENT');
+  if (environment !== 'sandbox' && environment !== 'production') {
+    throw new Error('DARAJA_ENVIRONMENT must be sandbox or production');
+  }
+
+  const shortcode = setting('SHORTCODE');
+  const passkey = setting('PASSKEY');
+  if (!/^\d{5,6}$/.test(shortcode) || !passkey) {
+    throw new Error('Set the Daraja shortcode and passkey for the selected environment');
+  }
+
   return {
-    environment: env,
-    consumerKey: process.env.DARAJA_CONSUMER_KEY || '',
-    consumerSecret: process.env.DARAJA_CONSUMER_SECRET || '',
-    passkey: process.env.DARAJA_PASSKEY || 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919', // Safaricom standard sandbox passkey
-    shortcode: process.env.DARAJA_SHORTCODE || '174379', // Safaricom standard sandbox shortcode
+    environment,
+    consumerKey: setting('CONSUMER_KEY'),
+    consumerSecret: setting('CONSUMER_SECRET'),
+    passkey,
+    shortcode,
     callbackUrl: process.env.DARAJA_CALLBACK_URL,
   };
 }
@@ -24,11 +38,14 @@ export function getBaseUrl(env: 'sandbox' | 'production'): string {
     : 'https://sandbox.safaricom.co.ke';
 }
 
-export async function getDarajaOAuthToken(customConfig?: Partial<DarajaConfig>): Promise<string> {
-  const config = { ...getDarajaConfig(), ...customConfig };
+export async function getDarajaOAuthToken(customConfig?: Partial<DarajaConfig>, businessCode?: string): Promise<string> {
+  const config = { ...getDarajaConfig(businessCode), ...customConfig };
 
   const now = Date.now();
-  if (cachedToken && cachedToken.expiresAt > now + 300000) {
+  const credentialFingerprint = createHash('sha256')
+    .update(`${config.environment}:${config.consumerKey}:${config.consumerSecret}`)
+    .digest('hex');
+  if (cachedToken && cachedToken.credentialFingerprint === credentialFingerprint && cachedToken.expiresAt > now + 300000) {
     return cachedToken.accessToken;
   }
 
@@ -57,6 +74,7 @@ export async function getDarajaOAuthToken(customConfig?: Partial<DarajaConfig>):
   cachedToken = {
     accessToken: data.access_token,
     expiresAt: now + expiresInMs,
+    credentialFingerprint,
   };
 
   return data.access_token;
@@ -67,15 +85,11 @@ export function generateStkPassword(shortcode: string, passkey: string, timestam
 }
 
 export function getTimestamp(): string {
-  const now = new Date();
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  const yyyy = now.getFullYear();
-  const MM = pad(now.getMonth() + 1);
-  const dd = pad(now.getDate());
-  const HH = pad(now.getHours());
-  const mm = pad(now.getMinutes());
-  const ss = pad(now.getSeconds());
-  return `${yyyy}${MM}${dd}${HH}${mm}${ss}`;
+  const values = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date()).map((part) => [part.type, part.value]));
+  return `${values.year}${values.month}${values.day}${values.hour}${values.minute}${values.second}`;
 }
 
 export function normalizePhone(phone: string): string {
@@ -99,19 +113,54 @@ export async function sendStkPush(params: {
   transactionDesc?: string;
   config?: Partial<DarajaConfig>;
   callbackUrl?: string;
+  businessCode?: string;
 }) {
-  const config = { ...getDarajaConfig(), ...params.config };
-  const token = await getDarajaOAuthToken(config);
+  const config = { ...getDarajaConfig(params.businessCode), ...params.config };
+  const token = await getDarajaOAuthToken(config, params.businessCode);
   const baseUrl = getBaseUrl(config.environment);
 
   const timestamp = getTimestamp();
   const password = generateStkPassword(config.shortcode, config.passkey, timestamp);
   const formattedPhone = normalizePhone(params.phone);
+  if (!/^254[17][0-9]{8}$/.test(formattedPhone)) throw new Error('Enter a valid Kenyan mobile number');
+  if (!Number.isSafeInteger(params.amount) || params.amount <= 0) throw new Error('STK amount must be a positive whole number of shillings');
 
-  const callback =
+  const callback = (
     params.callbackUrl ||
     config.callbackUrl ||
-    `${process.env.NEXT_PUBLIC_APP_URL || 'https://hems.co.ke'}/api/daraja/stk/callback`;
+    `${(process.env.NEXT_PUBLIC_APP_URL || 'https://hems.co.ke').replace(/\/$/, '')}/api/daraja/stk/callback`
+  ).trim();
+
+  let callbackUrl: URL;
+  try {
+    callbackUrl = new URL(callback);
+  } catch {
+    throw new Error('Daraja callback URL is invalid. Set DARAJA_CALLBACK_URL to the full callback endpoint.');
+  }
+
+  if (
+    callbackUrl.protocol !== 'https:' ||
+    callbackUrl.hostname === 'localhost' ||
+    callbackUrl.hostname === '127.0.0.1' ||
+    callbackUrl.hostname === '[::1]'
+  ) {
+    throw new Error(
+      'Daraja requires a public HTTPS callback URL. Set DARAJA_CALLBACK_URL to your deployed callback or HTTPS tunnel endpoint.'
+    );
+  }
+
+  if (
+    config.environment === 'production' &&
+    /(^|\.)(ngrok-free\.dev|ngrok\.io|ngrok\.app)$/.test(callbackUrl.hostname)
+  ) {
+    throw new Error('Use your own deployed HTTPS domain for production Daraja callbacks; public tunnels are for development only.');
+  }
+
+  const webhookToken = process.env.DARAJA_WEBHOOK_TOKEN;
+  if (!webhookToken || webhookToken.length < 32) {
+    throw new Error('Set DARAJA_WEBHOOK_TOKEN to a random secret of at least 32 characters before enabling STK Push.');
+  }
+  callbackUrl.searchParams.set('token', webhookToken);
 
   const payload = {
     BusinessShortCode: config.shortcode,
@@ -122,7 +171,7 @@ export async function sendStkPush(params: {
     PartyA: formattedPhone,
     PartyB: config.shortcode,
     PhoneNumber: formattedPhone,
-    CallBackURL: callback,
+    CallBackURL: callbackUrl.toString(),
     AccountReference: params.accountReference.slice(0, 12),
     TransactionDesc: (params.transactionDesc || 'Debt Payment').slice(0, 13),
   };

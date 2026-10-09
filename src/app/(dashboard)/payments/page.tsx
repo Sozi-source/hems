@@ -30,7 +30,7 @@ export default function PaymentsPage() {
       const supabase = createClient();
       let query = supabase
         .from('payment_transactions')
-        .select('*')
+        .select('id,business_id,provider,transaction_ref,amount_minor,occurred_at,payer_msisdn,payer_name,account_reference,status,unallocated_minor,match_confidence,conflict_flags')
         .order('occurred_at', { ascending: false });
 
       if (!isMasterView && activeBusinessId) {
@@ -62,10 +62,12 @@ export default function PaymentsPage() {
         </h1>
 
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setIsSimulateModalOpen(true)}>
-            <Play className="w-3.5 h-3.5 mr-1 text-emerald-700" />
-            Simulate Payment
-          </Button>
+          {process.env.NODE_ENV !== 'production' && (
+            <Button variant="secondary" size="sm" onClick={() => setIsSimulateModalOpen(true)}>
+              <Play className="w-3.5 h-3.5 mr-1 text-emerald-700" />
+              Simulate Payment
+            </Button>
+          )}
 
           <Button variant="outline" size="sm" onClick={loadPayments} isLoading={isLoading}>
             <RefreshCw className="w-3.5 h-3.5 mr-1" />
@@ -142,11 +144,11 @@ export default function PaymentsPage() {
                         {item.match_confidence !== undefined && item.match_confidence > 0 && (
                           item.match_confidence >= 100 ? (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              100% Exact Match
+                              Exact reference suggestion
                             </span>
                           ) : (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
-                              {Math.round(item.match_confidence)}% Phone Match
+                              Phone match suggestion
                             </span>
                           )
                         )}
@@ -158,7 +160,11 @@ export default function PaymentsPage() {
                     </td>
 
                     <td className="py-3.5 px-4 text-center">
-                      {item.status === 'pending' ? (
+                      {item.status === 'pending' && (item.conflict_flags?.length || 0) > 0 ? (
+                        <Badge variant="danger" size="sm" dot>
+                          Reconcile first
+                        </Badge>
+                      ) : item.status === 'pending' ? (
                         <Badge variant="warning" size="sm" dot>
                           Pending
                         </Badge>
@@ -182,7 +188,7 @@ export default function PaymentsPage() {
                             className="h-7 px-2.5 text-xs font-medium"
                             onClick={() => setActivePaymentForApproval(item)}
                           >
-                            Approve
+                            {(item.conflict_flags?.length || 0) > 0 ? 'Reconcile' : 'Review'}
                           </Button>
                           <Button
                             variant="outline"

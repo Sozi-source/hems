@@ -1,5 +1,31 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Supabase CLI environment-file syntax repair
+- Fixed `.env.local` parsing by changing five bare SMS variable names into valid empty `KEY=` assignments and removing trailing whitespace. Existing environment values were preserved and not printed. The empty SMS settings still need real values before SMS delivery is configured.
+- Did not run `supabase db push`; the command applies pending migrations to the configured database. Retry it after reviewing the migration plan.
+
+## 2026-10-09 - Money pipeline security hardening (in progress)
+- Daraja STK prompts now require a verified same-origin request, active business membership with an operating role, an active M-Pesa Paybill channel matching that business's configured shortcode, the selected customer’s registered phone, and a safe whole-shilling amount. Credentials can be overridden per business code. The expected STK request is stored before calling Daraja; database advisory-lock limits cap prompts at 3 per customer and 10 per user per 10 minutes.
+- Daraja STK and C2B callback endpoints now require a 256-bit shared bearer token in the callback URL; the local `.env.local` has a generated token, and its value is not recorded here. STK callback receipts are ingested only when a recorded checkout request exists and amount, phone, and Nairobi transaction timestamp match. C2B business attribution comes only from a registered active M-Pesa channel; unknown channels stay unassigned and conflict-held. Payments without a business assignment are not auto-matched across tenants.
+- The dev payment simulator now uses an authenticated, role-checked endpoint and is disabled in production; it no longer calls the public Daraja confirmation webhook. Matching retries upsert one candidate per engine/rank, and payment conflict flags must be reconciled by an owner/admin with an auditable note before approval.
+- New migration `20261009000009_money_pipeline_hardening.sql` adds STK rate limiting, payment conflict holds/reconciliation audit fields, retry-safe match candidates, and removes browser `SELECT` access to raw provider payloads. Apply this migration before relying on these database protections.
+- Daraja configuration fails closed when shortcode, passkey, or environment is missing, uses Nairobi local time for STK passwords, and scopes its OAuth token cache to the environment and credentials. Browser payment views no longer request raw provider payloads. Obligation creation and approval-allocation RPC submissions send minor-unit amounts as strings to avoid JavaScript number conversion at those submission boundaries.
+- Verification: `npx.cmd tsc --noEmit --incremental false` passed; `git diff --check` passed. No payment was initiated and no database migration was applied.
+- Production setup remains: deploy the required secret env vars, register the tokenized C2B callback URLs, apply migration 09, configure Safaricom source-IP allowlisting at the trusted edge, and add independent transaction-status or statement reconciliation. The URL token is a bearer secret, not a Safaricom signature; keep it out of logs. Do not use ngrok in production.
+
+## 2026-10-09 - SMS worker foundation and customer creation repair (in progress)
+- Daraja STK Push now rejects localhost or non-HTTPS callback URLs with a clear setup error; `.env.example` documents `DARAJA_CALLBACK_URL` for a deployed host or HTTPS tunnel. Current local config uses localhost, explaining the `Invalid CallBackURL` response.
+- Duplicate cleanup: removed the newer, unreferenced same-business duplicate while retaining the original customer. A final database check found zero exact duplicate groups. The other repeated account number belongs to a different business.
+- Customer validation now checks 2-120 character names, supported Kenyan phone formats, and non-negative KSh credit limits with safe bigint precision. The API repeats these checks and rejects an existing normalized name/phone pair within the same business.
+- Added a database trigger migration for race-safe duplicate prevention and name normalization. The Master customer list now shows each business so per-business account numbers such as C0001 are distinguishable. Existing customer rows are retained for review; apply migration `20261009000008_customer_validation.sql` to enforce the database check.
+- Customer creation now requires a signed-in Supabase user and uses that session for business lookup and insertion, enforcing existing membership and customer RLS policies. The businesses endpoint is session-scoped too.
+- The admin client no longer falls back to the public anon key. Missing service-role configuration now fails clearly rather than running privileged operations as anonymous.
+- Added a service-only queue claim function using SKIP LOCKED, an authenticated Africa's Talking worker endpoint, and a token-protected callback that records delivery receipts.
+- Documented Africa's Talking credentials and worker/callback secrets in .env.example.
+- Remaining setup: apply the migration, set credentials and secrets, configure the provider callback URL, and schedule /api/sms/worker each minute. No real messages were sent; implementation was not built or exercised in this turn.
+- Runtime diagnosis: the Supabase Auth response includes `x-sb-error-code: invalid_credentials`, confirming the configured public key reaches the project but the submitted email/password were rejected. The logged-out REST 401s are consistent with the database migration revoking anonymous table access; they are not by themselves evidence of bad API keys. Do not rotate keys based on these responses.
+- Follow-up: customer/business API responses distinguish an API-key rejection from an invalid login session. Authenticate successfully before retrying customer creation; if the password login still fails, check the exact Auth error shown on the login form.
+
 ## 2026-10-09 — Windows Turbopack File-Lock Fix (`package.json`) (done, verified)
 - **Resolved Windows Turbopack `ENOENT -4058` Crashes**:
   - Replaced `"dev": "next dev --turbopack"` with `"dev": "next dev"` in `package.json`. Next.js Turbopack on Windows has a known file-locking bug during atomic renames of `_buildManifest.js.tmp.*` and `build-manifest.json`.

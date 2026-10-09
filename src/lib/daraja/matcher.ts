@@ -33,13 +33,23 @@ export async function matchPayment(paymentId: string): Promise<MatchResult | nul
   let ruleName = 'unmatched';
   const factors: Record<string, any> = {};
 
+  // Account numbers and phone numbers are not globally unique across tenants.
+  // Never let an unassigned callback guess which business owns a payment.
+  if (!businessId) {
+    return {
+      paymentId: payment.id,
+      confidence: 0,
+      ruleName: 'unassigned_business_requires_review',
+    };
+  }
+
   // 1. Direct Invoice Reference match (e.g. billRef is 'CD0001')
   if (billRef && resolvedBusinessId) {
     const { data: obligation } = await supabase
       .from('obligations')
       .select('id, customer_id, reference_no, balance_minor')
       .eq('business_id', resolvedBusinessId)
-      .ilike('reference_no', billRef)
+      .eq('reference_no', billRef)
       .eq('status', 'open')
       .limit(1)
       .maybeSingle();
@@ -58,7 +68,7 @@ export async function matchPayment(paymentId: string): Promise<MatchResult | nul
     let query = supabase
       .from('customers')
       .select('id, business_id, customer_no')
-      .ilike('customer_no', billRef);
+      .eq('customer_no', billRef);
 
     if (resolvedBusinessId) {
       query = query.eq('business_id', resolvedBusinessId);
@@ -119,7 +129,7 @@ export async function matchPayment(paymentId: string): Promise<MatchResult | nul
   // Record candidate and update transaction confidence
   if (confidence > 0 && resolvedBusinessId) {
     // Ensure payment transaction has business_id and suggested_kind set
-    await supabase
+    const { error: paymentUpdateError } = await supabase
       .from('payment_transactions')
       .update({
         business_id: resolvedBusinessId,
@@ -127,9 +137,9 @@ export async function matchPayment(paymentId: string): Promise<MatchResult | nul
         match_confidence: confidence,
       })
       .eq('id', payment.id);
+    if (paymentUpdateError) throw new Error(`Could not save payment match result: ${paymentUpdateError.message}`);
 
-    // Insert match candidate record
-    await supabase.from('match_candidates').insert({
+    const { error: candidateError } = await supabase.from('match_candidates').upsert({
       business_id: resolvedBusinessId,
       payment_id: payment.id,
       target_kind: 'customer_debt',
@@ -140,7 +150,8 @@ export async function matchPayment(paymentId: string): Promise<MatchResult | nul
       suggested_amount_minor: payment.amount_minor,
       rank: 1,
       engine_version: 'v1.0-daraja',
-    });
+    }, { onConflict: 'payment_id,engine_version,rank' });
+    if (candidateError) throw new Error(`Could not save payment match candidate: ${candidateError.message}`);
   }
 
   return {

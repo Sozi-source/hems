@@ -116,41 +116,30 @@ export function SimulatePaymentModal({
     setIsLoading(true);
 
     try {
-      const wholeKes = (Number(minor) / 100).toFixed(2);
-      const now = new Date();
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      const timeStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      if (minor > BigInt(Number.MAX_SAFE_INTEGER)) {
+        throw new Error('Amount is outside the supported range');
+      }
 
-      // Construct official Daraja C2B confirmation payload
-      const payload = {
-        TransactionType: 'Pay Bill',
-        TransID: receiptRef.trim().toUpperCase(),
-        TransTime: timeStr,
-        TransAmount: wholeKes,
-        BusinessShortCode: process.env.DARAJA_SHORTCODE || '174379',
-        BillRefNumber: accountRef.trim(),
-        InvoiceNumber: '',
-        OrgAccountBalance: '',
-        ThirdPartyTransID: '',
-        MSISDN: payerPhone.trim(),
-        FirstName: payerName.split(' ')[0] || 'Customer',
-        MiddleName: '',
-        LastName: payerName.split(' ').slice(1).join(' ') || '',
-        business_id: businessId || null,
-      };
-
-      const res = await fetch('/api/daraja/c2b/confirmation', {
+      const res = await fetch('/api/payments/simulate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          businessId,
+          customerId: selectedCustomerId,
+          transactionRef: receiptRef.trim().toUpperCase(),
+          amountMinor: Number(minor),
+          payerName: payerName.trim(),
+          payerPhone: payerPhone.trim(),
+          accountReference: accountRef.trim(),
+        }),
       });
 
       const resData = await res.json();
 
-      if (resData.ResultCode !== 0) {
-        throw new Error(resData.ResultDesc || 'Simulation failed');
+      if (!res.ok || !resData.success) {
+        throw new Error(resData.error || 'Simulation failed');
       }
 
       onSuccess();

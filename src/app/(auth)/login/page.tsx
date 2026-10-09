@@ -28,7 +28,14 @@ export default function LoginPage() {
       });
 
       if (authError) {
-        throw new Error(authError.message || 'Invalid email or password');
+        const message = authError.code === 'invalid_credentials'
+          ? 'Email or password is incorrect. Use the credentials for a user in this Supabase project.'
+          : authError.code === 'email_not_confirmed'
+            ? 'Confirm this email address before signing in.'
+            : authError.code === 'email_provider_disabled'
+              ? 'Email and password sign-in is disabled for this Supabase project.'
+              : authError.message || 'Could not sign in.';
+        throw new Error(message);
       }
 
       if (data.session) {

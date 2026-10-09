@@ -92,6 +92,10 @@ Customer number (`C0001`) doubles as the **Paybill account number**, which makes
 - STK Push callback returns receipt, amount, time and phone — **not a payer name**. The name, when available, comes from
   the C2B confirmation/SMS and is attached by matching the **receipt number**.
 - Must be idempotent: Safaricom can retry callbacks. `ingest_payment` already is.
+- Webhook handlers require a random 32-byte `DARAJA_WEBHOOK_TOKEN` in the callback URL. This is a bearer secret, not a provider signature; protect URL logs, configure Safaricom callback source-IP allowlisting at the trusted edge, and reconcile production payments against M-Pesa transaction-status/statement data.
+- STK callbacks may create a payment only when they match a persisted checkout request, requested amount, and registered phone. STK prompts must use the active business Paybill and selected customer's registered phone. Prompt rate limits and conflicted-payment holds are enforced by migration `20261009000009_money_pipeline_hardening.sql`.
+- Daraja credentials support per-business environment overrides using the uppercase business code suffix (e.g. `DARAJA_SHORTCODE_HARON_FASHION`). Shared credentials are fallback only; the STK route fails closed if the configured shortcode does not match the selected business's active Paybill channel.
+- Never query browser payment rows with `select('*')`; raw provider payloads are server-only. The payment simulator is development-only and must never call public Daraja callback endpoints.
 
 ## 9. Testing
 `./supabase/tests/run_tests.sh` (needs local Postgres 15+). Must print `ALL TESTS PASSED`.
@@ -99,12 +103,12 @@ Tests run on plain Postgres with a stubbed `auth` schema; before production also
 
 ## 10. Current phase status
 See `changes.md` (top entry = latest). Roadmap: 0 foundation → 1 database (done, tested) → **0b Next.js scaffold +
-design system (done, verified)** → 2 payment pipeline (Daraja C2B/STK, SMS parser, matching engine) → 3 SMS pipeline → 4 financial
+design system (done, verified)** → 2 payment pipeline (Daraja C2B/STK, SMS parser, matching engine; security hardening in progress) → 3 SMS pipeline → 4 financial
 modules UI (+ sales/stock/payroll tables) → 5 UI polish & reports → 6 security hardening & production.
 
 ## 11. Known gaps / deferred (do not forget)
 - Match-scoring engine (tables ready; scoring logic is Phase 2).
 - Sales, stock, payroll runs, intercompany transfers, eTIMS/VAT, reducing-balance loans, bank reconciliation: not yet modelled.
 - pg_cron schedules (`queue_due_reminders` every few minutes, `generate_recurring_obligations` daily) not created yet.
-- SMS sender worker + delivery-report webhook (Phase 3).
+- Phase 3 worker and delivery-report endpoints are implemented; deployment still needs the migration, Africas Talking credentials, callback URL, and a scheduler.
 - Kenya Data Protection Act: consent capture, retention policy, ODPC registration (business task).

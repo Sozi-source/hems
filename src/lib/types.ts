@@ -63,6 +63,8 @@ export interface PaymentTransaction {
   payer_name?: string;
   account_reference?: string;
   status: PaymentStatus;
+  conflict_flags?: string[];
+  conflict_resolution_note?: string | null;
   allocated_minor?: number;
   unallocated_minor?: number;
   match_confidence?: number;
