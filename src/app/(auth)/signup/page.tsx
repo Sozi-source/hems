@@ -59,7 +59,7 @@ export default function SignupPage() {
       description=""
       footer={<>Already have an account? <AuthLink href="/login">Sign in</AuthLink></>}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-[#d9d2d5] p-4 sm:p-5">
         {error && <AuthError>{error}</AuthError>}
         {sent && <AuthNotice>Check your email to confirm. An administrator must assign your business access.</AuthNotice>}
         <AuthInput id="full-name" label="Full name" placeholder="Your name" autoComplete="name" value={name} onChange={e => setName(e.target.value)} required />

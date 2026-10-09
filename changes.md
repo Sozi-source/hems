@@ -1,5 +1,8 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Add a matching bordered signup container
+- Wrapped the signup fields and submit action in the same restrained gray border and compact padding used by the login form, keeping the page surface unchanged.
+
 ## 2026-10-09 - Style the mobile auth security label
 - Replaced the plain mobile “Secure workspace” text with a compact outlined pill and shield icon, using the existing gray and maroon auth palette.
 
