@@ -1,5 +1,8 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Flatten auth page surfaces and use solid gray/maroon
+- Removed the framed white auth card and blurred decoration. Auth forms now sit directly on a flat light-gray surface beside a solid charcoal panel with maroon accents; auth feedback uses gray/maroon instead of green/rose colors.
+
 ## 2026-10-09 - Minimal login copy polish
 - Simplified login headings, subtitle, button, supporting text, and shared auth-shell branding copy for a quieter premium presentation; kept form labels, recovery links, and signup navigation intact.
 

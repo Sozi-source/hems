@@ -15,12 +15,9 @@ export function AuthShell({
   footer?: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-[#eef0f2] p-0 text-slate-900 sm:flex sm:items-center sm:justify-center sm:p-6 lg:p-10">
-      <div className="mx-auto grid min-h-screen w-full max-w-6xl overflow-hidden bg-white shadow-[0_28px_90px_rgba(31,24,27,0.14)] sm:min-h-[690px] sm:rounded-[26px] lg:grid-cols-[0.95fr_1.05fr]">
-        <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#33272b] p-10 text-white lg:flex xl:p-14">
-          <div className="absolute -right-28 -top-24 h-96 w-96 rounded-full border border-white/10" />
-          <div className="absolute -right-12 -top-8 h-64 w-64 rounded-full border border-white/10" />
-          <div className="absolute -bottom-32 -left-28 h-96 w-96 rounded-full bg-[#7b263e]/60 blur-3xl" />
+    <main className="min-h-screen bg-[#f1f1f2] text-slate-900">
+      <div className="grid min-h-screen w-full lg:grid-cols-[0.95fr_1.05fr]">
+        <aside className="relative hidden flex-col justify-between overflow-hidden bg-[#292629] p-10 text-white lg:flex xl:p-14">
           <div className="relative z-10">
             <Link href="/login" className="inline-flex items-center gap-3" aria-label="HEMS home">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#8d2947] shadow-lg shadow-black/20">
@@ -42,7 +39,7 @@ export function AuthShell({
           </div>
         </aside>
 
-        <section className="flex min-h-screen flex-col px-6 py-7 sm:px-10 sm:py-10 lg:min-h-0 lg:px-14 xl:px-20">
+        <section className="flex min-h-screen flex-col bg-[#f1f1f2] px-6 py-7 sm:px-10 sm:py-10 lg:px-14 xl:px-20">
           <div className="mb-10 flex items-center justify-between lg:hidden">
             <Link href="/login" className="inline-flex items-center gap-2.5" aria-label="HEMS home">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7b263e] text-white"><Building2 className="h-5 w-5" /></span>

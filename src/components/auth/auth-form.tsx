@@ -28,11 +28,11 @@ export function AuthInput({
 }
 
 export function AuthError({ children }: { children: React.ReactNode }) {
-  return <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-5 text-rose-800">{children}</div>;
+  return <div role="alert" className="rounded-xl border border-[#d8b8c2] bg-[#f7eff2] px-4 py-3 text-sm leading-5 text-[#6d243a]">{children}</div>;
 }
 
 export function AuthNotice({ children }: { children: React.ReactNode }) {
-  return <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-5 text-emerald-800">{children}</div>;
+  return <div role="status" className="rounded-xl border border-[#d8b8c2] bg-[#f7eff2] px-4 py-3 text-sm leading-5 text-[#6d243a]">{children}</div>;
 }
 
 export function AuthSubmit({ children, loading = false }: { children: React.ReactNode; loading?: boolean }) {
