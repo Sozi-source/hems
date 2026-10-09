@@ -22,11 +22,9 @@ export type ObligationKind =
 export type ObligationDirection = 'receivable' | 'payable';
 
 export type ObligationStatus =
-  | 'draft'
-  | 'pending'
-  | 'active'
-  | 'settled'
-  | 'overdue'
+  | 'open'
+  | 'partially_paid'
+  | 'paid'
   | 'written_off'
   | 'cancelled';
 

@@ -14,18 +14,18 @@ interface RecentActivityListProps {
 export function RecentActivityList({ obligations }: RecentActivityListProps) {
   const getStatusBadge = (status: Obligation['status']) => {
     switch (status) {
-      case 'settled':
+      case 'paid':
         return <Badge variant="success" size="sm" dot>Paid</Badge>;
-      case 'active':
-        return <Badge variant="info" size="sm" dot>Active</Badge>;
       case 'open':
         return <Badge variant="info" size="sm" dot>Open</Badge>;
       case 'partially_paid':
         return <Badge variant="warning" size="sm" dot>Partially paid</Badge>;
-      case 'overdue':
-        return <Badge variant="danger" size="sm" dot>Overdue</Badge>;
+      case 'written_off':
+        return <Badge variant="neutral" size="sm">Written off</Badge>;
+      case 'cancelled':
+        return <Badge variant="neutral" size="sm">Cancelled</Badge>;
       default:
-        return <Badge variant="neutral" size="sm">{status.replaceAll('_', ' ')}</Badge>;
+        return null;
     }
   };
 

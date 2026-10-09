@@ -223,7 +223,7 @@ export default function ObligationsPage() {
                       </td>
 
                       <td className="py-3.5 px-4 text-center">
-                        {ob.balance_minor === 0 || ob.status === 'settled' ? (
+                        {ob.balance_minor === 0 || ob.status === 'paid' ? (
                           <Badge variant="success" size="sm" dot>
                             Settled
                           </Badge>

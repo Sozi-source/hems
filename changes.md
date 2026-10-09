@@ -1,5 +1,8 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Align obligation statuses with database enum
+- Updated `ObligationStatus` and dashboard/obligations status labels to the actual database values: `open`, `partially_paid`, `paid`, `written_off`, and `cancelled`. This fixes TypeScript errors and prevents the UI from comparing against unsupported statuses.
+
 ## 2026-10-09 - Tighten login vertical spacing
 - Removed the “Welcome back” subtitle and reduced the sign-in heading-to-form and form-to-signup-link spacing without changing signup or recovery page spacing.
 
