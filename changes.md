@@ -1,5 +1,8 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Daraja shortcode length clarification
+- Safaricom's current C2B API documentation describes the business shortcode as 5–6 digits. Kept the app's 5–6 digit validation after the supplied identifier was found to have seven digits; confirm the correct Lipa na M-Pesa shortcode with Safaricom instead of assuming the store/Till identifier is interchangeable.
+
 ## 2026-10-09 - Supabase CLI environment-file syntax repair
 - Fixed `.env.local` parsing by changing five bare SMS variable names into valid empty `KEY=` assignments and removing trailing whitespace. Existing environment values were preserved and not printed. The empty SMS settings still need real values before SMS delivery is configured.
 - Did not run `supabase db push`; the command applies pending migrations to the configured database. Retry it after reviewing the migration plan.
