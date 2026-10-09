@@ -30,16 +30,15 @@ export function AuthShell({
             </Link>
           </div>
           <div className="relative z-10 max-w-md py-12">
-            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.24em] text-rose-200">Business operations, in control</p>
-            <h2 className="text-4xl font-semibold leading-[1.12] tracking-tight xl:text-[46px]">Clarity for every shilling and every decision.</h2>
-            <p className="mt-6 max-w-sm text-sm leading-7 text-white/70">A secure workspace for customer accounts, collections, obligations, and the people who manage them.</p>
+            <p className="mb-5 text-xs font-semibold uppercase tracking-[0.24em] text-rose-200">Business management</p>
+            <h2 className="text-4xl font-semibold leading-[1.12] tracking-tight xl:text-[46px]">Your business, in focus.</h2>
             <div className="mt-9 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur-sm">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-rose-200"><ShieldCheck className="h-5 w-5" /></span>
-              <div><p className="text-sm font-semibold">Built around accountability</p><p className="mt-1 text-xs text-white/60">Role-based access · Auditable activity</p></div>
+              <div><p className="text-sm font-semibold">Secure access</p><p className="mt-1 text-xs text-white/60">Role-based · Auditable</p></div>
             </div>
           </div>
           <div className="relative z-10 flex items-center justify-between text-xs text-white/45">
-            <span>HEMS · Business Management</span><span>Secure access</span>
+            <span>HEMS</span><span>Secure</span>
           </div>
         </aside>
 

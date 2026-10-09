@@ -33,7 +33,7 @@ export default function LoginPage() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not sign in.'); setLoading(false); }
   }
 
-  return <AuthShell eyebrow="Welcome back" title="Sign in to HEMS" description="Enter your work email and password to access your business workspace." footer={<>New to HEMS? <AuthLink href="/signup">Create an account</AuthLink></>}>
+  return <AuthShell eyebrow="HEMS WORKSPACE" title="Sign in" description="Welcome back." footer={<>New here? <AuthLink href="/signup">Create account</AuthLink></>}>
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && <AuthError>{error}</AuthError>}
       <AuthInput id="email" label="Work email" type="email" placeholder="you@company.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
@@ -41,8 +41,7 @@ export default function LoginPage() {
         <div className="flex items-center justify-between"><label htmlFor="password" className="text-[13px] font-semibold text-slate-700">Password</label><AuthLink href="/forgot-password">Forgot password?</AuthLink></div>
         <AuthInput id="password" label="" type="password" placeholder="Enter your password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required />
       </div>
-      <AuthSubmit loading={loading}>Sign in securely <span aria-hidden="true">→</span></AuthSubmit>
-      <p className="text-center text-xs leading-5 text-slate-400">Access is limited to users assigned to a HEMS business workspace.</p>
+      <AuthSubmit loading={loading}>Sign in</AuthSubmit>
     </form>
   </AuthShell>;
 }

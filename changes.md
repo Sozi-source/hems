@@ -1,5 +1,8 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Minimal login copy polish
+- Simplified login headings, subtitle, button, supporting text, and shared auth-shell branding copy for a quieter premium presentation; kept form labels, recovery links, and signup navigation intact.
+
 ## 2026-10-09 - Enterprise gray and maroon authentication experience
 - Replaced the basic sign-in page with a responsive HEMS authentication shell using slate-gray surfaces and maroon accents, shared accessible form controls, password visibility toggles, inline status/error messaging, and account-navigation links.
 - Added Supabase email/password sign-up, forgot-password, and reset-password routes. Added `/auth/callback` to exchange confirmation/reset PKCE codes for sessions and safely redirect to local relative paths.
