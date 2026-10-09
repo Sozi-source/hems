@@ -13,6 +13,7 @@ interface PaymentChannelRecord {
   business_id: string;
   provider: string;
   shortcode: string;
+  business_shortcode?: string | null;
   label: string;
   secret_ref?: string;
   is_active?: boolean;
@@ -85,7 +86,7 @@ export default function SettingsPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-emerald-700" />
-              <CardTitle className="text-slate-800">Paybill Channels</CardTitle>
+              <CardTitle className="text-slate-800">M-Pesa Channels</CardTitle>
             </div>
             <Button variant="secondary" size="sm" className="h-7 text-xs">
               <Plus className="w-3 h-3 mr-1" />
@@ -97,7 +98,7 @@ export default function SettingsPage() {
             {channels.length === 0 ? (
               <div className="text-center py-8 rounded-fintech border border-dashed border-slate-200 bg-slate-50/40 p-4">
                 <div className="text-xs font-medium text-slate-500">
-                  No Paybills registered
+                  No M-Pesa channels registered
                 </div>
               </div>
             ) : (
@@ -108,8 +109,9 @@ export default function SettingsPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-900">{ch.label}</span>
-                    <Badge variant="info" size="sm">Paybill {ch.shortcode}</Badge>
+                    <Badge variant="info" size="sm">{ch.provider === 'mpesa_till' ? 'Till' : 'Paybill'} {ch.shortcode}</Badge>
                   </div>
+                  {ch.business_shortcode && <div className="text-[11px] text-slate-500">Store / Business Short Code: <span className="font-mono text-slate-700">{ch.business_shortcode}</span></div>}
                   <div className="flex items-center justify-between text-[11px] text-slate-500">
                     <span className="capitalize">{ch.provider.replace('_', ' ')}</span>
                     {ch.secret_ref && (

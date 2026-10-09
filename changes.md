@@ -1,5 +1,10 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-09 - Add separate M-Pesa Till STK channel support (migration pending)
+- Safaricom's docs distinguish `CustomerBuyGoodsOnline` for Till from `CustomerPayBillOnline` for Paybill. HEMS STK prompts now select exactly one active M-Pesa Paybill/Till channel and use the matching transaction type. For Till, the configured Daraja Business Short Code is sent as `BusinessShortCode`, while the registered Till channel number is sent as `PartyB`.
+- Added `business_shortcode` to payment channels for the Safaricom Store/Business Short Code, leaving `shortcode` as the receiving Till number. STK prompts fail closed unless the channel's business shortcode matches the configured credentials. C2B callbacks can resolve channels against either field.
+- Settings now labels Till and Paybill channels separately. Apply `20261009000010_mpesa_till_stk_support.sql`, then configure one active `mpesa_till` row with `shortcode` set to the Till and `business_shortcode` set to the approved STK Business Short Code. No migration was applied and no live STK prompt was sent.
+
 ## 2026-10-09 - Flatten auth page surfaces and use solid gray/maroon
 - Removed the framed white auth card and blurred decoration. Auth forms now sit directly on a flat light-gray surface beside a solid charcoal panel with maroon accents; auth feedback uses gray/maroon instead of green/rose colors.
 

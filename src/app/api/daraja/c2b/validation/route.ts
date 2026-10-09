@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const { data: channel, error: channelError } = await supabase
       .from('payment_channels')
       .select('business_id, provider')
-      .eq('shortcode', shortcode)
+      .or(`shortcode.eq.${shortcode},business_shortcode.eq.${shortcode}`)
       .eq('is_active', true)
       .in('provider', ['mpesa_paybill', 'mpesa_till'])
       .maybeSingle();

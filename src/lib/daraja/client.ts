@@ -111,6 +111,8 @@ export async function sendStkPush(params: {
   amount: number; // in whole KSh
   accountReference: string;
   transactionDesc?: string;
+  transactionType?: 'CustomerPayBillOnline' | 'CustomerBuyGoodsOnline';
+  partyB?: string;
   config?: Partial<DarajaConfig>;
   callbackUrl?: string;
   businessCode?: string;
@@ -166,10 +168,10 @@ export async function sendStkPush(params: {
     BusinessShortCode: config.shortcode,
     Password: password,
     Timestamp: timestamp,
-    TransactionType: 'CustomerPayBillOnline',
+    TransactionType: params.transactionType || 'CustomerPayBillOnline',
     Amount: Math.max(1, Math.round(params.amount)),
     PartyA: formattedPhone,
-    PartyB: config.shortcode,
+    PartyB: params.partyB || config.shortcode,
     PhoneNumber: formattedPhone,
     CallBackURL: callbackUrl.toString(),
     AccountReference: params.accountReference.slice(0, 12),

@@ -37,22 +37,30 @@ export async function POST(request: Request) {
 
     adminSupabase = createAdminClient();
 
-    const [{ data: member }, { data: business }, { data: customer }, { data: channel }] = await Promise.all([
+    const [{ data: member }, { data: business }, { data: customer }, { data: channels, error: channelsError }] = await Promise.all([
       adminSupabase.from('business_members').select('role').eq('business_id', businessId).eq('user_id', user.id).eq('is_active', true).maybeSingle(),
       adminSupabase.from('businesses').select('id, code').eq('id', businessId).eq('is_active', true).maybeSingle(),
       adminSupabase.from('customers').select('id, business_id, phone, customer_no').eq('id', customerId).eq('business_id', businessId).maybeSingle(),
-      adminSupabase.from('payment_channels').select('id, shortcode').eq('business_id', businessId).eq('provider', 'mpesa_paybill').eq('is_active', true).maybeSingle(),
+      adminSupabase.from('payment_channels').select('id, shortcode, provider, business_shortcode').eq('business_id', businessId).in('provider', ['mpesa_paybill', 'mpesa_till']).eq('is_active', true),
     ]);
 
     if (!member || !ALLOWED_ROLES.includes(member.role)) {
       return NextResponse.json({ error: 'You are not allowed to send payment prompts for this business' }, { status: 403 });
     }
-    if (!business || !customer || !channel) {
-      return NextResponse.json({ error: 'This business, customer, or active M-Pesa Paybill channel could not be verified' }, { status: 400 });
+    if (!business || !customer || channelsError) {
+      console.error('Could not verify business, customer, or M-Pesa channel:', channelsError?.message);
+      return NextResponse.json({ error: 'This business, customer, or M-Pesa payment channel could not be verified' }, { status: channelsError ? 503 : 400 });
     }
+    if (!channels?.length) return NextResponse.json({ error: 'Add an active M-Pesa Paybill or Till channel for this business before prompting a customer.' }, { status: 400 });
+    if (channels.length !== 1) return NextResponse.json({ error: 'Keep exactly one active M-Pesa collection channel per business for STK prompts.' }, { status: 409 });
+    const channel = channels[0];
 
     const config = getDarajaConfig(business.code);
-    if (!config.shortcode || channel.shortcode !== config.shortcode) {
+    const isTill = channel.provider === 'mpesa_till';
+    if (isTill && channel.business_shortcode !== config.shortcode) {
+      return NextResponse.json({ error: 'The Till channel Store / Business Short Code must match the Daraja shortcode configured for this business.' }, { status: 409 });
+    }
+    if (!isTill && channel.shortcode !== config.shortcode) {
       return NextResponse.json({ error: 'The active Paybill channel does not match the configured Daraja shortcode. Correct the channel credentials before prompting a customer.' }, { status: 409 });
     }
 
@@ -93,6 +101,8 @@ export async function POST(request: Request) {
       amount: Number(amountBigInt / 100n),
       accountReference: customer.customer_no,
       transactionDesc: 'Debt Payment',
+      transactionType: isTill ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline',
+      partyB: isTill ? channel.shortcode : config.shortcode,
       businessCode: business.code,
       config,
     });
