@@ -73,8 +73,8 @@ export default function RemindersPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
                   <th className="py-3 px-4">Recipient</th>
@@ -87,7 +87,7 @@ export default function RemindersPage() {
               <tbody className="divide-y divide-slate-100 text-xs">
                 {messages.map((sms) => (
                   <tr key={sms.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                    <td className="whitespace-nowrap py-3.5 px-4 font-mono font-bold text-slate-900">
                       {fmt_phone(sms.to_phone)}
                     </td>
 
@@ -101,7 +101,7 @@ export default function RemindersPage() {
                       {sms.body}
                     </td>
 
-                    <td className="py-3.5 px-4 text-slate-500">
+                    <td className="whitespace-nowrap py-3.5 px-4 text-slate-500">
                       {fmt_date(sms.created_at, true)}
                     </td>
 
