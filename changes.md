@@ -1,5 +1,10 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
+## 2026-10-10 - Stop retrying SMS to provider-blocked recipients (migration pending)
+- Africa's Talking `UserInBlacklist` is a permanent per-recipient block (customer DND/STOP or provider blacklist), not an app fault. The worker now flags the customer (`customers.sms_blocked_at`), cancels their other queued SMS, and a `sms_outbox` BEFORE INSERT trigger cancels new messages for blocked customers. `customers.sms_opt_out` is unchanged so consent and provider blocks stay separate.
+- HTTP 401 from the provider is now treated as a configuration problem: the batch pauses and rows return to `queued` instead of being marked `failed`.
+- Apply `20261010000011_sms_recipient_blocking.sql`. Nothing was applied or sent. The Reminders page still shows cancelled rows as a warning badge; a "blocked" UI label is a follow-up.
+
 ## 2026-10-09 - Align obligation statuses with database enum
 - Updated `ObligationStatus` and dashboard/obligations status labels to the actual database values: `open`, `partially_paid`, `paid`, `written_off`, and `cancelled`. This fixes TypeScript errors and prevents the UI from comparing against unsupported statuses.
 
