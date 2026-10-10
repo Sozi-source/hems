@@ -12,12 +12,14 @@ type QueuedSms = {
 };
 
 function authorized(request: Request) {
-  const secret = process.env.SMS_WORKER_SECRET;
   const authorization = request.headers.get('authorization') || '';
-  return authorization.startsWith('Bearer ') && matchesConfiguredSecret(secret, authorization.slice(7));
+  if (!authorization.startsWith('Bearer ')) return false;
+  const supplied = authorization.slice(7);
+  return [process.env.SMS_WORKER_SECRET, process.env.CRON_SECRET]
+    .some((secret) => matchesConfiguredSecret(secret, supplied));
 }
 
-export async function POST(request: Request) {
+async function runWorker(request: Request) {
   if (!authorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -89,5 +91,15 @@ export async function POST(request: Request) {
     console.error('SMS worker error:', error);
     return NextResponse.json({ error: 'SMS worker could not process the queue.' }, { status: 500 });
   }
+}
+
+// Vercel Cron invokes scheduled routes with GET and an Authorization bearer token.
+export async function GET(request: Request) {
+  return runWorker(request);
+}
+
+// Keep POST available for manual or external scheduler invocations.
+export async function POST(request: Request) {
+  return runWorker(request);
 }
 
