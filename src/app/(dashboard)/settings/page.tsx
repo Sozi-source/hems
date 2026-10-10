@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
-import { Building2, CreditCard, Key, Pencil, X } from 'lucide-react';
+import { Building2, CreditCard, Key, Pencil, Plus, X } from 'lucide-react';
 
 interface PaymentChannelRecord {
   id: string;
