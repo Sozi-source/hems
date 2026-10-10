@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { fmt_phone, fmt_date } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
-import { describeSmsStatus } from '@/lib/sms-status';
 import { BellRing, RefreshCw } from 'lucide-react';
 
 interface SmsRecord {
@@ -16,7 +15,6 @@ interface SmsRecord {
   kind: string;
   body: string;
   status: string;
-  error: string | null;
   created_at: string;
 }
 
@@ -31,7 +29,7 @@ export default function RemindersPage() {
       const supabase = createClient();
       let query = supabase
         .from('sms_outbox')
-        .select('id, to_phone, kind, body, status, error, created_at')
+        .select('id, to_phone, kind, body, status, created_at')
         .order('created_at', { ascending: false });
 
       if (!isMasterView && activeBusinessId) {
@@ -106,21 +104,13 @@ export default function RemindersPage() {
                     </td>
 
                     <td className="py-3.5 px-4 text-center">
-                      {(() => {
-                        const view = describeSmsStatus(sms.status, sms.error);
-                        return (
-                          <div className="flex flex-col items-center gap-1">
-                            <Badge variant={view.variant} size="sm" dot>
-                              {view.label}
-                            </Badge>
-                            {view.note && (
-                              <span className="max-w-[180px] text-[10px] leading-snug text-slate-500">
-                                {view.note}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
+                      <Badge
+                        variant={sms.status === 'delivered' ? 'success' : sms.status === 'sent' ? 'info' : 'warning'}
+                        size="sm"
+                        dot
+                      >
+                        {sms.status}
+                      </Badge>
                     </td>
                   </tr>
                 ))}

@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { MoneyDisplay } from '@/components/ui/money-display';
 import { fmt_phone } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Users, RefreshCw, Smartphone, MessageSquareOff } from 'lucide-react';
+import { Plus, Users, RefreshCw, Smartphone } from 'lucide-react';
 import { AddCustomerModal } from '@/components/customers/add-customer-modal';
 import { StkPromptModal } from '@/components/payments/stk-prompt-modal';
 
@@ -20,8 +19,6 @@ interface CustomerItem {
   phone: string | null;
   outstanding_minor?: number;
   open_debts?: number;
-  sms_blocked_at?: string | null;
-  sms_block_reason?: string | null;
 }
 
 export default function CustomersPage() {
@@ -30,32 +27,11 @@ export default function CustomersPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [stkTarget, setStkTarget] = useState<CustomerItem | null>(null);
-  const [unblockingId, setUnblockingId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   async function loadCustomers() {
     setIsLoading(true);
     try {
       const supabase = createClient();
-
-      // SMS block flags live on the customers table, not in v_customer_balances.
-      let blockQuery = supabase
-        .from('customers')
-        .select('id, sms_blocked_at, sms_block_reason')
-        .not('sms_blocked_at', 'is', null);
-      if (!isMasterView && activeBusinessId) {
-        blockQuery = blockQuery.eq('business_id', activeBusinessId);
-      }
-      const { data: blockedRows } = await blockQuery;
-      const blockedById = new Map<string, { sms_blocked_at: string | null; sms_block_reason: string | null }>(
-        (blockedRows || []).map((row: any) => [row.id, row])
-      );
-      const withBlock = <T extends { id: string }>(items: T[]) =>
-        items.map((item) => ({
-          ...item,
-          sms_blocked_at: blockedById.get(item.id)?.sms_blocked_at ?? null,
-          sms_block_reason: blockedById.get(item.id)?.sms_block_reason ?? null,
-        }));
 
       let query = supabase
         .from('v_customer_balances')
@@ -70,17 +46,15 @@ export default function CustomersPage() {
 
       if (!error && data) {
         setCustomers(
-          withBlock(
-            data.map((c: any) => ({
-              id: c.customer_id as string,
-              business_id: c.business_id,
-              customer_no: c.customer_no,
-              full_name: c.full_name,
-              phone: c.phone,
-              outstanding_minor: Number(c.outstanding_minor || 0),
-              open_debts: Number(c.open_debts || 0),
-            }))
-          )
+          data.map((c: any) => ({
+            id: c.customer_id,
+            business_id: c.business_id,
+            customer_no: c.customer_no,
+            full_name: c.full_name,
+            phone: c.phone,
+            outstanding_minor: Number(c.outstanding_minor || 0),
+            open_debts: Number(c.open_debts || 0),
+          }))
         );
       } else {
         let fallbackQuery = supabase
@@ -93,7 +67,7 @@ export default function CustomersPage() {
         }
 
         const { data: fallbackData } = await fallbackQuery;
-        setCustomers(withBlock((fallbackData as CustomerItem[]) || []));
+        setCustomers((fallbackData as CustomerItem[]) || []);
       }
     } catch {
       setCustomers([]);
@@ -105,34 +79,6 @@ export default function CustomersPage() {
   useEffect(() => {
     loadCustomers();
   }, [activeBusinessId, isMasterView]);
-
-  async function clearSmsBlock(cust: CustomerItem) {
-    const confirmed = window.confirm(
-      `Clear the SMS block for ${cust.full_name}?\n\nSMS to this customer will be attempted again. ` +
-        'If the number is still blocked by the provider (for example Safaricom DND), it will be flagged again on the next failed send.'
-    );
-    if (!confirmed) return;
-
-    setActionError(null);
-    setUnblockingId(cust.id);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.rpc('clear_customer_sms_block', { p_customer_id: cust.id });
-      if (error) {
-        setActionError(
-          error.code === '42501'
-            ? 'Only an owner or admin can clear an SMS block.'
-            : error.message || 'Could not clear the SMS block.'
-        );
-        return;
-      }
-      await loadCustomers();
-    } catch {
-      setActionError('Could not clear the SMS block. Please try again.');
-    } finally {
-      setUnblockingId(null);
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -153,12 +99,6 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {actionError && (
-        <div role="alert" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-          {actionError}
-        </div>
-      )}
-
       <Card className="bg-white border-slate-200/90 shadow-sm p-0 overflow-hidden">
         {customers.length === 0 ? (
           <div className="text-center py-12 px-4">
@@ -176,7 +116,6 @@ export default function CustomersPage() {
                   {isMasterView && <th className="py-3 px-4">Business</th>}
                   <th className="py-3 px-4">Name</th>
                   <th className="py-3 px-4">Phone</th>
-                  <th className="py-3 px-4">SMS</th>
                   <th className="py-3 px-4 text-right">Current Debt</th>
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
@@ -202,34 +141,6 @@ export default function CustomersPage() {
 
                     <td className="py-3.5 px-4 font-mono text-slate-600">
                       {fmt_phone(cust.phone)}
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      {cust.sms_blocked_at ? (
-                        <div className="flex flex-col items-start gap-1">
-                          <Badge
-                            variant="danger"
-                            size="sm"
-                            dot
-                            title={cust.sms_block_reason || 'Blocked by SMS provider'}
-                          >
-                            SMS blocked
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-1.5 text-[11px] text-slate-700"
-                            isLoading={unblockingId === cust.id}
-                            onClick={() => clearSmsBlock(cust)}
-                            title="Owner or admin only"
-                          >
-                            <MessageSquareOff className="w-3 h-3 mr-1" />
-                            Clear block
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400">—</span>
-                      )}
                     </td>
 
                     <td className="py-3.5 px-4 text-right">

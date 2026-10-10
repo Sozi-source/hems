@@ -1,11 +1,5 @@
 # changes.md — append newest entry at the TOP. Update after every piece of work.
 
-## 2026-10-10 - SMS blocked labels and admin Clear block control (migration pending)
-- Reminders page now shows clear SMS states through `src/lib/sms-status.ts`: provider-blocked failures read "SMS blocked", messages skipped for a blocked customer read "Skipped (blocked)", and other failures show a short error note instead of a generic warning badge.
-- Customers page has an SMS column. Blocked customers show an "SMS blocked" badge (reason in the tooltip) and a "Clear block" action with a confirmation prompt.
-- Migration `20261010000012_sms_block_admin_controls.sql` adds `clear_customer_sms_block(uuid)` (owner/admin only) and a trigger so only the service role or an owner/admin can change the block columns. Without the trigger, cashiers could have cleared or set blocks directly through the existing customers update policy. Clearing is audited by the existing customers audit trigger.
-- Clearing a block does not re-queue cancelled messages. If the provider still refuses the number, the worker flags the customer again on the next failed send. Not type-checked or applied.
-
 ## 2026-10-10 - Stop retrying SMS to provider-blocked recipients (migration pending)
 - Africa's Talking `UserInBlacklist` is a permanent per-recipient block (customer DND/STOP or provider blacklist), not an app fault. The worker now flags the customer (`customers.sms_blocked_at`), cancels their other queued SMS, and a `sms_outbox` BEFORE INSERT trigger cancels new messages for blocked customers. `customers.sms_opt_out` is unchanged so consent and provider blocks stay separate.
 - HTTP 401 from the provider is now treated as a configuration problem: the batch pauses and rows return to `queued` instead of being marked `failed`.
