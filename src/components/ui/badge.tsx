@@ -17,11 +17,11 @@ export function Badge({
 }: BadgeProps) {
   const variantStyles = {
     neutral: 'bg-slate-100 text-slate-700 border-slate-200',
-    success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    warning: 'bg-amber-50 text-amber-800 border-amber-200',
-    danger: 'bg-rose-50 text-rose-800 border-rose-200',
-    info: 'bg-slate-100 text-slate-800 border-slate-300',
-    purple: 'bg-purple-50 text-purple-800 border-purple-200',
+    success: 'bg-[#E8F5EB] text-[#185D2D] border-[#BBDCC4]',
+    warning: 'bg-[#FFF4D8] text-[#754900] border-[#F0D99B]',
+    danger: 'bg-[#FDECEE] text-[#8F1D2A] border-[#F4C5CB]',
+    info: 'bg-[#EDF3F7] text-[#29465A] border-[#D1DFE8]',
+    purple: 'bg-[#F1EDFC] text-[#533C8C] border-[#DDD3F5]',
   };
 
   const dotColors = {
@@ -34,7 +34,7 @@ export function Badge({
   };
 
   const sizeStyles = {
-    sm: 'text-[11px] px-2 py-0.5 font-medium',
+    sm: 'text-[11px] px-2 py-1 font-semibold',
     md: 'text-xs px-2.5 py-1 font-semibold',
   };
 

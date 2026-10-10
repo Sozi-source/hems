@@ -2,59 +2,136 @@
 @tailwind components;
 @tailwind utilities;
 
+/* HEMS design tokens: calm, accessible, mobile-first fintech surfaces. */
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  color-scheme: light;
+  --background: #f6f8f7;
+  --foreground: #14231a;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f2;
+  --border: #dce5df;
+  --muted: #53645a;
+  --primary: #1f7a3d;
+  --primary-hover: #176330;
+  --primary-soft: #e8f5eb;
+  --danger: #b42332;
+  --warning: #8a5700;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --radius-control: 0.625rem;
+  --radius-card: 0.875rem;
+  --shadow-card: 0 1px 2px rgb(16 38 24 / 0.04), 0 6px 18px rgb(16 38 24 / 0.035);
 }
 
 @layer base {
   * {
-    border-color: #e2e8f0;
+    border-color: var(--border);
     -webkit-tap-highlight-color: transparent;
   }
 
+  html {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    text-size-adjust: 100%;
+  }
+
   body {
-    background-color: var(--background);
+    min-height: 100vh;
+    overflow-x: clip;
+    background: var(--background);
     color: var(--foreground);
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    min-height: 100vh;
-    overflow-x: hidden;
+    line-height: 1.5;
+  }
+
+  button, input, select, textarea {
+    font: inherit;
+  }
+
+  button, a, input, select, textarea, [tabindex]:not([tabindex="-1"]) {
+    outline-offset: 3px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  ::placeholder {
+    color: #6b7a70;
+    opacity: 1;
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+  }
+
+  input, select, textarea {
+    min-width: 0;
+  }
+
+  input[type="text"], input[type="email"], input[type="tel"], input[type="number"],
+  input[type="password"], input[type="search"], select, textarea {
+    font-size: 16px;
   }
 }
 
 ::selection {
-  background: #881337;
-  color: #ffffff;
+  background: #d7f0de;
+  color: #102719;
 }
 
-/* Custom Sleek Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@layer components {
+  .rounded-fintech { border-radius: var(--radius-control); }
+  .rounded-card { border-radius: var(--radius-card); }
+  .rounded-modal { border-radius: 1rem; }
+  .surface-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+  .numeric-value {
+    font-variant-numeric: tabular-nums lining-nums;
+    white-space: nowrap;
+  }
+  .field-label {
+    display: block;
+    margin-bottom: 0.375rem;
+    color: #34483a;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .skeleton {
+    border-radius: 0.5rem;
+    background: linear-gradient(90deg, #edf2ee 25%, #f6f8f6 50%, #edf2ee 75%);
+    background-size: 200% 100%;
+    animation: hems-shimmer 1.4s ease-in-out infinite;
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+@keyframes hems-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
 }
 
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
+/* Thin, quiet scrollbars; scrollable tables remain local to their container. */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c7d3ca; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #9caf9f; }
 
-/* Safe area utilities for mobile PWA */
-.pb-safe {
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
-}
-
-.pt-safe {
-  padding-top: max(1rem, env(safe-area-inset-top));
-}
+.pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.pt-safe { padding-top: max(1rem, env(safe-area-inset-top)); }

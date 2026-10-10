@@ -158,10 +158,10 @@ export default function DashboardOverviewPage() {
   }, [activeBusinessId, isMasterView]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
           {isMasterView ? 'All Businesses' : activeBusiness?.name || activeBusinessCode}
         </h1>
 
@@ -182,7 +182,7 @@ export default function DashboardOverviewPage() {
       </div>
 
       {/* Summary KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <MetricCard
           title="Customer Debts"
           minorUnits={stats.receivablesTotalMinor}
@@ -213,7 +213,7 @@ export default function DashboardOverviewPage() {
       {isMasterView && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Haron Fashion (Rich Maroon Accent) */}
-          <Card className="border border-slate-200 border-l-4 border-l-[#881337] bg-white shadow-sm">
+          <Card className="border border-slate-200 border-l-4 border-l-[#1F7A3D] bg-white shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded bg-rose-100 border border-rose-200 flex items-center justify-center font-bold text-xs text-[#881337]">
@@ -235,7 +235,7 @@ export default function DashboardOverviewPage() {
               </div>
               <div>
                 <span className="text-[11px] font-semibold text-slate-500 uppercase">Collected</span>
-                <div className="text-base font-bold text-emerald-700 mt-0.5">
+                <div className="text-base font-bold text-[#1F7A3D] mt-0.5">
                   <MoneyDisplay
                     minorUnits={businessCardsData['HARON_FASHION']?.collected || 0}
                     size="md"
@@ -247,10 +247,10 @@ export default function DashboardOverviewPage() {
           </Card>
 
           {/* Zenith Plast (Deep Navy Accent) */}
-          <Card className="border border-slate-200 border-l-4 border-l-[#0F172A] bg-white shadow-sm">
+          <Card className="border border-slate-200 border-l-4 border-l-[#1F7A3D] bg-white shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded bg-slate-100 border border-slate-300 flex items-center justify-center font-bold text-xs text-[#0F172A]">
+                <div className="w-8 h-8 rounded bg-[#F1F5F2] border border-[#DCE5DF] flex items-center justify-center font-bold text-xs text-[#214A30]">
                   ZP
                 </div>
                 <h4 className="text-sm font-bold text-slate-900">Zenith Plast Distributors Ltd</h4>
@@ -269,7 +269,7 @@ export default function DashboardOverviewPage() {
               </div>
               <div>
                 <span className="text-[11px] font-semibold text-slate-500 uppercase">Collected</span>
-                <div className="text-base font-bold text-emerald-700 mt-0.5">
+                <div className="text-base font-bold text-[#1F7A3D] mt-0.5">
                   <MoneyDisplay
                     minorUnits={businessCardsData['ZENITH_PLAST']?.collected || 0}
                     size="md"

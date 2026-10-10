@@ -55,16 +55,16 @@ export default function PaymentsPage() {
   }, [activeBusinessId, isMasterView, filterStatus]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
           Payments
         </h1>
 
         <div className="flex items-center gap-2">
           {process.env.NODE_ENV !== 'production' && (
             <Button variant="secondary" size="sm" onClick={() => setIsSimulateModalOpen(true)}>
-              <Play className="w-3.5 h-3.5 mr-1 text-emerald-700" />
+              <Play className="w-3.5 h-3.5 mr-1 text-[#1F7A3D]" />
               Simulate Payment
             </Button>
           )}
@@ -77,15 +77,15 @@ export default function PaymentsPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+      <div className="flex items-center gap-2 border-b border-[#DCE5DF] pb-3">
         {(['pending', 'approved', 'all'] as const).map((status) => (
           <button
             key={status}
             onClick={() => setFilterStatus(status)}
-            className={`px-3 py-1.5 rounded-fintech text-xs font-semibold capitalize transition-colors ${
+            className={`px-3 py-2.5 rounded-fintech text-xs font-semibold capitalize transition-colors min-h-11 whitespace-nowrap ${
               filterStatus === status
-                ? 'bg-[#0F172A] text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-[#1F7A3D] text-white shadow-sm'
+                : 'text-slate-600 hover:text-[#174E2A] hover:bg-[#F1F5F2]'
             }`}
           >
             {status === 'pending' ? 'Needs Review' : status === 'approved' ? 'Approved' : 'All Payments'}
@@ -94,7 +94,7 @@ export default function PaymentsPage() {
       </div>
 
       {/* Table / Empty State */}
-      <Card className="bg-white border-slate-200/90 shadow-sm p-0 overflow-hidden">
+      <Card className="bg-white border-[#DCE5DF] shadow-sm p-0">
         {payments.length === 0 ? (
           <div className="text-center py-12 px-4">
             <CreditCard className="w-8 h-8 text-slate-400 mx-auto mb-2" />
@@ -105,10 +105,10 @@ export default function PaymentsPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto rounded-card">
+            <table className="w-full min-w-[820px] text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                <tr className="bg-[#F1F5F2] border-b border-[#DCE5DF] text-[11px] font-semibold text-slate-600 uppercase tracking-wide">
                   <th className="py-3 px-4">Receipt / Ref</th>
                   <th className="py-3 px-4">Payer</th>
                   <th className="py-3 px-4">Account No</th>
@@ -117,18 +117,18 @@ export default function PaymentsPage() {
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
+              <tbody className="divide-y divide-[#E7EDE8] text-[13px]">
                 {payments.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                  <tr key={item.id} className="hover:bg-[#F8FAF8] transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-bold text-slate-900 whitespace-nowrap tabular-nums">
                       {item.transaction_ref}
-                      <div className="text-[11px] text-slate-500 font-sans font-normal">
+                      <div className="text-[11px] text-slate-600 font-sans font-normal whitespace-nowrap tabular-nums">
                         {fmt_date(item.occurred_at || item.received_at, true)}
                       </div>
                     </td>
 
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900">
+                      <div className="font-semibold text-slate-900 whitespace-normal">
                         {item.payer_name || 'Customer'}
                       </div>
                       <div className="text-[11px] text-slate-500 font-mono">
@@ -138,16 +138,16 @@ export default function PaymentsPage() {
 
                     <td className="py-3.5 px-4">
                       <div className="flex flex-col items-start gap-1">
-                        <span className="font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 font-semibold">
+                        <span className="font-mono tabular-nums whitespace-nowrap px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 font-semibold">
                           {item.account_reference || item.bill_ref_number || 'None'}
                         </span>
                         {item.match_confidence !== undefined && item.match_confidence > 0 && (
                           item.match_confidence >= 100 ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-[#1F7A3D] border border-emerald-200">
                               Exact reference suggestion
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#EDF3F7] text-[#29465A] border border-[#D1DFE8]">
                               Phone match suggestion
                             </span>
                           )
@@ -185,7 +185,7 @@ export default function PaymentsPage() {
                           <Button
                             variant="success"
                             size="sm"
-                            className="h-7 px-2.5 text-xs font-medium"
+                            className="min-h-10 px-3 text-xs font-semibold"
                             onClick={() => setActivePaymentForApproval(item)}
                           >
                             {(item.conflict_flags?.length || 0) > 0 ? 'Reconcile' : 'Review'}
@@ -193,7 +193,7 @@ export default function PaymentsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 px-2 text-xs text-rose-700 hover:bg-rose-50 border-rose-200 font-medium"
+                            className="min-h-10 px-3 text-xs text-[#A21D2B] hover:bg-[#FDECEE] border-[#F4C5CB] font-semibold"
                             onClick={() => setActivePaymentForRejection(item)}
                           >
                             Reject

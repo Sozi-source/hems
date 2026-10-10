@@ -18,16 +18,16 @@ export function MetricCard({
   variant = 'neutral',
 }: MetricCardProps) {
   const iconBgStyles = {
-    neutral: 'bg-slate-100 text-slate-700 border-slate-200',
-    positive: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    negative: 'bg-rose-50 text-rose-700 border-rose-200',
-    amber: 'bg-amber-50 text-amber-700 border-amber-200',
+    neutral: 'bg-[#F1F5F2] text-[#405247] border-[#DCE5DF]',
+    positive: 'bg-[#E8F5EB] text-[#1F7A3D] border-[#BBDCC4]',
+    negative: 'bg-[#FDECEE] text-[#A21D2B] border-[#F4C5CB]',
+    amber: 'bg-[#FFF4D8] text-[#754900] border-[#F0D99B]',
   };
 
   return (
-    <Card className="relative bg-white border-slate-200/90 shadow-sm p-3 sm:p-5">
+    <Card className="relative bg-white border-[#DCE5DF] shadow-sm p-3.5 sm:p-5">
       <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
-        <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wide leading-tight">
+        <span className="text-[11px] sm:text-xs font-semibold text-slate-600 tracking-wide leading-snug">
           {title}
         </span>
         <div
@@ -41,7 +41,7 @@ export function MetricCard({
       </div>
 
       <div>
-        <MoneyDisplay minorUnits={minorUnits} size="lg" className="text-base sm:text-xl" variant={variant} />
+        <MoneyDisplay minorUnits={minorUnits} size="lg" className="text-[clamp(13px,1.15vw,20px)]" variant={variant} />
       </div>
     </Card>
   );

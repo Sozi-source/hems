@@ -74,7 +74,7 @@ export function Modal({
           aria-modal="true"
           aria-labelledby="modal-title"
           className={cn(
-            'relative w-full rounded-modal border border-slate-200 bg-white shadow-2xl p-5 sm:p-6 text-left text-slate-900 z-10 my-4 sm:my-8 transform transition-all max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col',
+            'relative w-full rounded-t-2xl sm:rounded-modal border border-slate-200 bg-white shadow-2xl p-4 sm:p-6 text-left text-slate-900 z-10 mt-8 sm:my-8 transform transition-all max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col',
             maxWidthClasses[maxWidth]
           )}
         >

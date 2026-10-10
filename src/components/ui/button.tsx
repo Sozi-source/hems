@@ -11,27 +11,27 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading = false, children, disabled, ...props }, ref) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-fintech transition-all select-none disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20';
+      'inline-flex items-center justify-center font-semibold rounded-fintech transition-colors select-none disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-700 min-h-[40px] active:translate-y-px';
 
     const variantStyles = {
       primary:
-        'bg-[#0F172A] text-white hover:bg-slate-800 border border-slate-900 shadow-sm',
+        'bg-[#1F7A3D] text-white hover:bg-[#176330] border border-[#1F7A3D] shadow-sm',
       secondary:
-        'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200 shadow-sm',
+        'bg-[#E8F5EB] text-[#185D2D] hover:bg-[#D8EEDD] border border-[#D1E8D7]',
       outline:
-        'bg-white text-slate-700 hover:bg-slate-50 border border-slate-300 shadow-sm',
+        'bg-white text-slate-700 hover:bg-slate-50 border border-[#CBD8CE]',
       ghost:
-        'bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100',
+        'bg-transparent text-slate-600 hover:text-[#174E2A] hover:bg-[#F1F5F2]',
       danger:
-        'bg-[#881337] text-white hover:bg-[#70102D] border border-[#70102D] shadow-sm',
+        'bg-[#B42332] text-white hover:bg-[#941D2A] border border-[#B42332] shadow-sm',
       success:
-        'bg-emerald-600 text-white hover:bg-emerald-700 border border-emerald-700 shadow-sm',
+        'bg-[#1F7A3D] text-white hover:bg-[#176330] border border-[#176330] shadow-sm',
     };
 
     const sizeStyles = {
-      sm: 'text-xs px-2.5 py-1.5 gap-1.5 h-8',
-      md: 'text-sm px-3.5 py-2 gap-2 h-9',
-      lg: 'text-base px-4 py-2.5 gap-2.5 h-11',
+      sm: 'text-xs px-3 py-2 gap-1.5 min-h-[40px]',
+      md: 'text-sm px-4 py-2.5 gap-2 min-h-[44px]',
+      lg: 'text-sm px-5 py-3 gap-2.5 min-h-[48px]',
       icon: 'h-9 w-9 p-0',
     };
 

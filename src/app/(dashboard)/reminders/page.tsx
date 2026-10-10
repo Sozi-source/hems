@@ -52,9 +52,9 @@ export default function RemindersPage() {
   }, [activeBusinessId, isMasterView]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
           Reminders & SMS
         </h1>
 
@@ -64,7 +64,7 @@ export default function RemindersPage() {
         </Button>
       </div>
 
-      <Card className="bg-white border-slate-200/90 shadow-sm p-0 overflow-hidden">
+      <Card className="bg-white border-[#DCE5DF] shadow-sm p-0">
         {messages.length === 0 ? (
           <div className="text-center py-12 px-4">
             <BellRing className="w-8 h-8 text-slate-400 mx-auto mb-2" />
@@ -73,10 +73,10 @@ export default function RemindersPage() {
             </div>
           </div>
         ) : (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left border-collapse">
+          <div className="w-full overflow-x-auto rounded-card">
+            <table className="w-full min-w-[800px] text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                <tr className="bg-[#F1F5F2] border-b border-[#DCE5DF] text-[11px] font-semibold text-slate-600 uppercase tracking-wide">
                   <th className="py-3 px-4">Recipient</th>
                   <th className="py-3 px-4">Type</th>
                   <th className="py-3 px-4">Message</th>
@@ -84,10 +84,10 @@ export default function RemindersPage() {
                   <th className="py-3 px-4 text-center">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
+              <tbody className="divide-y divide-[#E7EDE8] text-[13px]">
                 {messages.map((sms) => (
-                  <tr key={sms.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="whitespace-nowrap py-3.5 px-4 font-mono font-bold text-slate-900">
+                  <tr key={sms.id} className="hover:bg-[#F8FAF8] transition-colors">
+                    <td className="whitespace-nowrap tabular-nums py-3.5 px-4 font-mono font-semibold text-slate-900">
                       {fmt_phone(sms.to_phone)}
                     </td>
 
@@ -97,11 +97,11 @@ export default function RemindersPage() {
                       </span>
                     </td>
 
-                    <td className="py-3.5 px-4 max-w-md text-slate-700 font-mono text-[11px] leading-relaxed">
+                    <td className="py-3.5 px-4 min-w-[260px] max-w-[420px] whitespace-normal text-slate-700 font-sans text-xs leading-relaxed">
                       {sms.body}
                     </td>
 
-                    <td className="whitespace-nowrap py-3.5 px-4 text-slate-500">
+                    <td className="whitespace-nowrap tabular-nums py-3.5 px-4 text-slate-600">
                       {fmt_date(sms.created_at, true)}
                     </td>
 
@@ -114,7 +114,7 @@ export default function RemindersPage() {
                               {view.label}
                             </Badge>
                             {view.note && (
-                              <span className="max-w-[180px] text-[10px] leading-snug text-slate-500">
+                              <span className="max-w-[180px] text-[11px] leading-snug text-slate-600">
                                 {view.note}
                               </span>
                             )}

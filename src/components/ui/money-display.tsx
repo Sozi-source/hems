@@ -42,16 +42,16 @@ export function MoneyDisplay({
   };
 
   const variantStyles = {
-    neutral: 'text-slate-900',
-    positive: 'text-emerald-700',
-    negative: 'text-rose-700',
-    amber: 'text-amber-800',
+    neutral: 'text-[#17291D]',
+    positive: 'text-[#1F7A3D]',
+    negative: 'text-[#B42332]',
+    amber: 'text-[#8A5700]',
   };
 
   return (
     <span
       className={cn(
-        'font-mono tabular-nums tracking-tight inline-flex items-baseline select-all',
+        'font-mono tabular-nums tracking-tight inline-flex items-baseline whitespace-nowrap select-all',
         sizeStyles[size],
         variantStyles[variant],
         className
@@ -61,7 +61,7 @@ export function MoneyDisplay({
       <span className="text-slate-500 font-sans mr-1 text-xs font-normal">{symbol.trim()}</span>
       <span>{integer}</span>
       {showCents && (
-        <span className={cn('text-slate-500 font-mono opacity-80', decimalSizes[size])}>
+        <span className={cn('text-slate-600 font-mono opacity-90', decimalSizes[size])}>
           {decimal}
         </span>
       )}

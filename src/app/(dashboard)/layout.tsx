@@ -15,14 +15,14 @@ export default async function DashboardLayout({
   if (error || !user) redirect('/login');
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
+    <div className="flex min-h-screen bg-[#F6F8F7] text-[#14231A]">
       {/* Desktop Navigation Sidebar (retains Deep Navy) */}
       <Sidebar />
 
       {/* Main Content Area (Clean White / Off-white Dashboard) */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-0">
+      <div className="flex-1 flex flex-col min-w-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <Header />
-        <main className="flex-1 min-w-0 p-3 sm:p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-4 md:space-y-6">
+        <main className="flex-1 min-w-0 w-full max-w-[1440px] mx-auto px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-7 space-y-4 md:space-y-6">
           {children}
         </main>
       </div>

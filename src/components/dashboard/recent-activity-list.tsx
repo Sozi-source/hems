@@ -30,7 +30,7 @@ export function RecentActivityList({ obligations }: RecentActivityListProps) {
   };
 
   return (
-    <Card className="bg-white border-slate-200/90 shadow-sm">
+    <Card className="bg-white border-[#DCE5DF] shadow-sm">
       <CardHeader>
         <CardTitle className="text-slate-800 font-bold">Recent Debts & Bills</CardTitle>
         <Link
@@ -55,11 +55,11 @@ export function RecentActivityList({ obligations }: RecentActivityListProps) {
             return (
               <div
                 key={ob.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-fintech bg-slate-50/70 border border-slate-200/80 hover:bg-slate-100/70 transition-colors"
+                className="flex items-start sm:items-center justify-between gap-3 p-3 rounded-fintech bg-[#F8FAF8] border border-[#DCE5DF] hover:bg-[#F1F5F2] transition-colors"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-900 truncate">{ob.party_name}</div>
-                  <div className="mt-1 text-[11px] text-slate-500 truncate">
+                  <div className="text-xs font-bold text-slate-900 [overflow-wrap:anywhere]">{ob.party_name}</div>
+                  <div className="mt-1 text-[11px] text-slate-600">
                     <span className="capitalize">{ob.kind.replace('_', ' ')}</span>
                     <span className="mx-1.5 text-slate-300">·</span>
                     <span>Due {fmt_date(ob.due_date)}</span>
@@ -67,7 +67,7 @@ export function RecentActivityList({ obligations }: RecentActivityListProps) {
                 </div>
 
                 <div className="shrink-0 text-right space-y-1">
-                  <div className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-slate-600">
                     {isReceivable ? 'To collect' : 'To pay'}
                   </div>
                   <MoneyDisplay
@@ -79,7 +79,7 @@ export function RecentActivityList({ obligations }: RecentActivityListProps) {
                     {getStatusBadge(ob.status)}
                     <Link
                       href={`/obligations#${ob.id}`}
-                      className="inline-flex min-h-7 items-center gap-1 rounded-md border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#881337]/30"
+                      className="inline-flex min-h-7 items-center gap-1 rounded-md border border-slate-300 bg-white px-2 text-[11px] font-semibold text-slate-700 hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1F7A3D]/30"
                       aria-label={`Open ${ob.party_name} obligation`}
                     >
                       Open

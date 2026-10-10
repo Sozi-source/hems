@@ -40,7 +40,7 @@ export function BusinessSwitcher() {
         return {
           name: 'All Businesses',
           badge: 'ALL',
-          badgeBg: 'bg-purple-900/40 text-purple-300 border-purple-700/50',
+          badgeBg: 'bg-purple-900/40 text-[#D4C5FF] border-purple-700/50',
         };
     }
   };
@@ -51,7 +51,7 @@ export function BusinessSwitcher() {
     <div className="relative w-full" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-2.5 rounded-fintech bg-slate-800/80 hover:bg-slate-800 border border-slate-700/70 transition-colors text-left group"
+        className="w-full flex items-center justify-between p-2.5 rounded-fintech bg-white/10 hover:bg-white/15 border border-white/15 transition-colors text-left group"
         aria-label="Select business"
       >
         <div className="flex items-center gap-2.5 min-w-0">
@@ -64,7 +64,7 @@ export function BusinessSwitcher() {
             {currentInfo.badge}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-semibold text-slate-100 truncate">
+            <div className="text-xs font-semibold text-slate-100 whitespace-nowrap text-[clamp(11px,0.85vw,13px)]">
               {currentInfo.name}
             </div>
           </div>
@@ -78,7 +78,7 @@ export function BusinessSwitcher() {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1.5 w-full bg-[#0F172A] border border-slate-700 rounded-card shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute top-full left-0 mt-1.5 w-full bg-[#173622] border border-[#365541] rounded-card shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
           <div className="space-y-1">
             {/* All Businesses Option */}
             <button
@@ -132,7 +132,7 @@ export function BusinessSwitcher() {
                     >
                       {info.badge}
                     </div>
-                    <div className="font-medium text-slate-200 truncate">{b.name}</div>
+                    <div className="font-medium text-slate-200 whitespace-nowrap text-[clamp(11px,0.85vw,13px)]">{b.name}</div>
                   </div>
                   {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
                 </button>

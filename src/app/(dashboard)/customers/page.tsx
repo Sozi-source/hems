@@ -135,9 +135,9 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
           Customers
         </h1>
 
@@ -154,12 +154,12 @@ export default function CustomersPage() {
       </div>
 
       {actionError && (
-        <div role="alert" className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+        <div role="alert" className="rounded-md border border-[#F4C5CB] bg-[#FDECEE] px-3 py-2 text-xs text-[#8F1D2A]">
           {actionError}
         </div>
       )}
 
-      <Card className="bg-white border-slate-200/90 shadow-sm p-0 overflow-hidden">
+      <Card className="bg-white border-[#DCE5DF] shadow-sm p-0">
         {customers.length === 0 ? (
           <div className="text-center py-12 px-4">
             <Users className="w-8 h-8 text-slate-400 mx-auto mb-2" />
@@ -168,11 +168,11 @@ export default function CustomersPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto rounded-card">
+            <table className="w-full min-w-[760px] text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                  <th className="py-3 px-4">Account No</th>
+                <tr className="bg-[#F1F5F2] border-b border-[#DCE5DF] text-[11px] font-semibold text-slate-600 uppercase tracking-wide">
+                  <th className="sticky left-0 z-10 bg-[#F1F5F2] py-3 px-4">Account No</th>
                   {isMasterView && <th className="py-3 px-4">Business</th>}
                   <th className="py-3 px-4">Name</th>
                   <th className="py-3 px-4">Phone</th>
@@ -181,9 +181,9 @@ export default function CustomersPage() {
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
+              <tbody className="divide-y divide-[#E7EDE8] text-[13px]">
                 {customers.map((cust) => (
-                  <tr key={cust.id} className="hover:bg-slate-50/80 transition-colors">
+                  <tr key={cust.id} className="hover:bg-[#F8FAF8] transition-colors">
                     <td className="py-3.5 px-4">
                       <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded border border-slate-200">
                         {cust.customer_no}
@@ -196,7 +196,7 @@ export default function CustomersPage() {
                       </td>
                     )}
 
-                    <td className="py-3.5 px-4 font-bold text-slate-900">
+                    <td className="py-3.5 px-4 font-semibold text-slate-900 whitespace-normal">
                       {cust.full_name}
                     </td>
 
@@ -218,7 +218,7 @@ export default function CustomersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 px-1.5 text-[11px] text-slate-700"
+                            className="min-h-10 px-2 text-[11px] text-slate-700"
                             isLoading={unblockingId === cust.id}
                             onClick={() => clearSmsBlock(cust)}
                             title="Owner or admin only"
@@ -228,7 +228,7 @@ export default function CustomersPage() {
                           </Button>
                         </div>
                       ) : (
-                        <span className="text-[11px] text-slate-400">—</span>
+                        <span className="text-xs text-slate-500">—</span>
                       )}
                     </td>
 
@@ -253,7 +253,7 @@ export default function CustomersPage() {
                           Prompt M-Pesa
                         </Button>
                       ) : (
-                        <span className="text-[11px] text-slate-400">—</span>
+                        <span className="text-xs text-slate-500">—</span>
                       )}
                     </td>
                   </tr>
