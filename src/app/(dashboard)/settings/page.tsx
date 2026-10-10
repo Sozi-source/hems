@@ -23,7 +23,7 @@ export default function SettingsPage() {
   const { businesses } = useBusiness();
   const [channels, setChannels] = useState<PaymentChannelRecord[]>([]);
   const [editingChannel, setEditingChannel] = useState<PaymentChannelRecord | null>(null);
-  const [draft, setDraft] = useState({ business_id: '', provider: 'mpesa_paybill', shortcode: '', business_shortcode: '', label: '' });
+  const [draft, setDraft] = useState({ business_id: '', provider: 'mpesa_paybill', shortcode: '', business_shortcode: '', label: '', is_active: true });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [notice, setNotice] = useState('');
@@ -36,6 +36,7 @@ export default function SettingsPage() {
       shortcode: channel.shortcode,
       business_shortcode: channel.business_shortcode || '',
       label: channel.label || '',
+      is_active: channel.is_active !== false,
     });
     setFormError('');
     setNotice('');
@@ -54,6 +55,13 @@ export default function SettingsPage() {
       setFormError('A Till channel needs the 5–7 digit Store / Business Short Code.');
       return;
     }
+    if (draft.is_active && channels.some((channel) =>
+      channel.id !== editingChannel.id && channel.business_id === draft.business_id &&
+      channel.is_active && ['mpesa_paybill', 'mpesa_till'].includes(channel.provider)
+    )) {
+      setFormError('Another M-Pesa channel is already active for this business. Deactivate it first; STK Push requires exactly one active channel.');
+      return;
+    }
 
     setSaving(true);
     setFormError('');
@@ -66,6 +74,7 @@ export default function SettingsPage() {
         shortcode,
         business_shortcode: draft.provider === 'mpesa_till' ? storeCode : null,
         label: draft.label.trim() || (draft.provider === 'mpesa_till' ? 'M-Pesa Till' : 'M-Pesa Paybill'),
+        is_active: draft.is_active,
       })
       .eq('id', editingChannel.id)
       .select('*')
@@ -176,6 +185,7 @@ export default function SettingsPage() {
                       </Button>
                     </div>
                   </div>
+                  <div className="text-[11px] text-slate-500">{ch.is_active ? 'Active for STK Push' : 'Inactive for STK Push'}</div>
                   {ch.business_shortcode && <div className="text-[11px] text-slate-500">Store / Business Short Code: <span className="font-mono text-slate-700">{ch.business_shortcode}</span></div>}
                   <div className="flex items-center justify-between text-[11px] text-slate-500">
                     <span className="capitalize">{ch.provider.replace('_', ' ')}</span>
@@ -227,6 +237,10 @@ export default function SettingsPage() {
                   <span className="block font-normal text-slate-500">This must match the shortcode configured for Daraja production credentials.</span>
                 </label>
               )}
+              <label className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                <input type="checkbox" checked={draft.is_active} onChange={(event) => setDraft({ ...draft, is_active: event.target.checked })} className="mt-0.5 accent-emerald-600" />
+                <span><span className="font-medium">Enable this channel for STK Push</span><span className="mt-0.5 block text-slate-500">Only one M-Pesa channel can be active for prompts per business.</span></span>
+              </label>
               <label className="block space-y-1 text-xs font-medium text-slate-700">
                 Display name
                 <input value={draft.label} onChange={(event) => setDraft({ ...draft, label: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
