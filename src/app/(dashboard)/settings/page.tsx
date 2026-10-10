@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
-import { Building2, CreditCard, Key, Pencil, Plus, X } from 'lucide-react';
+import { Building2, CreditCard, Key, Pencil, X } from 'lucide-react';
 
 interface PaymentChannelRecord {
   id: string;
@@ -157,10 +157,7 @@ export default function SettingsPage() {
               <CreditCard className="w-4 h-4 text-emerald-700" />
               <CardTitle className="text-slate-800">M-Pesa Channels</CardTitle>
             </div>
-            <Button variant="secondary" size="sm" className="h-7 text-xs">
-              <Plus className="w-3 h-3 mr-1" />
-              Add Paybill
-            </Button>
+            <span className="text-[11px] text-slate-500">Edit a channel to configure Till and STK Push</span>
           </CardHeader>
 
           <div className="space-y-3">
@@ -176,14 +173,9 @@ export default function SettingsPage() {
                   key={ch.id}
                   className="p-3 rounded-fintech bg-slate-50/70 border border-slate-200 space-y-1.5"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-bold text-slate-900">{ch.label}</span>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="info" size="sm">{ch.provider === 'mpesa_till' ? 'Till' : 'Paybill'} {ch.shortcode}</Badge>
-                      <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => startEditing(ch)}>
-                        <Pencil className="w-3 h-3 mr-1" /> Edit
-                      </Button>
-                    </div>
+                    <Badge variant="info" size="sm">{ch.provider === 'mpesa_till' ? 'Buy Goods / Till' : 'Paybill'} · {ch.shortcode}</Badge>
                   </div>
                   <div className="text-[11px] text-slate-500">{ch.is_active ? 'Active for STK Push' : 'Inactive for STK Push'}</div>
                   {ch.business_shortcode && <div className="text-[11px] text-slate-500">Store / Business Short Code: <span className="font-mono text-slate-700">{ch.business_shortcode}</span></div>}
@@ -196,6 +188,9 @@ export default function SettingsPage() {
                       </span>
                     )}
                   </div>
+                  <Button type="button" variant="outline" size="sm" className="mt-2 w-full text-xs" onClick={() => startEditing(ch)}>
+                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit channel / Configure STK Push
+                  </Button>
                 </div>
               ))
             )}
