@@ -9,10 +9,12 @@ import { MoneyDisplay } from '@/components/ui/money-display';
 import { fmt_phone, fmt_date } from '@/lib/format';
 import { PaymentTransaction, PaymentStatus } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
-import { RefreshCw, CreditCard, Play } from 'lucide-react';
+import { RefreshCw, CreditCard, Play, UploadCloud, MessageSquare } from 'lucide-react';
 import { ApprovePaymentModal } from '@/components/payments/approve-payment-modal';
 import { RejectPaymentModal } from '@/components/payments/reject-payment-modal';
 import { SimulatePaymentModal } from '@/components/payments/simulate-payment-modal';
+import { ImportStatementModal } from '@/components/payments/import-statement-modal';
+import { PasteAlertModal } from '@/components/payments/paste-alert-modal';
 
 export default function PaymentsPage() {
   const { activeBusinessId, isMasterView } = useBusiness();
@@ -23,6 +25,8 @@ export default function PaymentsPage() {
   const [activePaymentForApproval, setActivePaymentForApproval] = useState<PaymentTransaction | null>(null);
   const [activePaymentForRejection, setActivePaymentForRejection] = useState<PaymentTransaction | null>(null);
   const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isPasteAlertModalOpen, setIsPasteAlertModalOpen] = useState(false);
 
   async function loadPayments() {
     setIsLoading(true);
@@ -61,11 +65,21 @@ export default function PaymentsPage() {
           Payments
         </h1>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsPasteAlertModalOpen(true)}>
+            <MessageSquare className="w-3.5 h-3.5 mr-1 text-[#1F7A3D]" />
+            Paste Alert / SMS
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={() => setIsImportModalOpen(true)}>
+            <UploadCloud className="w-3.5 h-3.5 mr-1 text-[#1F7A3D]" />
+            Import Statement (CSV)
+          </Button>
+
           {process.env.NODE_ENV !== 'production' && (
             <Button variant="secondary" size="sm" onClick={() => setIsSimulateModalOpen(true)}>
               <Play className="w-3.5 h-3.5 mr-1 text-[#1F7A3D]" />
-              Simulate Payment
+              Simulate
             </Button>
           )}
 
@@ -228,6 +242,18 @@ export default function PaymentsPage() {
       <SimulatePaymentModal
         isOpen={isSimulateModalOpen}
         onClose={() => setIsSimulateModalOpen(false)}
+        onSuccess={loadPayments}
+      />
+
+      <ImportStatementModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={loadPayments}
+      />
+
+      <PasteAlertModal
+        isOpen={isPasteAlertModalOpen}
+        onClose={() => setIsPasteAlertModalOpen(false)}
         onSuccess={loadPayments}
       />
     </div>
