@@ -30,13 +30,26 @@ export async function POST(request: Request) {
     const contentType = request.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
-      payload = await request.json();
+      try {
+        payload = await request.json();
+      } catch {
+        payload = {};
+      }
     } else {
       const text = await request.text();
       try {
         payload = JSON.parse(text);
       } catch {
-        payload = { text };
+        try {
+          const params = Object.fromEntries(new URLSearchParams(text));
+          if (Object.keys(params).length > 0) {
+            payload = params;
+          } else {
+            payload = { text };
+          }
+        } catch {
+          payload = { text };
+        }
       }
     }
 
@@ -53,8 +66,13 @@ export async function POST(request: Request) {
     const sender = String(payload.from || payload.sender || payload.originatingAddress || '').trim();
     const explicitBusinessId = payload.businessId || payload.business_id || url.searchParams.get('businessId') || null;
 
-    if (!rawText || rawText.length < 15) {
-      return NextResponse.json({ error: 'Empty or invalid SMS message body' }, { status: 400 });
+    // Handle manual "Test Action" clicks from MacroDroid (where {sms_message} variable is empty or literal)
+    if (!rawText || rawText.length < 15 || rawText.includes('{sms_message}') || rawText === '[body]') {
+      return NextResponse.json({
+        status: 'ok',
+        testReceived: true,
+        message: 'MacroDroid test action connection successful! Ready for live incoming SMS.',
+      }, { status: 200 });
     }
 
     // Parse SMS alert using our multi-bank engine
