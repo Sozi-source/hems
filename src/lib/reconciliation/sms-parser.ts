@@ -64,6 +64,10 @@ export function parsePaymentAlert(rawText: string): ParsedPaymentAlert | null {
     const accMatch = text.match(/(?:for\s+account|acc(?:ount)?\.?|ref(?:erence)?\.?)\s*:?\s*([A-Za-z0-9_-]{2,30})/i);
     let accountReference = accMatch ? accMatch[1].trim() : undefined;
 
+    if (accountReference && /^(balance|bal|new|is)$/i.test(accountReference)) {
+      accountReference = undefined;
+    }
+
     if (!accountReference) {
       // Check if Till / Store number (5 to 7 digits) appears in text
       const tillMatch = text.match(/\b(\d{5,7})\b/);
