@@ -23,7 +23,7 @@ export function parsePaymentAlert(rawText: string): ParsedPaymentAlert | null {
   // Example Merchant Till: "UJ9MD9PMOT Confirmed. 254712345678 JOHN DOE has paid Ksh50.00 to Haron Fashion on 15/10/26..."
   // Example P2P / C2B: "QA12BC34DE Confirmed. Ksh1,500.00 received from JOHN DOE 0712345678 on 14/10/26 at 2:30 PM..."
   // Example Customer Outgoing: "UJ9MD9PMOT Confirmed. Ksh50.00 paid to Haron Fashion 4968133 on 15/10/26..."
-  const mpesaMatch = text.match(/\b([A-Z0-9]{10})\s+Confirmed\./i);
+  const mpesaMatch = text.match(/\b([A-Z0-9]{10})\s+Confirmed/i);
   if (mpesaMatch) {
     const transactionRef = mpesaMatch[1].toUpperCase();
     const amountMatch = text.match(/(?:Ksh|KES)\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
@@ -32,23 +32,30 @@ export function parsePaymentAlert(rawText: string): ParsedPaymentAlert | null {
     let payerName: string | undefined;
     let payerPhone: string | undefined;
 
-    // Pattern A: "254712345678 JOHN DOE has paid Ksh..." (Till Merchant notification)
-    const tillHasPaidMatch = text.match(/(0[17]\d{8}|254[17]\d{8})\s+([A-Za-z\s]{2,40}?)\s+has paid/i);
-    if (tillHasPaidMatch) {
-      payerPhone = normalizePhone(tillHasPaidMatch[1]);
-      payerName = tillHasPaidMatch[2].trim();
+    // Pattern A1: "received from 254711390861 WILFRED OSOZI." (Safaricom Till notification with phone first)
+    const phoneFirstMatch = text.match(/received from\s+(0[17]\d{8}|254[17]\d{8})\s+([A-Za-z\s]{2,40}?)(?:\.|$)/i);
+    if (phoneFirstMatch) {
+      payerPhone = normalizePhone(phoneFirstMatch[1]);
+      payerName = phoneFirstMatch[2].trim();
     } else {
-      // Pattern B: "received from JOHN DOE 0712345678"
-      const fromMatch = text.match(/received from\s+([^0-9]+?)\s+(0[17]\d{8}|254[17]\d{8})/i);
-      if (fromMatch) {
-        payerName = fromMatch[1].trim();
-        payerPhone = normalizePhone(fromMatch[2]);
+      // Pattern A2: "254712345678 JOHN DOE has paid Ksh..."
+      const tillHasPaidMatch = text.match(/(0[17]\d{8}|254[17]\d{8})\s+([A-Za-z\s]{2,40}?)\s+has paid/i);
+      if (tillHasPaidMatch) {
+        payerPhone = normalizePhone(tillHasPaidMatch[1]);
+        payerName = tillHasPaidMatch[2].trim();
       } else {
-        // Pattern C: "from 254712345678 - JOHN DOE"
-        const altFromMatch = text.match(/from\s+(0[17]\d{8}|254[17]\d{8})\s*[-–]\s*([A-Za-z\s]+?)(?:\s+on|\.)/i);
-        if (altFromMatch) {
-          payerPhone = normalizePhone(altFromMatch[1]);
-          payerName = altFromMatch[2].trim();
+        // Pattern B: "received from JOHN DOE 0712345678"
+        const fromMatch = text.match(/received from\s+([^0-9]+?)\s+(0[17]\d{8}|254[17]\d{8})/i);
+        if (fromMatch) {
+          payerName = fromMatch[1].trim();
+          payerPhone = normalizePhone(fromMatch[2]);
+        } else {
+          // Pattern C: "from 254712345678 - JOHN DOE"
+          const altFromMatch = text.match(/from\s+(0[17]\d{8}|254[17]\d{8})\s*[-–]\s*([A-Za-z\s]+?)(?:\s+on|\.)/i);
+          if (altFromMatch) {
+            payerPhone = normalizePhone(altFromMatch[1]);
+            payerName = altFromMatch[2].trim();
+          }
         }
       }
     }
