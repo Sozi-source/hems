@@ -130,7 +130,7 @@ export function ImportStatementModal({
       title="Import Bank Statement (CSV)"
       maxWidth="lg"
     >
-      <p className="text-xs text-slate-500 -mt-2 mb-4">
+      <p className="text-xs text-slate-600 mb-4 leading-normal">
         Upload Equity EazzyBiz, ABSA, or standard bank CSV exports to reconcile paybill collections.
       </p>
       <div className="space-y-4 text-sm">

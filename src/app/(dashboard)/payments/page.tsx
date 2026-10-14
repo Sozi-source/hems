@@ -9,12 +9,13 @@ import { MoneyDisplay } from '@/components/ui/money-display';
 import { fmt_phone, fmt_date } from '@/lib/format';
 import { PaymentTransaction, PaymentStatus } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
-import { RefreshCw, CreditCard, Play, UploadCloud, MessageSquare } from 'lucide-react';
+import { RefreshCw, CreditCard, Play, UploadCloud, MessageSquare, Smartphone } from 'lucide-react';
 import { ApprovePaymentModal } from '@/components/payments/approve-payment-modal';
 import { RejectPaymentModal } from '@/components/payments/reject-payment-modal';
 import { SimulatePaymentModal } from '@/components/payments/simulate-payment-modal';
 import { ImportStatementModal } from '@/components/payments/import-statement-modal';
 import { PasteAlertModal } from '@/components/payments/paste-alert-modal';
+import { SmsReaderSetupModal } from '@/components/payments/sms-reader-setup-modal';
 
 export default function PaymentsPage() {
   const { activeBusinessId, isMasterView } = useBusiness();
@@ -27,6 +28,7 @@ export default function PaymentsPage() {
   const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isPasteAlertModalOpen, setIsPasteAlertModalOpen] = useState(false);
+  const [isReaderModalOpen, setIsReaderModalOpen] = useState(false);
 
   async function loadPayments() {
     setIsLoading(true);
@@ -66,6 +68,11 @@ export default function PaymentsPage() {
         </h1>
 
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsReaderModalOpen(true)}>
+            <Smartphone className="w-3.5 h-3.5 mr-1 text-[#1F7A3D]" />
+            SMS Reader Setup
+          </Button>
+
           <Button variant="outline" size="sm" onClick={() => setIsPasteAlertModalOpen(true)}>
             <MessageSquare className="w-3.5 h-3.5 mr-1 text-[#1F7A3D]" />
             Paste Alert / SMS
@@ -255,6 +262,11 @@ export default function PaymentsPage() {
         isOpen={isPasteAlertModalOpen}
         onClose={() => setIsPasteAlertModalOpen(false)}
         onSuccess={loadPayments}
+      />
+
+      <SmsReaderSetupModal
+        isOpen={isReaderModalOpen}
+        onClose={() => setIsReaderModalOpen(false)}
       />
     </div>
   );

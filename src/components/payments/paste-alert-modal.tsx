@@ -147,7 +147,7 @@ export function PasteAlertModal({
       title="Paste Payment Alert (SMS / Message)"
       maxWidth="md"
     >
-      <p className="text-xs text-slate-500 -mt-2 mb-4">
+      <p className="text-xs text-slate-600 mb-4 leading-normal">
         Paste any M-Pesa, Equity Bank, or ABSA SMS notification to auto-extract details and reconcile.
       </p>
       <form onSubmit={handleRecordPayment} className="space-y-4 text-sm">
