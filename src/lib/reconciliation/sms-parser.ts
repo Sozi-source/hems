@@ -20,33 +20,50 @@ export function parsePaymentAlert(rawText: string): ParsedPaymentAlert | null {
   if (!text || text.length < 15) return null;
 
   // 1. Safaricom M-Pesa direct SMS pattern
-  // Example: "QA12BC34DE Confirmed. Ksh1,500.00 received from JOHN DOE 0712345678 on 14/10/26 at 2:30 PM. New M-PESA balance..."
-  // Example: "QA12BC34DE Confirmed. You have received Ksh2,000.00 from 254712345678 - JANE DOE on 14/10/2026..."
-  const mpesaMatch = text.match(/^([A-Z0-9]{10})\s+Confirmed\./i);
+  // Example Merchant Till: "UJ9MD9PMOT Confirmed. 254712345678 JOHN DOE has paid Ksh50.00 to Haron Fashion on 15/10/26..."
+  // Example P2P / C2B: "QA12BC34DE Confirmed. Ksh1,500.00 received from JOHN DOE 0712345678 on 14/10/26 at 2:30 PM..."
+  // Example Customer Outgoing: "UJ9MD9PMOT Confirmed. Ksh50.00 paid to Haron Fashion 4968133 on 15/10/26..."
+  const mpesaMatch = text.match(/\b([A-Z0-9]{10})\s+Confirmed\./i);
   if (mpesaMatch) {
     const transactionRef = mpesaMatch[1].toUpperCase();
     const amountMatch = text.match(/(?:Ksh|KES)\.?\s*([0-9,]+(?:\.[0-9]{1,2})?)/i);
     const amountMinor = amountMatch ? Number(parse_kes(amountMatch[1])) : 0;
 
-    // Payer name and phone
     let payerName: string | undefined;
     let payerPhone: string | undefined;
 
-    const fromMatch = text.match(/received from\s+([^0-9]+?)\s+(0[17]\d{8}|254[17]\d{8})/i);
-    if (fromMatch) {
-      payerName = fromMatch[1].trim();
-      payerPhone = normalizePhone(fromMatch[2]);
+    // Pattern A: "254712345678 JOHN DOE has paid Ksh..." (Till Merchant notification)
+    const tillHasPaidMatch = text.match(/(0[17]\d{8}|254[17]\d{8})\s+([A-Za-z\s]{2,40}?)\s+has paid/i);
+    if (tillHasPaidMatch) {
+      payerPhone = normalizePhone(tillHasPaidMatch[1]);
+      payerName = tillHasPaidMatch[2].trim();
     } else {
-      const altFromMatch = text.match(/from\s+(0[17]\d{8}|254[17]\d{8})\s*[-–]\s*([A-Za-z\s]+?)(?:\s+on|\.)/i);
-      if (altFromMatch) {
-        payerPhone = normalizePhone(altFromMatch[1]);
-        payerName = altFromMatch[2].trim();
+      // Pattern B: "received from JOHN DOE 0712345678"
+      const fromMatch = text.match(/received from\s+([^0-9]+?)\s+(0[17]\d{8}|254[17]\d{8})/i);
+      if (fromMatch) {
+        payerName = fromMatch[1].trim();
+        payerPhone = normalizePhone(fromMatch[2]);
+      } else {
+        // Pattern C: "from 254712345678 - JOHN DOE"
+        const altFromMatch = text.match(/from\s+(0[17]\d{8}|254[17]\d{8})\s*[-–]\s*([A-Za-z\s]+?)(?:\s+on|\.)/i);
+        if (altFromMatch) {
+          payerPhone = normalizePhone(altFromMatch[1]);
+          payerName = altFromMatch[2].trim();
+        }
       }
     }
 
-    // Account ref (e.g., "for account CUST01")
+    // Account ref or Till number (e.g., "for account CUST01" or "paid to Haron Fashion 4968133")
     const accMatch = text.match(/(?:for\s+account|acc(?:ount)?\.?|ref(?:erence)?\.?)\s*:?\s*([A-Za-z0-9_-]{2,30})/i);
-    const accountReference = accMatch ? accMatch[1].trim() : undefined;
+    let accountReference = accMatch ? accMatch[1].trim() : undefined;
+
+    if (!accountReference) {
+      // Check if Till / Store number (5 to 7 digits) appears in text
+      const tillMatch = text.match(/\b(\d{5,7})\b/);
+      if (tillMatch && !tillMatch[1].startsWith('254') && !tillMatch[1].startsWith('07')) {
+        accountReference = tillMatch[1];
+      }
+    }
 
     return {
       provider: 'mpesa',

@@ -73,27 +73,57 @@ export async function POST(request: Request) {
     let targetBusinessId: string | null = explicitBusinessId;
 
     if (!targetBusinessId && parsed.accountReference) {
-      // 1. Try matching customer_no
-      const { data: customer } = await admin
-        .from('customers')
+      // 1. Try matching payment channel by shortcode or till number
+      const { data: channel } = await admin
+        .from('payment_channels')
         .select('business_id')
-        .eq('customer_no', parsed.accountReference)
+        .or(`shortcode.eq.${parsed.accountReference},business_shortcode.eq.${parsed.accountReference}`)
+        .eq('is_active', true)
         .limit(1)
         .maybeSingle();
 
-      if (customer?.business_id) {
-        targetBusinessId = customer.business_id;
+      if (channel?.business_id) {
+        targetBusinessId = channel.business_id;
       } else {
-        // 2. Try matching open obligation reference (e.g. CD0001)
-        const { data: obligation } = await admin
-          .from('obligations')
+        // 2. Try matching customer_no
+        const { data: customer } = await admin
+          .from('customers')
           .select('business_id')
-          .eq('reference_no', parsed.accountReference)
+          .eq('customer_no', parsed.accountReference)
           .limit(1)
           .maybeSingle();
 
-        if (obligation?.business_id) {
-          targetBusinessId = obligation.business_id;
+        if (customer?.business_id) {
+          targetBusinessId = customer.business_id;
+        } else {
+          // 3. Try matching open obligation reference (e.g. CD0001)
+          const { data: obligation } = await admin
+            .from('obligations')
+            .select('business_id')
+            .eq('reference_no', parsed.accountReference)
+            .limit(1)
+            .maybeSingle();
+
+          if (obligation?.business_id) {
+            targetBusinessId = obligation.business_id;
+          }
+        }
+      }
+    }
+
+    // Check if rawText mentions any active business channel's shortcode/till
+    if (!targetBusinessId) {
+      const { data: channels } = await admin
+        .from('payment_channels')
+        .select('business_id, shortcode, business_shortcode')
+        .eq('is_active', true);
+
+      if (channels) {
+        for (const ch of channels) {
+          if (rawText.includes(ch.shortcode) || (ch.business_shortcode && rawText.includes(ch.business_shortcode))) {
+            targetBusinessId = ch.business_id;
+            break;
+          }
         }
       }
     }
