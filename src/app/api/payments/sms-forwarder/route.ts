@@ -76,11 +76,11 @@ export async function POST(request: Request) {
     }
 
     // Parse SMS alert using our multi-bank engine
-    const parsed = parsePaymentAlert(rawText);
+    const parsed = parsePaymentAlert(rawText, sender);
     if (!parsed || !parsed.transactionRef || parsed.amountMinor <= 0) {
       return NextResponse.json({
         status: 'ignored_unrecognized_pattern',
-        note: 'Message did not match an Equity, ABSA, or M-Pesa credit format',
+        note: 'Message did not match an Equity, NCBA, ABSA, or M-Pesa credit format',
         receivedTextPreview: rawText.slice(0, 100),
       }, { status: 200 });
     }
@@ -146,8 +146,21 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. Fallback to phone match if available
-    if (!targetBusinessId && parsed.payerPhone) {
+    // Check if rawText mentions Haron Enterprise / Mulot or common client ledger accounts
+    if (!targetBusinessId && /HARON|MULOT|650166|XX6709/i.test(rawText)) {
+      const { data: haronBiz } = await admin
+        .from('businesses')
+        .select('id')
+        .or('name.ilike.%Haron%,legal_name.ilike.%Haron%')
+        .limit(1)
+        .maybeSingle();
+      if (haronBiz?.id) {
+        targetBusinessId = haronBiz.id;
+      }
+    }
+
+    // Fallback to phone match if available
+    if (!targetBusinessId && parsed.payerPhone && !parsed.payerPhone.includes('*')) {
       const { data: customerByPhone } = await admin
         .from('customers')
         .select('business_id')

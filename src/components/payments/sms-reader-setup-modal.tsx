@@ -196,6 +196,9 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
                     EQUITYBANK
                   </span>
                   <span className="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                    NCBA
+                  </span>
+                  <span className="font-mono text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
                     ABSABANK
                   </span>
                 </div>

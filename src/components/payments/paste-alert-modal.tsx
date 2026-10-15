@@ -145,6 +145,8 @@ export function PasteAlertModal({
       ? 'Safaricom M-Pesa'
       : parsed.detectedFormat === 'equity_credit'
       ? 'Equity Bank'
+      : parsed.detectedFormat === 'ncba_credit'
+      ? 'NCBA Bank'
       : parsed.detectedFormat === 'absa_credit'
       ? 'ABSA Bank'
       : 'Standard Bank Alert'
