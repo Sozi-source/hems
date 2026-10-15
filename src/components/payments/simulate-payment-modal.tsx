@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useBusiness } from '@/context/business-context';
 import { parse_kes } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
+import { AlertCircle, ArrowRight, Building2, UserCheck, Zap } from 'lucide-react';
 
 interface SimulatePaymentModalProps {
   isOpen: boolean;
@@ -154,102 +155,123 @@ export function SimulatePaymentModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Simulate M-Pesa Payment" maxWidth="md">
       <form onSubmit={handleSimulate} className="space-y-4">
+        <p className="text-xs text-slate-500 leading-relaxed -mt-1">
+          Simulate an incoming Daraja C2B webhook payload for testing validation, reconciliation, and ledger credit.
+        </p>
+
         {error && (
-          <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
-            {error}
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs font-medium flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+            <div>{error}</div>
           </div>
         )}
 
-        {/* Business Selector */}
-        {isMasterView && businesses.length > 0 && (
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700">
-              Receiving Business
-            </label>
-            <select
-              value={businessId}
-              onChange={(e) => setBusinessId(e.target.value)}
-              className="flex h-10 w-full rounded-fintech border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800"
+        {/* Card 1: Context & Customer Association */}
+        <div className="rounded-xl border border-slate-200/90 bg-white p-4 space-y-3 shadow-xs">
+          {isMasterView && businesses.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                Receiving Business Ledger
+              </label>
+              <select
+                value={businessId}
+                onChange={(e) => setBusinessId(e.target.value)}
+                className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
+                required
+              >
+                {businesses.map((b) => (
+                  <option key={b.id || b.code} value={b.id || b.code} className="bg-white text-slate-900">
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {customers.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                Select Existing Customer (Quick Fill)
+              </label>
+              <select
+                value={selectedCustomerId}
+                onChange={(e) => handleCustomerChange(e.target.value)}
+                className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              >
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id} className="bg-white text-slate-900">
+                    {c.customer_no} — {c.full_name} ({c.phone || 'No phone'})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* Card 2: Transaction Payload Parameters */}
+        <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-3">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+            Payload Attributes
+          </span>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Payer Name"
+              type="text"
+              value={payerName}
+              onChange={(e) => setPayerName(e.target.value)}
+              className="bg-white h-9 text-xs"
               required
-            >
-              {businesses.map((b) => (
-                <option key={b.id || b.code} value={b.id || b.code} className="bg-white text-slate-900">
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+            />
 
-        {/* Customer Quick Fill */}
-        {customers.length > 0 && (
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700">
-              Select Customer
-            </label>
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => handleCustomerChange(e.target.value)}
-              className="flex h-10 w-full rounded-fintech border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800"
-            >
-              {customers.map((c) => (
-                <option key={c.id} value={c.id} className="bg-white text-slate-900">
-                  {c.customer_no} — {c.full_name} ({c.phone || 'No phone'})
-                </option>
-              ))}
-            </select>
+            <Input
+              label="Payer Phone"
+              type="text"
+              value={payerPhone}
+              onChange={(e) => setPayerPhone(e.target.value)}
+              className="bg-white h-9 text-xs font-mono"
+              required
+            />
           </div>
-        )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Payer Name"
-            type="text"
-            value={payerName}
-            onChange={(e) => setPayerName(e.target.value)}
-            required
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Amount (KSh)"
+              type="text"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="bg-white h-9 text-xs font-semibold"
+              required
+            />
+
+            <Input
+              label="Account / BillRef"
+              type="text"
+              placeholder="e.g. CD0001"
+              value={accountRef}
+              onChange={(e) => setAccountRef(e.target.value)}
+              className="bg-white h-9 text-xs"
+            />
+          </div>
 
           <Input
-            label="Payer Phone"
+            label="Simulated Receipt Reference"
             type="text"
-            value={payerPhone}
-            onChange={(e) => setPayerPhone(e.target.value)}
+            value={receiptRef}
+            onChange={(e) => setReceiptRef(e.target.value)}
+            className="bg-white h-9 text-xs font-mono uppercase"
             required
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Amount (KSh)"
-            type="text"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-          />
-
-          <Input
-            label="Account Number (BillRef)"
-            type="text"
-            placeholder="e.g. C0001"
-            value={accountRef}
-            onChange={(e) => setAccountRef(e.target.value)}
-          />
-        </div>
-
-        <Input
-          label="Receipt Reference"
-          type="text"
-          value={receiptRef}
-          onChange={(e) => setReceiptRef(e.target.value)}
-          required
-        />
-
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
           <Button type="submit" variant="primary" size="sm" isLoading={isLoading}>
+            <Zap className="w-3.5 h-3.5 mr-1" />
             Simulate Ingest
           </Button>
         </div>

@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { fmt_phone, parse_kes, fmt_kes } from '@/lib/format';
-import { Smartphone, CheckCircle2 } from 'lucide-react';
+import { parse_kes } from '@/lib/format';
+import { Smartphone, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface StkPromptModalProps {
   isOpen: boolean;
@@ -96,68 +96,83 @@ export function StkPromptModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Prompt M-Pesa PIN" maxWidth="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title="Prompt M-Pesa PIN (STK Push)" maxWidth="sm">
       <form onSubmit={handleSendPrompt} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
-            {error}
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs font-medium flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+            <div>{error}</div>
           </div>
         )}
 
         {statusMessage ? (
-          <div className="text-center py-4 space-y-3">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-6 h-6" />
+          <div className="rounded-xl border border-slate-200 bg-white p-5 text-center space-y-3 shadow-xs">
+            <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
             </div>
-            <div className="text-sm font-bold text-slate-900">
-              Request Accepted
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">
+                STK Prompt Dispatched
+              </h4>
+              <p className="text-xs text-slate-600 mt-1 max-w-xs mx-auto leading-relaxed">
+                {statusMessage}
+              </p>
             </div>
-            <p className="text-xs text-slate-600 max-w-xs mx-auto">
-              {statusMessage}
-            </p>
-            <p className="text-xs text-slate-500 max-w-xs mx-auto">
-              This confirms Daraja accepted the request; it does not confirm delivery to the phone. Check the customer’s M-Pesa line and request status before retrying.
-            </p>
             {checkoutRequestId && (
-              <p className="text-[11px] text-slate-500 break-all">
-                Checkout request: <span className="font-mono">{checkoutRequestId}</span>
+              <p className="text-[11px] text-slate-500 break-all font-mono bg-slate-50 p-2 rounded border border-slate-200">
+                ID: {checkoutRequestId}
               </p>
             )}
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={onClose}
-              className="mt-2"
-            >
-              Done
-            </Button>
+            <div className="pt-2 border-t border-slate-100">
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={onClose}
+                className="w-full"
+              >
+                Done
+              </Button>
+            </div>
           </div>
         ) : (
           <>
-            <div className="p-3 rounded-fintech bg-slate-50 border border-slate-200 text-xs space-y-1">
-              <div className="font-bold text-slate-900">{customerName}</div>
-              <div className="text-slate-500 font-mono">Account: {accountReference}</div>
+            {/* Customer Summary Card */}
+            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+                Target Customer
+              </span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-slate-900">{customerName}</span>
+                <span className="text-slate-600 font-mono text-[11px] bg-white px-2 py-0.5 rounded border border-slate-200">
+                  Ref: {accountReference}
+                </span>
+              </div>
             </div>
 
-            <Input
-              label="Phone Number"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="0712345678"
-              required
-            />
+            {/* Input Card */}
+            <div className="rounded-xl border border-slate-200/90 bg-white p-4 space-y-3 shadow-xs">
+              <Input
+                label="Phone Number *"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="0712345678"
+                className="h-9 text-xs font-mono"
+                required
+              />
 
-            <Input
-              label="Amount to Prompt (KSh)"
-              type="text"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-            />
+              <Input
+                label="Amount to Prompt (KSh) *"
+                type="text"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="h-9 text-xs font-semibold"
+                required
+              />
+            </div>
 
-            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
               <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
                 Cancel
               </Button>

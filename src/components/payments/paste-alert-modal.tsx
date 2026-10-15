@@ -5,10 +5,10 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { fmt_kes, parse_kes } from '@/lib/format';
+import { parse_kes, fmt_kes } from '@/lib/format';
 import { useBusiness } from '@/context/business-context';
 import { parsePaymentAlert, ParsedPaymentAlert } from '@/lib/reconciliation/sms-parser';
-import { MessageSquare, CheckCircle, AlertTriangle, ArrowRight } from 'lucide-react';
+import { CheckCircle2, AlertCircle, ArrowRight, Building2, Sparkles } from 'lucide-react';
 
 interface PasteAlertModalProps {
   isOpen: boolean;
@@ -140,34 +140,46 @@ export function PasteAlertModal({
     }
   };
 
+  const detectedLabel = parsed
+    ? parsed.detectedFormat === 'mpesa_c2b'
+      ? 'Safaricom M-Pesa'
+      : parsed.detectedFormat === 'equity_credit'
+      ? 'Equity Bank'
+      : parsed.detectedFormat === 'absa_credit'
+      ? 'ABSA Bank'
+      : 'Standard Bank Alert'
+    : null;
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Paste Payment Alert (SMS / Message)"
+      title="Paste Payment Notification"
       maxWidth="md"
     >
-      <p className="text-xs text-slate-600 mb-4 leading-normal">
-        Paste any M-Pesa, Equity Bank, or ABSA SMS notification to auto-extract details and reconcile.
-      </p>
       <form onSubmit={handleRecordPayment} className="space-y-4 text-sm">
+        <p className="text-xs text-slate-500 leading-relaxed -mt-1">
+          Paste any SMS alert received from M-Pesa, Equity Bank, or ABSA. Details are parsed and verified instantly.
+        </p>
+
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-red-700 text-xs">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs font-medium flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
             <div>{error}</div>
           </div>
         )}
 
-        {/* Business Selector */}
-        {businesses.length > 1 && (
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Business
+        {/* Business Selector (if multi-entity) */}
+        {businesses.length > 1 && !successInfo && (
+          <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 space-y-1.5 shadow-xs">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+              <Building2 className="w-3.5 h-3.5 text-slate-400" />
+              Target Business Ledger
             </label>
             <select
               value={targetBusinessId}
               onChange={(e) => setTargetBusinessId(e.target.value)}
-              className="w-full px-3 py-2 border border-[#DCE5DF] rounded-fintech text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1F7A3D]"
+              className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
             >
               {businesses.map((biz) => (
                 <option key={biz.id} value={biz.id}>
@@ -180,112 +192,118 @@ export function PasteAlertModal({
 
         {!successInfo ? (
           <>
-            {/* Raw Text Input */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Paste SMS / Bank Alert Text
-              </label>
+            {/* Card 1: Alert Text Input */}
+            <div className="rounded-xl border border-slate-200/90 bg-white p-4 space-y-2.5 shadow-xs">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Raw SMS / Message Text
+                </label>
+                {detectedLabel && (
+                  <Badge variant="neutral" dot className="bg-slate-100 text-slate-800 border-slate-200 text-[11px]">
+                    {detectedLabel}
+                  </Badge>
+                )}
+              </div>
               <textarea
                 rows={3}
                 value={rawText}
                 onChange={(e) => handleTextChange(e.target.value)}
-                placeholder="e.g. QA12BC34DE Confirmed. Ksh1,500.00 received from JOHN DOE... OR Dear Customer, KES 5,000.00 credited from MPESA REF..."
-                className="w-full px-3 py-2 border border-[#DCE5DF] rounded-fintech text-xs font-mono bg-[#F8FAF9] focus:outline-none focus:ring-2 focus:ring-[#1F7A3D]"
+                placeholder="Paste alert text here (e.g. UJFMDAEN6H Confirmed. KSH5.00 received from 254711390861 WILFRED OSOZI...)"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 transition-colors placeholder:text-slate-400"
               />
             </div>
 
-            {/* Auto-detected Badge */}
-            {parsed && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 font-medium">Detected:</span>
-                <Badge variant="success">
-                  {parsed.detectedFormat === 'mpesa_c2b'
-                    ? 'Safaricom M-Pesa'
-                    : parsed.detectedFormat === 'equity_credit'
-                    ? 'Equity Bank Alert'
-                    : parsed.detectedFormat === 'absa_credit'
-                    ? 'ABSA Bank Alert'
-                    : 'Standard Bank Alert'}
-                </Badge>
-              </div>
-            )}
+            {/* Card 2: Extracted Values Card */}
+            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-3">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
+                Extracted Transaction Attributes
+              </span>
 
-            {/* Extracted Fields (Editable) */}
-            <div className="grid grid-cols-2 gap-3 bg-[#F1F5F2] p-3 rounded-fintech border border-[#DCE5DF]">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
-                  Transaction Ref Code *
-                </label>
-                <Input
-                  value={customRef}
-                  onChange={(e) => setCustomRef(e.target.value.toUpperCase())}
-                  placeholder="e.g. QA12BC34DE"
-                  className="bg-white font-mono uppercase text-xs h-8"
-                  required
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Receipt Ref *
+                  </label>
+                  <Input
+                    value={customRef}
+                    onChange={(e) => setCustomRef(e.target.value.toUpperCase())}
+                    placeholder="e.g. UJFMDAEN6H"
+                    className="bg-white font-mono uppercase text-xs h-9"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
-                  Amount (KES) *
-                </label>
-                <Input
-                  value={customAmount}
-                  onChange={(e) => setCustomAmount(e.target.value)}
-                  placeholder="e.g. 1500.00"
-                  className="bg-white font-semibold text-xs h-8 text-[#1F7A3D]"
-                  required
-                />
-              </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Amount (KES) *
+                  </label>
+                  <Input
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder="e.g. 1500.00"
+                    className="bg-white font-semibold text-xs h-9 text-slate-900"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
-                  Customer / BillRef
-                </label>
-                <Input
-                  value={customAccountRef}
-                  onChange={(e) => setCustomAccountRef(e.target.value)}
-                  placeholder="e.g. CUST001 or CD0001"
-                  className="bg-white text-xs h-8"
-                />
-              </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Customer / BillRef
+                  </label>
+                  <Input
+                    value={customAccountRef}
+                    onChange={(e) => setCustomAccountRef(e.target.value)}
+                    placeholder="e.g. CD0001 or Haron Fashion"
+                    className="bg-white text-xs h-9"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">
-                  Payer Name
-                </label>
-                <Input
-                  value={customPayerName}
-                  onChange={(e) => setCustomPayerName(e.target.value)}
-                  placeholder="e.g. John Doe"
-                  className="bg-white text-xs h-8"
-                />
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Payer Name
+                  </label>
+                  <Input
+                    value={customPayerName}
+                    onChange={(e) => setCustomPayerName(e.target.value)}
+                    placeholder="e.g. Wilfred Osozi"
+                    className="bg-white text-xs h-9"
+                  />
+                </div>
               </div>
             </div>
           </>
         ) : (
-          /* Success Screen */
-          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-fintech text-emerald-900 space-y-2">
-            <div className="flex items-center gap-2 font-semibold text-emerald-800">
-              <CheckCircle className="w-5 h-5 text-emerald-600" />
-              <span>Payment Logged Successfully</span>
+          /* Success Card */
+          <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3 shadow-xs text-center">
+            <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
             </div>
-            <p className="text-xs text-emerald-700">
-              Transaction <strong>{customRef}</strong> of{' '}
-              <strong>KSh {customAmount}</strong> has been saved.
-            </p>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">
+                Payment Recorded Successfully
+              </h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Transaction <strong className="font-mono text-slate-800">{customRef}</strong> of{' '}
+                <strong className="text-slate-900">{fmt_kes(Number(parse_kes(customAmount)))}</strong> was committed to the ledger.
+              </p>
+            </div>
+
             {successInfo.ruleName && successInfo.ruleName !== 'unmatched' && (
-              <div className="mt-2 p-2 bg-white rounded border border-emerald-300 text-xs">
-                <span className="font-semibold text-emerald-800">Automated Match:</span>{' '}
-                <span className="capitalize">{successInfo.ruleName.replace(/_/g, ' ')}</span>{' '}
-                ({successInfo.confidence}% confidence)
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs flex items-center justify-between text-slate-700">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Sparkles className="w-3.5 h-3.5 text-slate-500" />
+                  Auto-matched via {successInfo.ruleName.replace(/_/g, ' ')}
+                </span>
+                <Badge variant="neutral" dot className="bg-emerald-50 text-emerald-800 border-emerald-200 text-[11px]">
+                  {successInfo.confidence}% Score
+                </Badge>
               </div>
             )}
           </div>
         )}
 
-        {/* Buttons */}
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#DCE5DF]">
+        {/* Modal Footer */}
+        <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
           <Button variant="outline" size="sm" type="button" onClick={onClose}>
             {successInfo ? 'Close' : 'Cancel'}
           </Button>
@@ -298,7 +316,7 @@ export function PasteAlertModal({
               isLoading={isLoading}
               disabled={!customRef || !customAmount}
             >
-              <ArrowRight className="w-4 h-4 mr-1" />
+              <ArrowRight className="w-3.5 h-3.5 mr-1" />
               Save Payment
             </Button>
           )}

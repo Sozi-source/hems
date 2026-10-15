@@ -4,8 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { fmt_kes } from '@/lib/format';
 import { PaymentTransaction } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
+import { AlertCircle, Ban } from 'lucide-react';
 
 interface RejectPaymentModalProps {
   isOpen: boolean;
@@ -68,33 +70,46 @@ export function RejectPaymentModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Reject Payment" maxWidth="sm">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
-            {error}
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs font-medium flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+            <div>{error}</div>
           </div>
         )}
 
-        <div className="p-3 rounded-fintech bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-0.5">
-          <div className="font-mono font-bold text-slate-900">
-            {payment.transaction_ref}
+        {/* Payment Summary Card */}
+        <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-2">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
+            <span className="font-mono text-xs font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-xs">
+              {payment.transaction_ref}
+            </span>
+            <span className="text-xs font-bold text-slate-900">
+              {fmt_kes(payment.amount_minor)}
+            </span>
           </div>
-          <div>From: {payment.payer_name || 'Customer'}</div>
+          <div className="text-xs text-slate-600 flex justify-between pt-0.5">
+            <span className="text-slate-500">Payer:</span>
+            <span className="font-medium text-slate-900">{payment.payer_name || 'Customer'}</span>
+          </div>
         </div>
 
-        <Input
-          label="Reason for Rejection"
-          type="text"
-          placeholder="e.g. Erroneous payment, reversed by sender"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          required
-          autoFocus
-        />
+        <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs">
+          <Input
+            label="Reason for Rejection *"
+            type="text"
+            placeholder="e.g. Erroneous payment, reversed by sender"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            required
+            autoFocus
+          />
+        </div>
 
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
           <Button type="submit" variant="danger" size="sm" isLoading={isLoading}>
+            <Ban className="w-3.5 h-3.5 mr-1" />
             Confirm Rejection
           </Button>
         </div>

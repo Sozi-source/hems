@@ -3,12 +3,11 @@
 import React, { useState } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { fmt_kes } from '@/lib/format';
 import { useBusiness } from '@/context/business-context';
 import { parseBankStatementCsv, StatementParseResult } from '@/lib/reconciliation/statement-parser';
-import { UploadCloud, FileSpreadsheet, CheckCircle, AlertTriangle, ArrowRight } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertCircle, ArrowRight, Building2 } from 'lucide-react';
 
 interface ImportStatementModalProps {
   isOpen: boolean;
@@ -127,30 +126,32 @@ export function ImportStatementModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Import Bank Statement (CSV)"
+      title="Import Bank Statement"
       maxWidth="lg"
     >
-      <p className="text-xs text-slate-600 mb-4 leading-normal">
-        Upload Equity EazzyBiz, ABSA, or standard bank CSV exports to reconcile paybill collections.
-      </p>
       <div className="space-y-4 text-sm">
+        <p className="text-xs text-slate-500 leading-relaxed -mt-1">
+          Upload Equity Bank (EazzyBiz), ABSA Internet Banking, or standard CSV exports to reconcile statement lines in bulk.
+        </p>
+
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-red-700 text-xs">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs font-medium flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
             <div>{error}</div>
           </div>
         )}
 
-        {/* Business Selector (if master view or multiple) */}
-        {businesses.length > 1 && (
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Assign Payments To Business
+        {/* Business Selector (if multi-entity) */}
+        {businesses.length > 1 && !importSummary && (
+          <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 space-y-1.5 shadow-xs">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+              <Building2 className="w-3.5 h-3.5 text-slate-400" />
+              Assign Payments To Business Ledger
             </label>
             <select
               value={targetBusinessId}
               onChange={(e) => setTargetBusinessId(e.target.value)}
-              className="w-full px-3 py-2 border border-[#DCE5DF] rounded-fintech text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1F7A3D]"
+              className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
             >
               {businesses.map((biz) => (
                 <option key={biz.id} value={biz.id}>
@@ -161,13 +162,13 @@ export function ImportStatementModal({
           </div>
         )}
 
-        {/* Upload Zone */}
+        {/* Card 1: File Dropzone */}
         {!importSummary && (
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Select CSV Statement
+          <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs">
+            <label className="block text-xs font-semibold text-slate-700 mb-2">
+              Statement File (.csv)
             </label>
-            <div className="border-2 border-dashed border-[#DCE5DF] hover:border-[#1F7A3D] rounded-fintech p-6 text-center cursor-pointer transition-colors bg-[#F8FAF9]">
+            <div className="border border-dashed border-slate-300 hover:border-slate-400 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-slate-50">
               <input
                 type="file"
                 accept=".csv"
@@ -176,72 +177,74 @@ export function ImportStatementModal({
                 id="statement-upload-input"
               />
               <label htmlFor="statement-upload-input" className="cursor-pointer block">
-                <UploadCloud className="w-8 h-8 text-[#1F7A3D] mx-auto mb-2" />
-                <span className="font-semibold text-slate-800">
-                  {fileName ? fileName : 'Click to upload or drag & drop'}
+                <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-600 flex items-center justify-center mx-auto mb-2">
+                  <UploadCloud className="w-5 h-5 text-slate-600" />
+                </div>
+                <span className="font-semibold text-xs text-slate-900 block">
+                  {fileName ? fileName : 'Click to select CSV statement file or drag here'}
                 </span>
-                <p className="text-xs text-slate-500 mt-1">
-                  Supports Equity Bank (EazzyBiz), ABSA Internet Banking, and standard CSV exports.
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Equity EazzyBiz, ABSA Business, and generic CSV formats supported.
                 </p>
               </label>
             </div>
           </div>
         )}
 
-        {/* Parse Preview */}
+        {/* Card 2: Parsing Preview */}
         {parseResult && !importSummary && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between bg-[#F1F5F2] p-3 rounded-fintech border border-[#DCE5DF]">
-              <div className="flex items-center gap-2">
-                <FileSpreadsheet className="w-5 h-5 text-[#1F7A3D]" />
-                <div>
-                  <span className="font-semibold text-slate-800">
+            <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-3">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200/70">
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-slate-500" />
+                  <span className="text-xs font-semibold text-slate-800">
                     Detected Format:
-                  </span>{' '}
-                  <Badge variant="neutral">
+                  </span>
+                  <Badge variant="neutral" dot className="bg-white border-slate-200 text-slate-800 text-[11px]">
                     {parseResult.detectedBank === 'equity'
-                      ? 'Equity Bank'
+                      ? 'Equity Bank EazzyBiz'
                       : parseResult.detectedBank === 'absa'
-                      ? 'ABSA Bank'
+                      ? 'ABSA Internet Banking'
                       : 'Generic Bank CSV'}
                   </Badge>
                 </div>
+                <div className="text-right">
+                  <span className="text-[11px] font-medium text-slate-500 block">Total Inflow Value</span>
+                  <span className="font-bold text-sm text-slate-900">
+                    {fmt_kes(parseResult.totalCreditMinor)}
+                  </span>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="text-xs text-slate-500 block">Total Credit Value</span>
-                <span className="font-bold text-[#14231A]">
-                  {fmt_kes(parseResult.totalCreditMinor)}
+
+              <div className="flex justify-between items-center text-xs text-slate-600">
+                <span>
+                  <strong className="text-slate-900">{parseResult.validRows.length}</strong> incoming transactions identified
+                </span>
+                <span className="text-slate-400">
+                  {parseResult.skippedRows.length} debit/non-credit lines skipped
                 </span>
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-xs text-slate-600 px-1">
-              <span>
-                <strong>{parseResult.validRows.length}</strong> incoming payments found
-              </span>
-              <span>
-                {parseResult.skippedRows.length} non-credit / debit rows skipped
-              </span>
-            </div>
-
             {/* Preview table */}
-            <div className="border border-[#DCE5DF] rounded-fintech overflow-hidden max-h-56 overflow-y-auto">
+            <div className="rounded-xl border border-slate-200 overflow-hidden max-h-56 overflow-y-auto bg-white shadow-xs">
               <table className="w-full text-xs text-left">
-                <thead className="bg-[#F8FAF9] text-slate-600 border-b border-[#DCE5DF] sticky top-0">
+                <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 sticky top-0">
                   <tr>
-                    <th className="px-3 py-2">Ref Code</th>
-                    <th className="px-3 py-2">Amount</th>
-                    <th className="px-3 py-2">Customer / BillRef</th>
-                    <th className="px-3 py-2">Description</th>
+                    <th className="px-3 py-2 font-semibold">Ref Code</th>
+                    <th className="px-3 py-2 font-semibold">Amount</th>
+                    <th className="px-3 py-2 font-semibold">Customer / Ref</th>
+                    <th className="px-3 py-2 font-semibold">Statement Description</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#DCE5DF]">
+                <tbody className="divide-y divide-slate-100">
                   {parseResult.validRows.slice(0, 50).map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50">
+                    <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
                       <td className="px-3 py-1.5 font-mono font-medium text-slate-800">
                         {row.transactionRef}
                       </td>
-                      <td className="px-3 py-1.5 font-semibold text-[#1F7A3D]">
+                      <td className="px-3 py-1.5 font-semibold text-slate-900">
                         {fmt_kes(row.amountMinor)}
                       </td>
                       <td className="px-3 py-1.5 text-slate-700">
@@ -258,48 +261,59 @@ export function ImportStatementModal({
               </table>
             </div>
             {parseResult.validRows.length > 50 && (
-              <p className="text-xs text-slate-400 italic text-center">
-                Showing first 50 of {parseResult.validRows.length} transactions. All will be imported.
+              <p className="text-[11px] text-slate-400 italic text-center">
+                Displaying first 50 of {parseResult.validRows.length} transactions. All rows will be processed.
               </p>
             )}
           </div>
         )}
 
-        {/* Success Report */}
+        {/* Card 3: Import Report Summary */}
         {importSummary && (
-          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-fintech text-emerald-900 space-y-3">
-            <div className="flex items-center gap-2 font-semibold text-emerald-800">
-              <CheckCircle className="w-5 h-5 text-emerald-600" />
-              <span>Bank Statement Reconciled Successfully!</span>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">
+                  Statement Reconciliation Complete
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Batch processed against database ledger with idempotency checks.
+                </p>
+              </div>
             </div>
+
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="bg-white p-2.5 rounded border border-emerald-200">
-                <span className="text-slate-500 block">New Payments</span>
-                <span className="text-base font-bold text-emerald-700">
+              <div className="bg-slate-50/80 p-3 rounded-lg border border-slate-200">
+                <span className="text-slate-500 text-[11px] block">New Inflow</span>
+                <span className="text-sm font-bold text-slate-900">
                   {importSummary.createdCount}
                 </span>
               </div>
-              <div className="bg-white p-2.5 rounded border border-emerald-200">
-                <span className="text-slate-500 block">Already Recorded</span>
-                <span className="text-base font-bold text-slate-600">
+              <div className="bg-slate-50/80 p-3 rounded-lg border border-slate-200">
+                <span className="text-slate-500 text-[11px] block">Duplicates Skipped</span>
+                <span className="text-sm font-bold text-slate-600">
                   {importSummary.duplicateCount}
                 </span>
               </div>
-              <div className="bg-white p-2.5 rounded border border-emerald-200">
-                <span className="text-slate-500 block">Errors</span>
-                <span className="text-base font-bold text-red-600">
+              <div className="bg-slate-50/80 p-3 rounded-lg border border-slate-200">
+                <span className="text-slate-500 text-[11px] block">Errors</span>
+                <span className="text-sm font-bold text-rose-700">
                   {importSummary.errorCount}
                 </span>
               </div>
             </div>
-            <p className="text-xs text-emerald-700">
-              New transactions have been queued in <strong>"Needs Review"</strong> with automated debt matching candidate scores.
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              New transactions have been queued in <strong>"Needs Review"</strong> with automated candidate debt match scoring.
             </p>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#DCE5DF]">
+        {/* Modal Footer */}
+        <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
           <Button variant="outline" size="sm" onClick={onClose}>
             {importSummary ? 'Close' : 'Cancel'}
           </Button>
@@ -312,7 +326,7 @@ export function ImportStatementModal({
               isLoading={isImporting}
               onClick={handleImport}
             >
-              <ArrowRight className="w-4 h-4 mr-1" />
+              <ArrowRight className="w-3.5 h-3.5 mr-1" />
               Import & Reconcile ({parseResult?.validRows.length || 0})
             </Button>
           )}

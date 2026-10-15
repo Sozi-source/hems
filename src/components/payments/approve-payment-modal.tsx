@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MoneyDisplay } from '@/components/ui/money-display';
-import { fmt_phone, fmt_date, fmt_kes, parse_kes } from '@/lib/format';
+import { Badge } from '@/components/ui/badge';
+import { fmt_phone, fmt_kes, parse_kes } from '@/lib/format';
 import { PaymentTransaction } from '@/lib/types';
 import { useBusiness } from '@/context/business-context';
 import { createClient } from '@/lib/supabase/client';
+import { ShieldAlert, Sparkles, Building2, Receipt, AlertCircle } from 'lucide-react';
 
 interface ApprovePaymentModalProps {
   isOpen: boolean;
@@ -136,7 +137,7 @@ export function ApprovePaymentModal({
         throw new Error('Please provide an approval note');
       }
 
-      const { data, error: approveError } = await supabase.rpc('approve_payment', {
+      const { error: approveError } = await supabase.rpc('approve_payment', {
         p_payment_id: payment.id,
         p_allocations: allocationsPayload,
         p_business: targetBusinessId,
@@ -186,79 +187,128 @@ export function ApprovePaymentModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Approve Payment" maxWidth="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
-            {error}
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs font-medium flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+            <div>{error}</div>
           </div>
         )}
 
-        {/* Payment Summary */}
-        <div className="p-3.5 rounded-fintech bg-slate-50 border border-slate-200 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-bold text-slate-900">
-              {payment.transaction_ref}
-            </span>
-            <MoneyDisplay minorUnits={payment.amount_minor} size="sm" variant="amber" />
-          </div>
-
-          <div className="text-xs text-slate-700 flex items-center justify-between font-medium">
-            <span>{payment.payer_name || 'Customer'}</span>
-            <span className="font-mono text-slate-600">{fmt_phone(payment.payer_msisdn || payment.payer_phone)}</span>
-          </div>
-
-          {(payment.account_reference || payment.bill_ref_number) && (
-            <div className="text-[11px] text-slate-700 font-mono font-medium">
-              Account Ref: {payment.account_reference || payment.bill_ref_number}
+        {/* Card 1: Institutional Payment Summary */}
+        <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-3.5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/70">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Receipt Ref
+              </span>
+              <span className="font-mono text-xs font-bold text-slate-900 bg-white px-2 py-0.5 rounded-md border border-slate-200 shadow-xs">
+                {payment.transaction_ref}
+              </span>
             </div>
-          )}
+            <div className="text-right">
+              <span className="text-[11px] font-medium text-slate-500 block">Amount</span>
+              <span className="text-base font-bold text-slate-900">
+                {fmt_kes(payment.amount_minor)}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <span className="text-[11px] font-medium text-slate-500 block">Payer</span>
+              <span className="font-semibold text-slate-900">{payment.payer_name || 'Customer'}</span>
+            </div>
+            <div>
+              <span className="text-[11px] font-medium text-slate-500 block">Phone / MSISDN</span>
+              <span className="font-mono font-medium text-slate-700">
+                {fmt_phone(payment.payer_msisdn || payment.payer_phone)}
+              </span>
+            </div>
+
+            {(payment.account_reference || payment.bill_ref_number) && (
+              <div className="col-span-2 pt-1 border-t border-slate-200/50 flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-500">Account / Till Ref:</span>
+                <span className="font-mono text-xs font-semibold text-slate-800">
+                  {payment.account_reference || payment.bill_ref_number}
+                </span>
+              </div>
+            )}
+          </div>
 
           {matchedCandidateInfo && (
-            <div className="mt-2 p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between">
-              <span>Matching suggestion (not payment verification)</span>
-              <span className="font-mono text-[10px] bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded">
-                {matchedCandidateInfo.confidence}% Match Score
-              </span>
+            <div className="pt-2.5 border-t border-slate-200/70 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5 text-slate-700 font-medium">
+                <Sparkles className="w-3.5 h-3.5 text-slate-500" />
+                <span>Automated Invoice Match</span>
+              </div>
+              <Badge variant="neutral" dot className="bg-emerald-50 text-emerald-800 border-emerald-200/80 text-[11px]">
+                {matchedCandidateInfo.confidence}% Confidence
+              </Badge>
             </div>
           )}
         </div>
 
+        {/* Card 2: Verification Hold Resolution (Uniform slate surface with clean amber badge) */}
         {hasConflicts && (
-          <div className="space-y-3 rounded-fintech border border-amber-300 bg-amber-50 p-3.5">
-            <div>
-              <p className="text-xs font-bold text-amber-950">Reconciliation required before approval</p>
-              <p className="mt-1 text-xs text-amber-900">
-                This payment has data conflicts ({payment.conflict_flags?.join(', ')}). Compare the receipt, amount, and receiving Paybill with the independent M-Pesa statement. Only an owner or admin can clear the hold.
-              </p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3.5 shadow-xs">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <div className="p-1.5 rounded-lg bg-amber-50 border border-amber-200/60 text-amber-700 mt-0.5 shrink-0">
+                  <ShieldAlert className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">
+                    Reconciliation Verification Hold
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                    Data conflicts detected: {payment.conflict_flags?.map(flag => (
+                      <span key={flag} className="font-mono text-[11px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-700 mx-0.5 border border-slate-200/60">
+                        {flag}
+                      </span>
+                    ))}. Independent portal or statement verification required before release.
+                  </p>
+                </div>
+              </div>
+              <Badge variant="warning" dot className="shrink-0 text-[11px]">
+                Action Required
+              </Badge>
             </div>
-            <label className="block space-y-1.5 text-xs font-semibold text-slate-700">
-              Reconciliation details
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700">
+                Independent Statement Verification Notes
+              </label>
               <textarea
                 value={conflictResolutionNote}
                 onChange={(e) => setConflictResolutionNote(e.target.value)}
                 rows={3}
                 maxLength={1000}
-                placeholder="Record the independent statement or portal check performed"
-                className="w-full rounded-fintech border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                placeholder="State the independent statement source or M-Pesa portal verification performed..."
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 transition-colors"
               />
-            </label>
-            <Button type="button" variant="primary" size="sm" isLoading={isLoading} onClick={handleResolveConflicts}>
-              Record Reconciliation
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
-              Cancel
-            </Button>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
+                Cancel
+              </Button>
+              <Button type="button" variant="primary" size="sm" isLoading={isLoading} onClick={handleResolveConflicts}>
+                Record Reconciliation
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Business Assignment if not assigned */}
+        {/* Card 3: Business Assignment (if not assigned) */}
         {!payment.business_id && businesses.length > 0 && (
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700">
+          <div className="rounded-xl border border-slate-200/90 bg-white p-4 space-y-2 shadow-xs">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+              <Building2 className="w-3.5 h-3.5 text-slate-400" />
               Assign to Business
             </label>
             <select
               value={targetBusinessId}
               onChange={(e) => setTargetBusinessId(e.target.value)}
-              className="flex h-10 w-full rounded-fintech border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-colors"
+              className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400 transition-colors"
               required
             >
               {businesses.map((b) => (
@@ -270,36 +320,36 @@ export function ApprovePaymentModal({
           </div>
         )}
 
-        {/* Allocation Toggle */}
-        <div className="space-y-2 pt-2 border-t border-slate-200">
+        {/* Card 4: Allocation & Accounting Controls */}
+        <div className="rounded-xl border border-slate-200/90 bg-white p-4 space-y-3.5 shadow-xs">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={allocateToDebt}
               onChange={(e) => setAllocateToDebt(e.target.checked)}
-              className="rounded bg-white border-slate-300 text-slate-900 focus:ring-slate-900/20"
+              className="rounded border-slate-300 text-slate-900 focus:ring-slate-900/10"
             />
             <span className="text-xs font-semibold text-slate-800">
               Allocate to specific open invoice
             </span>
           </label>
 
-          {allocateToDebt && (
-            <div className="space-y-3 pl-6 pt-1">
+          {allocateToDebt ? (
+            <div className="space-y-3 pt-1 border-t border-slate-100">
               {openObligations.length === 0 ? (
-                <div className="text-xs text-amber-800 p-2 rounded bg-amber-50 border border-amber-200 font-medium">
-                  No open receivables found. Payment will be credited to customer account balance.
+                <div className="text-xs text-slate-600 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                  No open receivables found. Payment will be credited to customer general balance.
                 </div>
               ) : (
                 <>
                   <div className="space-y-1">
                     <label className="block text-[11px] font-semibold text-slate-600">
-                      Select Invoice / Debt
+                      Select Invoice / Receivable
                     </label>
                     <select
                       value={selectedObligationId}
                       onChange={(e) => setSelectedObligationId(e.target.value)}
-                      className="flex h-9 w-full rounded-fintech border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                      className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
                     >
                       {openObligations.map((o) => (
                         <option key={o.id} value={o.id} className="bg-white text-slate-900">
@@ -318,29 +368,30 @@ export function ApprovePaymentModal({
                 </>
               )}
             </div>
+          ) : (
+            <Input
+              label="Approval Note"
+              type="text"
+              value={approvalNote}
+              onChange={(e) => setApprovalNote(e.target.value)}
+              placeholder="e.g. Cleared to general customer ledger"
+              required
+            />
           )}
         </div>
 
-        {/* Note (required if no allocation) */}
-        {!allocateToDebt && (
-          <Input
-            label="Approval Note"
-            type="text"
-            value={approvalNote}
-            onChange={(e) => setApprovalNote(e.target.value)}
-            placeholder="e.g. Cleared to general account"
-            required
-          />
+        {/* Modal Action Buttons */}
+        {!hasConflicts && (
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" size="sm" isLoading={isLoading}>
+              <Receipt className="w-3.5 h-3.5 mr-1" />
+              Confirm Approval
+            </Button>
+          </div>
         )}
-
-        {!hasConflicts && <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
-            Cancel
-          </Button>
-          <Button type="submit" variant="success" size="sm" isLoading={isLoading}>
-            Confirm Approval
-          </Button>
-        </div>}
       </form>
     </Modal>
   );
