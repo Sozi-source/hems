@@ -8,8 +8,9 @@ import { MoneyDisplay } from '@/components/ui/money-display';
 import { fmt_phone } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Users, RefreshCw, Smartphone, MessageSquareOff } from 'lucide-react';
+import { Plus, Users, RefreshCw, Smartphone, MessageSquareOff, BookOpen } from 'lucide-react';
 import { AddCustomerModal } from '@/components/customers/add-customer-modal';
+import { ImportPhonebookModal } from '@/components/customers/import-phonebook-modal';
 import { StkPromptModal } from '@/components/payments/stk-prompt-modal';
 
 interface CustomerItem {
@@ -17,6 +18,7 @@ interface CustomerItem {
   business_id: string;
   customer_no: string;
   full_name: string;
+  nickname?: string | null;
   phone: string | null;
   outstanding_minor?: number;
   open_debts?: number;
@@ -29,6 +31,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<CustomerItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [stkTarget, setStkTarget] = useState<CustomerItem | null>(null);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -38,23 +41,46 @@ export default function CustomersPage() {
     try {
       const supabase = createClient();
 
-      // SMS block flags live on the customers table, not in v_customer_balances.
-      let blockQuery = supabase
+      // Fetch customer metadata (nicknames, notes, and SMS block flags) from customers table
+      let metaQuery = supabase
         .from('customers')
-        .select('id, sms_blocked_at, sms_block_reason')
-        .not('sms_blocked_at', 'is', null);
-      if (!isMasterView && activeBusinessId) {
-        blockQuery = blockQuery.eq('business_id', activeBusinessId);
+        .select('id, notes, sms_blocked_at, sms_block_reason');
+      
+      // Attempt to include nickname column if it exists in DB
+      try {
+        metaQuery = supabase
+          .from('customers')
+          .select('id, nickname, notes, sms_blocked_at, sms_block_reason');
+      } catch {
+        // Fallback to select without nickname if column query fails
       }
-      const { data: blockedRows } = await blockQuery;
-      const blockedById = new Map<string, { sms_blocked_at: string | null; sms_block_reason: string | null }>(
-        (blockedRows || []).map((row: any) => [row.id, row])
+
+      if (!isMasterView && activeBusinessId) {
+        metaQuery = metaQuery.eq('business_id', activeBusinessId);
+      }
+      
+      const { data: custRows } = await metaQuery;
+      const custMetaById = new Map<string, { nickname: string | null; sms_blocked_at: string | null; sms_block_reason: string | null }>(
+        (custRows || []).map((row: any) => {
+          let nick = row.nickname || null;
+          if (!nick && row.notes) {
+            const m = row.notes.match(/Nickname:\s*([^\r\n]+)/i);
+            if (m) nick = m[1].trim();
+          }
+          return [row.id, {
+            nickname: nick,
+            sms_blocked_at: row.sms_blocked_at ?? null,
+            sms_block_reason: row.sms_block_reason ?? null,
+          }];
+        })
       );
-      const withBlock = <T extends { id: string }>(items: T[]) =>
+
+      const withMeta = <T extends { id: string }>(items: T[]) =>
         items.map((item) => ({
           ...item,
-          sms_blocked_at: blockedById.get(item.id)?.sms_blocked_at ?? null,
-          sms_block_reason: blockedById.get(item.id)?.sms_block_reason ?? null,
+          nickname: custMetaById.get(item.id)?.nickname ?? null,
+          sms_blocked_at: custMetaById.get(item.id)?.sms_blocked_at ?? null,
+          sms_block_reason: custMetaById.get(item.id)?.sms_block_reason ?? null,
         }));
 
       let query = supabase
@@ -70,7 +96,7 @@ export default function CustomersPage() {
 
       if (!error && data) {
         setCustomers(
-          withBlock(
+          withMeta(
             data.map((c: any) => ({
               id: c.customer_id as string,
               business_id: c.business_id,
@@ -93,7 +119,7 @@ export default function CustomersPage() {
         }
 
         const { data: fallbackData } = await fallbackQuery;
-        setCustomers(withBlock((fallbackData as CustomerItem[]) || []));
+        setCustomers(withMeta((fallbackData as CustomerItem[]) || []));
       }
     } catch {
       setCustomers([]);
@@ -137,11 +163,20 @@ export default function CustomersPage() {
   return (
     <div className="space-y-5 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
-          Customers
-        </h1>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
+            Customers
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage customers, phonebook nicknames, and automated debt reconciliation.
+          </p>
+        </div>
 
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setIsImportModalOpen(true)}>
+            <BookOpen className="w-3.5 h-3.5 mr-1" />
+            Import Phonebook
+          </Button>
           <Button variant="outline" size="sm" onClick={loadCustomers} isLoading={isLoading}>
             <RefreshCw className="w-3.5 h-3.5 mr-1" />
             Refresh
@@ -166,6 +201,9 @@ export default function CustomersPage() {
             <div className="text-sm font-medium text-slate-600">
               No customers added yet
             </div>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              Add individual customers or import directly from your phonebook contacts (.vcf or .csv).
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto rounded-card">
@@ -174,9 +212,9 @@ export default function CustomersPage() {
                 <tr className="bg-[#F1F5F2] border-b border-[#DCE5DF] text-[11px] font-semibold text-slate-600 uppercase tracking-wide">
                   <th className="sticky left-0 z-10 bg-[#F1F5F2] py-3 px-4">Account No</th>
                   {isMasterView && <th className="py-3 px-4">Business</th>}
-                  <th className="py-3 px-4">Name</th>
+                  <th className="py-3 px-4">Customer Name & Nickname</th>
                   <th className="py-3 px-4">Phone</th>
-                  <th className="py-3 px-4">SMS</th>
+                  <th className="py-3 px-4">SMS Status</th>
                   <th className="py-3 px-4 text-right">Current Debt</th>
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
@@ -197,7 +235,14 @@ export default function CustomersPage() {
                     )}
 
                     <td className="py-3.5 px-4 font-semibold text-slate-900 whitespace-normal">
-                      {cust.full_name}
+                      <div className="flex flex-col">
+                        <span className="text-slate-900 font-semibold">{cust.full_name}</span>
+                        {cust.nickname && (
+                          <span className="text-[11px] font-normal text-slate-500 mt-0.5">
+                            Alias: <strong className="font-medium text-slate-700">{cust.nickname}</strong>
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="py-3.5 px-4 font-mono text-slate-600">
@@ -267,6 +312,12 @@ export default function CustomersPage() {
       <AddCustomerModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
+        onSuccess={loadCustomers}
+      />
+
+      <ImportPhonebookModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
         onSuccess={loadCustomers}
       />
 

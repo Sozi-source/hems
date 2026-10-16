@@ -12,6 +12,7 @@ import {
   History,
   Settings,
   Shield,
+  UserCheck,
 } from 'lucide-react';
 import { BusinessSwitcher } from './business-switcher';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,11 @@ export function Sidebar() {
       label: 'Reminders',
       href: '/reminders',
       icon: BellRing,
+    },
+    {
+      label: 'User Monitoring',
+      href: '/admin/users',
+      icon: UserCheck,
     },
     {
       label: 'Activity Log',

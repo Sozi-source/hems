@@ -107,6 +107,32 @@ export async function matchPayment(paymentId: string): Promise<MatchResult | nul
     }
   }
 
+  // 4. Nickname / Alias match on account reference or payer name
+  if (!matchedCustomerId && resolvedBusinessId) {
+    const candidateTerm = (billRef || payment.payer_name || '').trim();
+    if (candidateTerm.length >= 3) {
+      try {
+        const { data: customerByNickname } = await supabase
+          .from('customers')
+          .select('id, business_id, full_name, nickname')
+          .eq('business_id', resolvedBusinessId)
+          .ilike('nickname', candidateTerm)
+          .limit(1)
+          .maybeSingle();
+
+        if (customerByNickname) {
+          matchedCustomerId = customerByNickname.id;
+          resolvedBusinessId = customerByNickname.business_id;
+          confidence = 85;
+          ruleName = 'customer_nickname_match';
+          factors.matched_nickname = customerByNickname.nickname;
+        }
+      } catch {
+        // Ignored if nickname column not yet queried
+      }
+    }
+  }
+
   // If we matched a customer but not a specific obligation, find their oldest open debt
   if (matchedCustomerId && !matchedObligationId && resolvedBusinessId) {
     const { data: openDebt } = await supabase

@@ -107,6 +107,8 @@ export async function POST(request: Request) {
       }
     }
 
+    const nickname = typeof body.nickname === 'string' ? body.nickname.trim().replace(/\s+/g, ' ') : null;
+
     // 2. Prepare payload
     const payload: Record<string, any> = {
       business_id: resolvedBizId,
@@ -114,8 +116,21 @@ export async function POST(request: Request) {
     };
 
     if (normalizedPhone) payload.phone = normalizedPhone;
-
     if (creditMinor !== undefined) payload.credit_limit_minor = creditMinor;
+
+    // Attempt to store nickname in column if migrated, otherwise fallback to notes
+    if (nickname) {
+      try {
+        const { error: colCheck } = await supabase.from('customers').select('nickname').limit(1);
+        if (!colCheck) {
+          payload.nickname = nickname;
+        } else {
+          payload.notes = `Nickname: ${nickname}`;
+        }
+      } catch {
+        payload.notes = `Nickname: ${nickname}`;
+      }
+    }
 
     // 3. Insert customer
     const { data: customer, error: insertError } = await supabase

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useBusiness } from '@/context/business-context';
 import { parse_kes } from '@/lib/format';
+import { AlertCircle, UserPlus, Building2 } from 'lucide-react';
 
 interface AddCustomerModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
   const { businesses, activeBusinessId, isMasterView } = useBusiness();
   const [businessId, setBusinessId] = useState<string>('');
   const [fullName, setFullName] = useState('');
+  const [nickname, setNickname] = useState('');
   const [phone, setPhone] = useState('');
   const [creditLimit, setCreditLimit] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +28,7 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
     if (isOpen) {
       setError(null);
       setFullName('');
+      setNickname('');
       setPhone('');
       setCreditLimit('');
       if (!isMasterView && activeBusinessId) {
@@ -80,6 +83,7 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
         body: JSON.stringify({
           businessId: targetBiz,
           fullName: cleanName,
+          nickname: nickname.trim() || undefined,
           phone: phone.trim() || undefined,
           creditLimitMinor: cleanLimit ? parsedLimit.toString() : undefined,
         }),
@@ -91,7 +95,7 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
         resData = JSON.parse(responseText);
       } catch {
         if (!res.ok) {
-          throw new Error('Server error. If dev server was running during build, please restart npm run dev in your terminal.');
+          throw new Error('Server error. Please try again.');
         }
       }
 
@@ -112,21 +116,23 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
     <Modal isOpen={isOpen} onClose={onClose} title="Add Customer" maxWidth="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 rounded-fintech bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
-            {error}
+          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200/80 text-rose-800 text-xs font-medium flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+            <div>{error}</div>
           </div>
         )}
 
-        {/* Business Selector (shown if in Master view or multiple businesses) */}
+        {/* Business Selector */}
         {isMasterView && businesses.length > 0 && (
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-slate-700">
-              Business
+          <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 space-y-1.5 shadow-xs">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+              <Building2 className="w-3.5 h-3.5 text-slate-400" />
+              Target Business Ledger
             </label>
             <select
               value={businessId}
               onChange={(e) => setBusinessId(e.target.value)}
-              className="flex h-10 w-full rounded-fintech border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-800 transition-colors"
+              className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
               required
             >
               {businesses.map((b) => (
@@ -138,37 +144,57 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
           </div>
         )}
 
-        <Input
-          label="Full Name"
-          type="text"
-          placeholder="e.g. Wanjiku Kamau"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          required
-          autoFocus
-        />
+        {/* Card 1: Identity & Nickname */}
+        <div className="rounded-xl border border-slate-200/90 bg-white p-4 space-y-3 shadow-xs">
+          <Input
+            label="Official Full Name *"
+            type="text"
+            placeholder="e.g. Wanjiku Kamau or Norah Chelangat"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+            autoFocus
+          />
 
-        <Input
-          label="Phone Number"
-          type="tel"
-          placeholder="0712 345 678"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
+          <Input
+            label="Phonebook Nickname / Alias (Optional)"
+            type="text"
+            placeholder="e.g. Mama Brian, Kipkorir Mulot, Fundi John"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+          />
+          <p className="text-[11px] text-slate-500 leading-normal -mt-1.5">
+            How they are saved in your phone. Incoming payment alerts with this nickname or phone will auto-match this customer.
+          </p>
+        </div>
 
-        <Input
-          label="Credit Limit (Optional, KSh)"
-          type="text"
-          placeholder="0.00"
-          value={creditLimit}
-          onChange={(e) => setCreditLimit(e.target.value)}
-        />
+        {/* Card 2: Contact & Credit Settings */}
+        <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 p-4 space-y-3">
+          <Input
+            label="Phone Number"
+            type="tel"
+            placeholder="0712 345 678"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="bg-white font-mono text-xs"
+          />
 
-        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
+          <Input
+            label="Credit Limit (Optional, KSh)"
+            type="text"
+            placeholder="0.00"
+            value={creditLimit}
+            onChange={(e) => setCreditLimit(e.target.value)}
+            className="bg-white text-xs"
+          />
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
           <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
           <Button type="submit" variant="primary" size="sm" isLoading={isLoading}>
+            <UserPlus className="w-3.5 h-3.5 mr-1" />
             Save Customer
           </Button>
         </div>

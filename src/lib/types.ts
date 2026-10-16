@@ -27,6 +27,24 @@ export type ObligationStatus =
   | 'paid'
   | 'written_off'
   | 'cancelled';
+export interface Customer {
+  id: string;
+  business_id: string;
+  customer_no: string;
+  full_name: string;
+  nickname?: string | null;
+  phone: string | null;
+  alt_phone?: string | null;
+  email?: string | null;
+  credit_limit_minor?: number | null;
+  notes?: string | null;
+  is_active: boolean;
+  outstanding_minor?: number;
+  open_debts?: number;
+  sms_blocked_at?: string | null;
+  sms_block_reason?: string | null;
+  created_at?: string;
+}
 
 export interface Obligation {
   id: string;
