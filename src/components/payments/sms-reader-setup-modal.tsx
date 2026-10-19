@@ -127,18 +127,28 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
 
         {/* Card 2: Configuration Instructions */}
         <div className="rounded-xl border border-slate-200/90 bg-white p-4 space-y-4 shadow-xs">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-slate-100 border border-slate-200/70 text-slate-700">
-              <Smartphone className="w-4 h-4" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-slate-100 border border-slate-200/70 text-slate-700">
+                <Smartphone className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900">
+                  Phone Setup Instructions (SMS2Webhook)
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Configured once on the business phone holding the Paybill, Till, or Bank alert SIM card.
+                </p>
+              </div>
             </div>
-            <div>
-              <h4 className="text-xs font-bold text-slate-900">
-                Phone Setup Instructions (MacroDroid / SMS Forwarder)
-              </h4>
-              <p className="text-[11px] text-slate-500">
-                Configured once on the business phone holding the Paybill or Till SIM cards.
-              </p>
-            </div>
+            <a
+              href="https://github.com/rossigee/sms2webhook/releases/download/v2.2.1/sms2webhook-v2.2.1-release-signed.apk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+            >
+              Download APK
+            </a>
           </div>
 
           <div className="space-y-3 text-xs text-slate-600">
@@ -147,9 +157,9 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
                 1
               </span>
               <div className="space-y-0.5">
-                <span className="font-semibold text-slate-900">Set SMS Received Trigger</span>
+                <span className="font-semibold text-slate-900">Install APK & Allow Restricted SMS Permission</span>
                 <p className="text-slate-500 leading-relaxed">
-                  Trigger on incoming SMS. On Xiaomi/Redmi devices, ensure <strong className="text-slate-700">"Monitor inbox"</strong> is checked and content is set to <strong className="text-slate-700">"Any Content"</strong>.
+                  Install <strong className="text-slate-700">SMS2Webhook</strong>. On Android 13+, open <strong className="text-slate-700">Settings → Apps → SMS2Webhook</strong>, tap <strong className="text-slate-700">Allow restricted settings</strong> (via top-right menu or bottom of screen), then grant <strong className="text-slate-700">SMS</strong> permission.
                 </p>
               </div>
             </div>
@@ -159,9 +169,9 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
                 2
               </span>
               <div className="space-y-0.5">
-                <span className="font-semibold text-slate-900">Configure HTTP POST Action</span>
+                <span className="font-semibold text-slate-900">Configure Webhook URL & Test Connection</span>
                 <p className="text-slate-500 leading-relaxed">
-                  Add action: <strong className="text-slate-700">HTTP Request (POST)</strong> and paste the webhook URL above. Set content-type to <strong className="text-slate-700">application/json</strong>.
+                  In <strong className="text-slate-700">SMS2Webhook → Settings</strong>, paste the Target Webhook URL above and tap <strong className="text-slate-700">Test Connection</strong>.
                 </p>
               </div>
             </div>
@@ -170,15 +180,11 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
               <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-[11px] shrink-0 border border-slate-200">
                 3
               </span>
-              <div className="space-y-1.5 w-full">
-                <span className="font-semibold text-slate-900">Set JSON Request Body</span>
-                <div className="rounded-lg bg-slate-900 border border-slate-800 p-2.5 font-mono text-[11px] text-slate-200">
-                  <pre className="overflow-x-auto leading-relaxed">{`{
-  "from": "[from]",
-  "text": "[body]",
-  "timestamp": "[timestamp]"
-}`}</pre>
-                </div>
+              <div className="space-y-0.5">
+                <span className="font-semibold text-slate-900">Automatic Real-Time Forwarding & Bulk Sync</span>
+                <p className="text-slate-500 leading-relaxed">
+                  New M-Pesa and Bank SMS alerts are forwarded automatically with exponential retry. You can also tap <strong className="text-slate-700">Sync</strong> at any time to upload missed inbox messages.
+                </p>
               </div>
             </div>
 

@@ -17,15 +17,6 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get('authorization') || '';
     const bearerToken = authHeader.replace(/^Bearer\s+/i, '').trim();
 
-    // Verify secret token if configured
-    const configuredSecret = process.env.SMS_FORWARDER_SECRET?.trim();
-    if (configuredSecret) {
-      const providedSecret = bearerToken || querySecret;
-      if (providedSecret !== configuredSecret) {
-        return NextResponse.json({ error: 'Unauthorized SMS forwarder device' }, { status: 401 });
-      }
-    }
-
     let payload: Record<string, any> = {};
     const contentType = request.headers.get('content-type') || '';
 
@@ -53,7 +44,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Extract message body from various SMS forwarder schema conventions
+    // Extract message body from various SMS forwarder schema conventions (SMS2Webhook uses `body`)
     const rawText = String(
       payload.text ||
       payload.content ||
@@ -63,24 +54,91 @@ export async function POST(request: Request) {
       ''
     ).trim();
 
-    const sender = String(payload.from || payload.sender || payload.originatingAddress || '').trim();
+    // Verify secret token if configured (supports Authorization: Bearer, query ?secret/?key, or JSON apiKey)
+    const configuredSecret = process.env.SMS_FORWARDER_SECRET?.trim();
+    if (configuredSecret) {
+      const payloadSecret = typeof payload.apiKey === 'string' ? payload.apiKey.trim() : '';
+      const providedSecret = bearerToken || querySecret || payloadSecret;
+      if (providedSecret !== configuredSecret) {
+        return NextResponse.json({ error: 'Unauthorized SMS forwarder device' }, { status: 401 });
+      }
+    }
+
+    // SMS2Webhook sends sender in `address`; MacroDroid/others use `from`, `sender`, `originatingAddress`
+    const sender = String(
+      payload.address ||
+      payload.from ||
+      payload.sender ||
+      payload.originatingAddress ||
+      ''
+    ).trim();
     const explicitBusinessId = payload.businessId || payload.business_id || url.searchParams.get('businessId') || null;
 
-    // Handle manual "Test Action" clicks from MacroDroid (where {sms_message} variable is empty or literal)
-    if (!rawText || rawText.length < 15 || rawText.includes('{sms_message}') || rawText === '[body]') {
+    // Parse optional epoch ms timestamp sent by SMS2Webhook (`payload.date` arrives as string or number)
+    let deviceOccurredAt: string | undefined;
+    const rawDate = payload.date || payload.timestamp || payload.date_sent;
+    if (rawDate !== undefined && rawDate !== null && rawDate !== '' && rawDate !== '[timestamp]') {
+      const epochMs = Number(rawDate);
+      if (!Number.isNaN(epochMs) && epochMs > 1000000000000) {
+        deviceOccurredAt = new Date(epochMs).toISOString();
+      } else {
+        const parsedDate = new Date(String(rawDate));
+        if (!Number.isNaN(parsedDate.getTime())) {
+          deviceOccurredAt = parsedDate.toISOString();
+        }
+      }
+    }
+
+    // Handle manual "Test Connection" / "Test Action" clicks from SMS2Webhook or MacroDroid
+    if (
+      !rawText ||
+      rawText.length < 15 ||
+      rawText.includes('{sms_message}') ||
+      rawText === '[body]' ||
+      /test message|test connection/i.test(rawText)
+    ) {
       return NextResponse.json({
         status: 'ok',
         testReceived: true,
-        message: 'MacroDroid test action connection successful! Ready for live incoming SMS.',
+        message: 'SMS forwarder test connection successful! Ready for live incoming SMS.',
       }, { status: 200 });
     }
 
-    // Parse SMS alert using our multi-bank engine
+    // Filter 1: Sender allowlist & anti-spoofing check
+    // SMS2Webhook forwards all device SMS with `address` set to the sender ID or phone number.
+    // Ignore messages from regular phone numbers (+254..., 07...) or non-financial sender IDs.
+    const hasRealSender =
+      sender.length > 0 &&
+      sender !== '[from]' &&
+      !sender.includes('{');
+
+    if (hasRealSender) {
+      const compactSender = sender.replace(/[\s-]/g, '');
+      const isPersonalPhoneNumber = /^\+?\d{7,15}$/.test(compactSender);
+      const isShortcode = /^\d{4,6}$/.test(compactSender);
+      const isAllowedFinancialSender =
+        /mpesa|m-pesa|equity|ncba|absa/i.test(sender) || isShortcode;
+
+      if (isPersonalPhoneNumber || !isAllowedFinancialSender) {
+        return NextResponse.json({
+          status: 'ignored_unrecognized_sender',
+          sender,
+          note: 'Sender is not an allowed financial institution (MPESA, EQUITY, NCBA, ABSA)',
+        }, { status: 200 });
+      }
+    }
+
+    // Filter 2: Parse SMS alert using our multi-bank incoming credit engine
     const parsed = parsePaymentAlert(rawText, sender);
-    if (!parsed || !parsed.transactionRef || parsed.amountMinor <= 0) {
+    if (
+      !parsed ||
+      !parsed.transactionRef ||
+      parsed.amountMinor <= 0 ||
+      parsed.detectedFormat === 'generic'
+    ) {
       return NextResponse.json({
         status: 'ignored_unrecognized_pattern',
-        note: 'Message did not match an Equity, NCBA, ABSA, or M-Pesa credit format',
+        note: 'Message did not match an incoming Equity, NCBA, ABSA, or M-Pesa credit format',
         receivedTextPreview: rawText.slice(0, 100),
       }, { status: 200 });
     }
@@ -197,7 +255,7 @@ export async function POST(request: Request) {
         payer_name: parsed.payerName || null,
         payer_msisdn: parsed.payerPhone || null,
         account_reference: parsed.accountReference || null,
-        occurred_at: parsed.occurredAt || new Date().toISOString(),
+        occurred_at: parsed.occurredAt || deviceOccurredAt || new Date().toISOString(),
         raw_text: rawText,
         description: `SMS Reader (${sender || parsed.detectedFormat}): ${rawText.slice(0, 120)}`,
       },
@@ -205,7 +263,9 @@ export async function POST(request: Request) {
 
     if (ingestError) {
       console.error('SMS forwarder ingest error:', ingestError.message);
-      return NextResponse.json({ error: ingestError.message }, { status: 400 });
+      // Return 503 (rather than 400) so SMS2Webhook holds and retries the message
+      // instead of treating it as a permanent rejection.
+      return NextResponse.json({ error: ingestError.message }, { status: 503 });
     }
 
     // Run matching engine if newly created or pending
@@ -214,19 +274,28 @@ export async function POST(request: Request) {
       matchResult = await matchPayment(ingestResult.payment_id);
     }
 
-    return NextResponse.json({
-      status: 'ok',
-      outcome: ingestResult?.outcome,
-      paymentId: ingestResult?.payment_id,
-      match: matchResult,
-      parsed: {
-        provider: parsed.provider,
-        transactionRef: parsed.transactionRef,
-        amountMinor: parsed.amountMinor,
-        payerName: parsed.payerName,
-        accountReference: parsed.accountReference,
+    const isDuplicate = ingestResult?.outcome === 'duplicate_ref';
+    const responseHeaders: Record<string, string> = {};
+    if (isDuplicate) {
+      responseHeaders['X-Already-Existed'] = 'true';
+    }
+
+    return NextResponse.json(
+      {
+        status: 'ok',
+        outcome: ingestResult?.outcome,
+        paymentId: ingestResult?.payment_id,
+        match: matchResult,
+        parsed: {
+          provider: parsed.provider,
+          transactionRef: parsed.transactionRef,
+          amountMinor: parsed.amountMinor,
+          payerName: parsed.payerName,
+          accountReference: parsed.accountReference,
+        },
       },
-    });
+      { status: 200, headers: responseHeaders }
+    );
   } catch (err: any) {
     console.error('SMS forwarder route exception:', err);
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
