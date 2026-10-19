@@ -8,6 +8,7 @@ import { BusinessSwitcher } from './business-switcher';
 import { Plus, LogOut, User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
+import { LivePaymentNotifier } from '@/components/payments/live-payment-notifier';
 import { useRouter } from 'next/navigation';
 
 export function Header() {
@@ -74,6 +75,8 @@ export function Header() {
 
         {/* Action Button & User Controls */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <LivePaymentNotifier />
+
           <Button
             variant="primary"
             size="sm"

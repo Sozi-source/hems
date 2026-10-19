@@ -19,6 +19,18 @@ import { cn } from '@/lib/utils';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [pendingPaymentsCount, setPendingPaymentsCount] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    function handlePendingCount(e: Event) {
+      const custom = e as CustomEvent<number>;
+      if (typeof custom.detail === 'number') {
+        setPendingPaymentsCount(custom.detail);
+      }
+    }
+    window.addEventListener('hems:pending-payments-count', handlePendingCount);
+    return () => window.removeEventListener('hems:pending-payments-count', handlePendingCount);
+  }, []);
 
   const navItems = [
     {
@@ -83,25 +95,33 @@ export function Sidebar() {
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
+          const showBadge = item.href === '/payments' && pendingPaymentsCount > 0;
 
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-fintech text-[13px] font-medium transition-colors min-h-11',
+                'flex items-center justify-between gap-3 px-3 py-2 rounded-fintech text-[13px] font-medium transition-colors min-h-11',
                 isActive
                   ? 'bg-[#214A30] text-white border-l-2 border-[#73C88A] shadow-sm'
                   : 'text-[#D2E1D6] hover:text-white hover:bg-white/10'
               )}
             >
-              <Icon
-                className={cn(
-                  'w-4 h-4',
-                  isActive ? 'text-[#8DDBA0]' : 'text-[#A7BEAE]'
-                )}
-              />
-              <span>{item.label}</span>
+              <span className="flex items-center gap-3">
+                <Icon
+                  className={cn(
+                    'w-4 h-4',
+                    isActive ? 'text-[#8DDBA0]' : 'text-[#A7BEAE]'
+                  )}
+                />
+                <span>{item.label}</span>
+              </span>
+              {showBadge && (
+                <span className="px-1.5 py-0.5 rounded-full text-[11px] font-bold tabular-nums bg-amber-400 text-[#102719]">
+                  {pendingPaymentsCount}
+                </span>
+              )}
             </Link>
           );
         })}

@@ -58,6 +58,12 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     loadPayments();
+
+    function handleNewPayment() {
+      loadPayments();
+    }
+    window.addEventListener('hems:payment-received', handleNewPayment);
+    return () => window.removeEventListener('hems:payment-received', handleNewPayment);
   }, [activeBusinessId, isMasterView, filterStatus]);
 
   return (
