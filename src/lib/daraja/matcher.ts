@@ -85,55 +85,132 @@ export async function matchPayment(paymentId: string): Promise<MatchResult | nul
     }
   }
 
-  // 3. Customer Phone Number match (e.g. payer_msisdn or billRef is customer's phone)
+  // 3. Customer Phone Number match (exact unmasked or Safaricom masked like 0700***522)
   if (!matchedCustomerId && msisdn) {
-    let query = supabase
-      .from('customers')
-      .select('id, business_id, customer_no, phone')
-      .eq('phone', msisdn);
+    if (!msisdn.includes('*')) {
+      let query = supabase
+        .from('customers')
+        .select('id, business_id, customer_no, phone')
+        .eq('phone', msisdn);
 
-    if (resolvedBusinessId) {
-      query = query.eq('business_id', resolvedBusinessId);
-    }
+      if (resolvedBusinessId) {
+        query = query.eq('business_id', resolvedBusinessId);
+      }
 
-    const { data: customerByPhone } = await query.limit(1).maybeSingle();
+      const { data: customerByPhone } = await query.limit(1).maybeSingle();
 
-    if (customerByPhone) {
-      matchedCustomerId = customerByPhone.id;
-      resolvedBusinessId = customerByPhone.business_id;
-      confidence = 90;
-      ruleName = 'payer_phone_match';
-      factors.phone = customerByPhone.phone;
+      if (customerByPhone) {
+        matchedCustomerId = customerByPhone.id;
+        resolvedBusinessId = customerByPhone.business_id;
+        confidence = 90;
+        ruleName = 'payer_phone_match';
+        factors.phone = customerByPhone.phone;
+      }
+    } else if (resolvedBusinessId) {
+      // Masked phone e.g. "0700***522" -> prefix "+254700" and suffix "522"
+      const maskMatch = msisdn.match(/^(?:0|\+?254)?([17]\d{2})\*+(\d{3})$/);
+      if (maskMatch) {
+        const prefix = `+254${maskMatch[1]}`;
+        const suffix = maskMatch[2];
+        const { data: candidates } = await supabase
+          .from('customers')
+          .select('id, business_id, full_name, nickname, phone')
+          .eq('business_id', resolvedBusinessId)
+          .like('phone', `${prefix}%${suffix}`);
+
+        if (candidates && candidates.length === 1) {
+          matchedCustomerId = candidates[0].id;
+          confidence = 88;
+          ruleName = 'masked_phone_match';
+          factors.masked_phone = msisdn;
+        } else if (candidates && candidates.length > 1 && payment.payer_name) {
+          const payerLower = payment.payer_name.trim().toLowerCase();
+          const nameMatched = candidates.find(
+            (c) =>
+              c.full_name?.toLowerCase() === payerLower ||
+              c.nickname?.toLowerCase() === payerLower ||
+              payerLower.includes(c.full_name?.toLowerCase() || '___')
+          );
+          if (nameMatched) {
+            matchedCustomerId = nameMatched.id;
+            confidence = 90;
+            ruleName = 'masked_phone_and_name_match';
+            factors.masked_phone = msisdn;
+          }
+        }
+      }
     }
   }
 
-  // 4. Nickname / Alias match on account reference or payer name
+  // 4. Full Name / Nickname / Alias match on payer_name or account_reference
   if (!matchedCustomerId && resolvedBusinessId) {
-    const candidateTerm = (billRef || payment.payer_name || '').trim();
-    if (candidateTerm.length >= 3) {
+    const termsToTry = [
+      (payment.payer_name || '').trim(),
+      billRef && !/^(650166|XX6709|\d{5,7})$/i.test(billRef) ? billRef : '',
+    ].filter((t) => t.length >= 3);
+
+    for (const candidateTerm of termsToTry) {
       try {
-        const { data: customerByNickname } = await supabase
+        const { data: customerByName } = await supabase
           .from('customers')
           .select('id, business_id, full_name, nickname')
           .eq('business_id', resolvedBusinessId)
-          .ilike('nickname', candidateTerm)
+          .or(`full_name.ilike.${candidateTerm},nickname.ilike.${candidateTerm}`)
           .limit(1)
           .maybeSingle();
 
-        if (customerByNickname) {
-          matchedCustomerId = customerByNickname.id;
-          resolvedBusinessId = customerByNickname.business_id;
+        if (customerByName) {
+          matchedCustomerId = customerByName.id;
+          resolvedBusinessId = customerByName.business_id;
           confidence = 85;
-          ruleName = 'customer_nickname_match';
-          factors.matched_nickname = customerByNickname.nickname;
+          ruleName = 'customer_name_or_nickname_match';
+          factors.matched_name = customerByName.full_name || customerByName.nickname;
+          break;
         }
       } catch {
-        // Ignored if nickname column not yet queried
+        // Ignore if query fails
+      }
+    }
+
+    // 4B. Partial multi-word Kenyan name match (e.g. SMS has "NORAH CHELANGAT TANGUS"
+    // while HEMS customer is registered as "Norah Tangus" or "Norah Chelangat")
+    if (!matchedCustomerId && payment.payer_name) {
+      const smsTokens = payment.payer_name
+        .toLowerCase()
+        .split(/[^a-z0-9']+/)
+        .filter((w: string) => w.length >= 3);
+
+      if (smsTokens.length >= 2) {
+        const { data: allCustomers } = await supabase
+          .from('customers')
+          .select('id, business_id, full_name, nickname')
+          .eq('business_id', resolvedBusinessId);
+
+        if (allCustomers && allCustomers.length > 0) {
+          const matches = allCustomers.filter((c) => {
+            const custTokens = `${c.full_name || ''} ${c.nickname || ''}`
+              .toLowerCase()
+              .split(/[^a-z0-9']+/)
+              .filter((w: string) => w.length >= 3);
+            if (custTokens.length < 2) return false;
+            const shared = smsTokens.filter((t: string) => custTokens.includes(t));
+            // Match if at least 2 distinct name words match (e.g. first + last, or first + middle)
+            return shared.length >= 2;
+          });
+
+          if (matches.length === 1) {
+            matchedCustomerId = matches[0].id;
+            confidence = 82;
+            ruleName = 'partial_full_name_match';
+            factors.matched_name = matches[0].full_name;
+          }
+        }
       }
     }
   }
 
   // If we matched a customer but not a specific obligation, find their oldest open debt
+  let matchedObligationBalanceMinor: number | undefined;
   if (matchedCustomerId && !matchedObligationId && resolvedBusinessId) {
     const { data: openDebt } = await supabase
       .from('obligations')
@@ -148,6 +225,7 @@ export async function matchPayment(paymentId: string): Promise<MatchResult | nul
 
     if (openDebt) {
       matchedObligationId = openDebt.id;
+      matchedObligationBalanceMinor = Number(openDebt.balance_minor);
       factors.oldest_open_debt = openDebt.id;
     }
   }
@@ -165,6 +243,11 @@ export async function matchPayment(paymentId: string): Promise<MatchResult | nul
       .eq('id', payment.id);
     if (paymentUpdateError) throw new Error(`Could not save payment match result: ${paymentUpdateError.message}`);
 
+    const suggestedAmountMinor =
+      matchedObligationBalanceMinor && matchedObligationBalanceMinor > 0
+        ? Math.min(payment.amount_minor, matchedObligationBalanceMinor)
+        : payment.amount_minor;
+
     const { error: candidateError } = await supabase.from('match_candidates').upsert({
       business_id: resolvedBusinessId,
       payment_id: payment.id,
@@ -173,7 +256,7 @@ export async function matchPayment(paymentId: string): Promise<MatchResult | nul
       obligation_id: matchedObligationId || null,
       confidence: confidence,
       score_breakdown: { rule_name: ruleName, ...factors },
-      suggested_amount_minor: payment.amount_minor,
+      suggested_amount_minor: suggestedAmountMinor,
       rank: 1,
       engine_version: 'v1.0-daraja',
     }, { onConflict: 'payment_id,engine_version,rank' });
