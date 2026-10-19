@@ -9,6 +9,7 @@ import { Plus, LogOut, User } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
 import { LivePaymentNotifier } from '@/components/payments/live-payment-notifier';
+import { PwaRegistrar } from './pwa-registrar';
 import { useRouter } from 'next/navigation';
 
 export function Header() {
@@ -47,9 +48,11 @@ export function Header() {
       <div className="flex items-center justify-between gap-2 sm:gap-4">
         {/* Mobile: Switcher */}
         <div className="flex lg:hidden items-center gap-2 w-full min-w-0 flex-1">
-          <div className="w-7 h-7 rounded-md bg-[#1F7A3D] flex items-center justify-center font-bold text-white text-xs shrink-0">
-            H
-          </div>
+          <img
+            src="/assets/icons/icon-192.png"
+            alt="HEMS"
+            className="w-7 h-7 rounded-md shrink-0 object-cover"
+          />
           <div className="flex-1 min-w-0">
             <BusinessSwitcher />
           </div>
@@ -75,6 +78,7 @@ export function Header() {
 
         {/* Action Button & User Controls */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <PwaRegistrar />
           <LivePaymentNotifier />
 
           <Button

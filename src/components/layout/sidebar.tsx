@@ -80,9 +80,11 @@ export function Sidebar() {
       {/* Brand Header */}
       <div className="p-4 border-b border-[#264632]">
         <div className="flex items-center gap-2.5 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-[#1F7A3D] flex items-center justify-center font-bold text-white text-sm shadow-sm border border-rose-700/40">
-            H
-          </div>
+          <img
+            src="/assets/icons/icon-192.png"
+            alt="HEMS"
+            className="w-8 h-8 rounded-lg shadow-sm object-cover shrink-0"
+          />
           <div className="text-sm font-bold text-white tracking-tight">HEMS</div>
         </div>
 
