@@ -223,50 +223,17 @@ export async function POST(request: Request) {
       targetBusinessId = devBusinesses[0].id;
     }
 
-    if (!targetBusinessId && parsed.accountReference && prodBusinessIds.length > 0) {
-      // 1. Try matching payment channel by shortcode or till number (production businesses only)
-      const { data: channel } = await admin
-        .from('payment_channels')
-        .select('business_id')
-        .in('business_id', prodBusinessIds)
-        .or(`shortcode.eq.${parsed.accountReference},business_shortcode.eq.${parsed.accountReference}`)
-        .eq('is_active', true)
-        .limit(1)
-        .maybeSingle();
+    // -------------------------------------------------------------------------
+    // Method A: Strict Business Ingestion Filter
+    // -------------------------------------------------------------------------
+    // 1. Institutional Bank Alert or Explicit Business Mention
+    const isExplicitBankOrBusinessAlert =
+      parsed.provider !== 'mpesa' ||
+      /HARON|MULOT|ZENITH|650166|XX6709/i.test(rawText);
 
-      if (channel?.business_id) {
-        targetBusinessId = channel.business_id;
-      } else {
-        // 2. Try matching customer_no in production businesses
-        const { data: customer } = await admin
-          .from('customers')
-          .select('business_id')
-          .in('business_id', prodBusinessIds)
-          .eq('customer_no', parsed.accountReference)
-          .limit(1)
-          .maybeSingle();
-
-        if (customer?.business_id) {
-          targetBusinessId = customer.business_id;
-        } else {
-          // 3. Try matching open obligation reference (e.g. CD0001) in production businesses
-          const { data: obligation } = await admin
-            .from('obligations')
-            .select('business_id')
-            .in('business_id', prodBusinessIds)
-            .eq('reference_no', parsed.accountReference)
-            .limit(1)
-            .maybeSingle();
-
-          if (obligation?.business_id) {
-            targetBusinessId = obligation.business_id;
-          }
-        }
-      }
-    }
-
-    // Check if rawText mentions any active production business channel's shortcode/till
-    if (!targetBusinessId && prodBusinessIds.length > 0) {
+    // 2. Business channel shortcode or till number mention
+    let matchedChannelBusinessId: string | null = null;
+    if (prodBusinessIds.length > 0) {
       const { data: channels } = await admin
         .from('payment_channels')
         .select('business_id, shortcode, business_shortcode')
@@ -275,42 +242,154 @@ export async function POST(request: Request) {
 
       if (channels) {
         for (const ch of channels) {
-          if (rawText.includes(ch.shortcode) || (ch.business_shortcode && rawText.includes(ch.business_shortcode))) {
-            targetBusinessId = ch.business_id;
+          if (
+            (ch.shortcode && rawText.includes(ch.shortcode)) ||
+            (ch.business_shortcode && rawText.includes(ch.business_shortcode))
+          ) {
+            matchedChannelBusinessId = ch.business_id;
             break;
           }
         }
       }
     }
 
-    // Check if rawText mentions Haron Enterprise / Mulot or common client ledger accounts
-    if (!targetBusinessId && /HARON|MULOT|650166|XX6709/i.test(rawText)) {
-      const haronProd = prodBusinesses.find(
-        (b) => /haron/i.test(b.name) || /haron/i.test(b.legal_name || '')
-      );
-      if (haronProd?.id) {
-        targetBusinessId = haronProd.id;
-      }
-    }
-
-    // Fallback to phone match in production businesses if available
-    if (!targetBusinessId && parsed.payerPhone && !parsed.payerPhone.includes('*') && prodBusinessIds.length > 0) {
-      const { data: customerByPhone } = await admin
+    // 3. Customer number or Obligation reference match
+    let matchedRefBusinessId: string | null = null;
+    if (parsed.accountReference && prodBusinessIds.length > 0) {
+      const { data: customer } = await admin
         .from('customers')
         .select('business_id')
         .in('business_id', prodBusinessIds)
-        .eq('phone', parsed.payerPhone)
+        .eq('customer_no', parsed.accountReference)
         .limit(1)
         .maybeSingle();
 
-      if (customerByPhone?.business_id) {
-        targetBusinessId = customerByPhone.business_id;
+      if (customer?.business_id) {
+        matchedRefBusinessId = customer.business_id;
+      } else {
+        const { data: obligation } = await admin
+          .from('obligations')
+          .select('business_id')
+          .in('business_id', prodBusinessIds)
+          .eq('reference_no', parsed.accountReference)
+          .limit(1)
+          .maybeSingle();
+
+        if (obligation?.business_id) {
+          matchedRefBusinessId = obligation.business_id;
+        }
       }
     }
 
-    // 4. Default to first active production business (never a DEV_ sandbox business)
+    // 4. Known customer match (Phone, Masked Phone, or Customer Name)
+    let matchedCustomerBusinessId: string | null = null;
+    let matchedCustomerName: string | null = null;
+
+    if (prodBusinessIds.length > 0) {
+      const { data: existingCustomers } = await admin
+        .from('customers')
+        .select('id, business_id, full_name, phone, nickname')
+        .in('business_id', prodBusinessIds)
+        .eq('is_active', true);
+
+      if (existingCustomers && existingCustomers.length > 0) {
+        for (const cust of existingCustomers) {
+          // A. Exact or normalized phone match (if unmasked)
+          if (parsed.payerPhone && !parsed.payerPhone.includes('*') && cust.phone) {
+            const payerDigits = parsed.payerPhone.replace(/\D/g, '');
+            const custDigits = cust.phone.replace(/\D/g, '');
+            if (
+              payerDigits === custDigits ||
+              (payerDigits.length >= 9 && custDigits.endsWith(payerDigits.slice(-9))) ||
+              (custDigits.length >= 9 && payerDigits.endsWith(custDigits.slice(-9)))
+            ) {
+              matchedCustomerBusinessId = cust.business_id;
+              matchedCustomerName = cust.full_name;
+              break;
+            }
+          }
+
+          // B. Masked phone match (e.g. payer is "0700***522" and customer is "254700...522")
+          if (parsed.payerPhone && parsed.payerPhone.includes('*') && cust.phone) {
+            const parts = parsed.payerPhone.split('*').filter(Boolean);
+            if (parts.length >= 2) {
+              const prefix = parts[0].replace(/^0/, '254').replace(/\D/g, '');
+              const suffix = parts[parts.length - 1].replace(/\D/g, '');
+              const custDigits = cust.phone.replace(/\D/g, '');
+              if (custDigits.startsWith(prefix) && custDigits.endsWith(suffix)) {
+                matchedCustomerBusinessId = cust.business_id;
+                matchedCustomerName = cust.full_name;
+                break;
+              }
+            }
+          }
+
+          // C. Customer Name or Nickname match
+          if (parsed.payerName) {
+            const cleanTokens = (s: string) =>
+              s
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, '')
+                .trim()
+                .split(/\s+/)
+                .filter((w) => w.length >= 3);
+
+            const payerTokens = cleanTokens(parsed.payerName);
+            const custTokens = cleanTokens(cust.full_name || '');
+            const nickTokens = cust.nickname ? cleanTokens(cust.nickname) : [];
+            const allTokens = [...custTokens, ...nickTokens];
+
+            const shared = payerTokens.filter((t) => allTokens.includes(t));
+            if (
+              (payerTokens.length >= 2 && shared.length >= 2) ||
+              (payerTokens.length === 1 && shared.length === 1 && shared[0].length >= 4) ||
+              (shared.length >= 1 && nickTokens.some((n) => payerTokens.includes(n)))
+            ) {
+              matchedCustomerBusinessId = cust.business_id;
+              matchedCustomerName = cust.full_name;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Assign target business according to priority
     if (!targetBusinessId) {
-      targetBusinessId = prodBusinesses[0]?.id || allBusinesses?.[0]?.id || null;
+      if (matchedChannelBusinessId) {
+        targetBusinessId = matchedChannelBusinessId;
+      } else if (matchedRefBusinessId) {
+        targetBusinessId = matchedRefBusinessId;
+      } else if (matchedCustomerBusinessId) {
+        targetBusinessId = matchedCustomerBusinessId;
+      } else if (isExplicitBankOrBusinessAlert) {
+        const haronProd = prodBusinesses.find(
+          (b) => /haron/i.test(b.name) || /haron/i.test(b.legal_name || '')
+        );
+        targetBusinessId = haronProd?.id || prodBusinesses[0]?.id || null;
+      }
+    }
+
+    // Method A Enforcement: If it is a generic P2P M-Pesa transfer from an unknown sender
+    // with NO business account, NO customer match, and NO debt reference -> IGNORE IT!
+    if (!targetBusinessId) {
+      const unknownSenderDesc = `${parsed.payerName || 'Unknown Contact'}${
+        parsed.payerPhone ? ` (${parsed.payerPhone})` : ''
+      }`;
+      const reason = `ignored_personal_transfer: Sender "${unknownSenderDesc}" does not match any registered customer, debt reference, or business channel`;
+
+      await recordIngestFailure(admin, rawText, sender, reason);
+
+      return NextResponse.json(
+        {
+          status: 'ignored_personal_transfer',
+          payer: parsed.payerName || null,
+          phone: parsed.payerPhone || null,
+          amountMinor: parsed.amountMinor,
+          note: 'Non-business personal M-Pesa transfer ignored in Strict Business Mode to prevent personal transactions from polluting business records',
+        },
+        { status: 200 }
+      );
     }
 
     // Ingest into payment_transactions with source: 'sms_forwarder'
