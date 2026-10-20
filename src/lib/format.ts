@@ -85,7 +85,7 @@ export function fmt_phone(phone: string | null | undefined): string {
   if (!phone) return '—';
   const norm = normalize_msisdn(phone);
   if (norm.length === 12 && norm.startsWith('254')) {
-    return `+254 ${norm.slice(3, 6)} ${norm.slice(6, 9)} ${norm.slice(9)}`;
+    return `+254\u00A0${norm.slice(3, 6)}\u00A0${norm.slice(6, 9)}\u00A0${norm.slice(9)}`;
   }
   return phone;
 }

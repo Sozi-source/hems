@@ -317,7 +317,7 @@ export default function AdminUsersPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-500 font-mono">
+                            <div className="text-[11px] text-slate-500 font-mono whitespace-nowrap tabular-nums">
                               {u.email || u.phone || `ID: ${u.userId.slice(0, 8)}`}
                             </div>
                           </div>

@@ -571,7 +571,7 @@ export default function CustomersPage() {
                         {cust.full_name || 'Unnamed Client'}
                       </h3>
                       {cust.phone ? (
-                        <span className="text-xs text-slate-500 font-mono mt-0.5 block">
+                        <span className="text-xs text-slate-500 font-mono mt-0.5 block whitespace-nowrap tabular-nums">
                           {fmt_phone(cust.phone)}
                         </span>
                       ) : (
@@ -660,17 +660,17 @@ export default function CustomersPage() {
           {/* Desktop Table (md and up) */}
           <Card className="hidden md:block bg-white border-slate-200/90 shadow-2xs p-0">
             <div className="overflow-x-auto rounded-card">
-              <table className="w-full min-w-[850px] text-left border-collapse">
+              <table className="w-full min-w-[960px] text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                    <th className="sticky left-0 z-10 bg-slate-50 py-3 px-4">Account No</th>
-                    {isMasterView && <th className="py-3 px-4">Business</th>}
-                    <th className="py-3 px-4">Customer Name & Nickname</th>
-                    <th className="py-3 px-4">Phone</th>
-                    <th className="py-3 px-4 text-right">Total Borrowed</th>
-                    <th className="py-3 px-4 text-right">Total Paid</th>
-                    <th className="py-3 px-4 text-right">Balance Owed</th>
-                    <th className="py-3 px-4 text-right">Action</th>
+                    <th className="sticky left-0 z-10 bg-slate-50 py-3 px-4 whitespace-nowrap">Account No</th>
+                    {isMasterView && <th className="py-3 px-4 whitespace-nowrap">Business</th>}
+                    <th className="py-3 px-4 min-w-[190px]">Customer Name & Nickname</th>
+                    <th className="py-3 px-4 whitespace-nowrap min-w-[155px]">Phone</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">Total Borrowed</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">Total Paid</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">Balance Owed</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-[13px]">
@@ -686,14 +686,14 @@ export default function CustomersPage() {
                         className="hover:bg-slate-50/70 transition-colors cursor-pointer"
                         onClick={() => setSelectedCustomerForHistory(cust)}
                       >
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className="font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-1 rounded text-xs">
                             {cust.customer_no}
                           </span>
                         </td>
 
                         {isMasterView && (
-                          <td className="py-3.5 px-4 text-slate-600">
+                          <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
                             {bizList.find((business) => business.id === cust.business_id)?.name || '—'}
                           </td>
                         )}
@@ -709,7 +709,7 @@ export default function CustomersPage() {
                           </div>
                         </td>
 
-                        <td className="py-3.5 px-4 font-mono text-slate-600">
+                        <td className="py-3.5 px-4 font-mono text-slate-600 whitespace-nowrap tabular-nums min-w-[155px]">
                           {cust.phone ? (
                             fmt_phone(cust.phone)
                           ) : (

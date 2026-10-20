@@ -383,7 +383,7 @@ export function ImportPhonebookModal({
                           className="w-full bg-transparent px-1.5 py-0.5 rounded border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-white text-xs text-slate-600 placeholder:text-slate-400 placeholder:italic"
                         />
                       </td>
-                      <td className="px-3 py-1.5 font-mono text-slate-600">
+                      <td className="px-3 py-1.5 font-mono text-slate-600 whitespace-nowrap tabular-nums">
                         +{c.phone}
                       </td>
                     </tr>

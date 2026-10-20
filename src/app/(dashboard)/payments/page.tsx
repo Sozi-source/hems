@@ -305,7 +305,7 @@ export default function PaymentsPage() {
                       </h3>
 
                       <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
-                        <span className="font-mono">{fmt_phone(item.payer_msisdn || item.payer_phone)}</span>
+                        <span className="font-mono whitespace-nowrap tabular-nums">{fmt_phone(item.payer_msisdn || item.payer_phone)}</span>
                         <span>•</span>
                         <span>{fmt_date(item.occurred_at || item.received_at, true)}</span>
                       </div>
@@ -375,15 +375,15 @@ export default function PaymentsPage() {
           {/* Desktop Table (md and up) */}
           <Card className="hidden md:block bg-white border-slate-200/90 shadow-2xs p-0">
             <div className="overflow-x-auto rounded-card">
-              <table className="w-full min-w-[820px] text-left border-collapse">
+              <table className="w-full min-w-[900px] text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                    <th className="py-3 px-4">Receipt / Ref</th>
-                    <th className="py-3 px-4">Payer</th>
-                    <th className="py-3 px-4">Account No</th>
-                    <th className="py-3 px-4 text-right">Amount</th>
-                    <th className="py-3 px-4 text-center">Status</th>
-                    <th className="py-3 px-4 text-right">Action</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Receipt / Ref</th>
+                    <th className="py-3 px-4 min-w-[180px]">Payer</th>
+                    <th className="py-3 px-4 whitespace-nowrap">Account No</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">Amount</th>
+                    <th className="py-3 px-4 text-center whitespace-nowrap">Status</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-[13px]">
@@ -398,11 +398,11 @@ export default function PaymentsPage() {
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 min-w-[180px]">
                         <div className="font-semibold text-slate-900 whitespace-normal">
                           {item.payer_name || 'Customer'}
                         </div>
-                        <div className="text-[11px] text-slate-500 font-mono">
+                        <div className="text-[11px] text-slate-500 font-mono whitespace-nowrap tabular-nums">
                           {fmt_phone(item.payer_msisdn || item.payer_phone)}
                         </div>
                       </td>

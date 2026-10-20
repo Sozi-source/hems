@@ -219,7 +219,7 @@ export function ApprovePaymentModal({
             </div>
             <div>
               <span className="text-[11px] font-medium text-slate-500 block">Phone / MSISDN</span>
-              <span className="font-mono font-medium text-slate-700">
+              <span className="font-mono font-medium text-slate-700 whitespace-nowrap tabular-nums">
                 {fmt_phone(payment.payer_msisdn || payment.payer_phone)}
               </span>
             </div>

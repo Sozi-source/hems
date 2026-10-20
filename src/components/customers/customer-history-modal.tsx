@@ -252,9 +252,9 @@ export function CustomerHistoryModal({
                 {customer.phone ? (
                   <a
                     href={`tel:${customer.phone}`}
-                    className="inline-flex items-center gap-1 font-mono text-slate-700 hover:text-slate-900 transition-colors"
+                    className="inline-flex items-center gap-1 font-mono text-slate-700 hover:text-slate-900 transition-colors whitespace-nowrap tabular-nums"
                   >
-                    <Phone className="w-3.5 h-3.5 text-slate-400" />
+                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                     <span>{fmt_phone(customer.phone)}</span>
                   </a>
                 ) : (
