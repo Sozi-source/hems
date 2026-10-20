@@ -4,12 +4,24 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Smartphone, Check, Copy, AlertCircle, Globe, Laptop, ShieldCheck, Activity } from 'lucide-react';
+import { Smartphone, Check, Copy, AlertCircle, Globe, Laptop, ShieldCheck, Activity, RefreshCw, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { useBusiness } from '@/context/business-context';
 
 interface SmsReaderSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface IngestLogItem {
+  id: number;
+  content_sha256: string;
+  raw: string;
+  outcome: string;
+  error?: string | null;
+  seen_count: number;
+  first_seen_at: string;
+  last_seen_at: string;
+  payment_id?: string | null;
 }
 
 export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProps) {
@@ -18,8 +30,25 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
   const [isLocalhost, setIsLocalhost] = useState(false);
   const [domainMode, setDomainMode] = useState<'current' | 'production'>('production');
+  const [recentActivity, setRecentActivity] = useState<IngestLogItem[]>([]);
+  const [isLoadingActivity, setIsLoadingActivity] = useState(false);
 
   const productionDomain = 'https://hems-gamma.vercel.app';
+
+  const fetchActivity = async () => {
+    setIsLoadingActivity(true);
+    try {
+      const res = await fetch('/api/payments/sms-forwarder');
+      if (res.ok) {
+        const data = await res.json();
+        setRecentActivity(data.recentActivity || []);
+      }
+    } catch {
+      // Ignore
+    } finally {
+      setIsLoadingActivity(false);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -27,6 +56,9 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
       setIsLocalhost(isLocal);
       // Default to production domain if on localhost so client phone gets a reachable public URL
       setDomainMode(isLocal ? 'production' : 'current');
+      if (isOpen) {
+        fetchActivity();
+      }
     }
   }, [isOpen]);
 
@@ -57,7 +89,11 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
     try {
       const res = await fetch('/api/payments/sms-forwarder');
       if (res.ok) {
+        const data = await res.json();
         setTestStatus('success');
+        if (data.recentActivity) {
+          setRecentActivity(data.recentActivity);
+        }
       } else {
         setTestStatus('failed');
       }
@@ -260,7 +296,90 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
           </div>
         </div>
 
-        {/* Card 4: Idempotency & Security Guarantee */}
+        {/* Card 4: Live Ingest & Diagnostic Log */}
+        <div className="rounded-xl border border-slate-200/90 bg-white p-4 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-slate-100 border border-slate-200/70 text-slate-700">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-slate-900 block">Recent Webhook Activity & Diagnostic Log</span>
+                <span className="text-[11px] text-slate-500">Live incoming SMS alerts received by HEMS from Android forwarder devices.</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={fetchActivity}
+              disabled={isLoadingActivity}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              <RefreshCw className={`w-3 h-3 ${isLoadingActivity ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          {recentActivity.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-400 bg-slate-50 rounded-lg border border-slate-100">
+              No webhook SMS received yet. Click &quot;Test Endpoint&quot; or send a test SMS.
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {recentActivity.map((item) => {
+                const isCreated = item.outcome === 'created';
+                const isDuplicate = item.outcome === 'duplicate_ref' || item.outcome === 'duplicate_content';
+                const isFailed = item.outcome === 'parse_failed';
+
+                return (
+                  <div
+                    key={item.id}
+                    className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/70 flex flex-col gap-1 text-xs"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        {isCreated && (
+                          <Badge variant="success" size="sm" className="text-[10px]">
+                            Created
+                          </Badge>
+                        )}
+                        {isDuplicate && (
+                          <Badge variant="neutral" size="sm" className="text-[10px]">
+                            Duplicate (Ignored)
+                          </Badge>
+                        )}
+                        {isFailed && (
+                          <Badge variant="danger" size="sm" className="text-[10px]">
+                            {item.error?.startsWith('ignored_') ? 'Ignored / Skipped' : 'Parse Failed'}
+                          </Badge>
+                        )}
+                        {item.seen_count > 1 && (
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            ×{item.seen_count} sends
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {new Date(item.last_seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </span>
+                    </div>
+
+                    {item.error && (
+                      <span className="text-[11px] font-mono font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60 block truncate">
+                        Reason: {item.error}
+                      </span>
+                    )}
+
+                    <p className="text-[11px] text-slate-600 font-mono line-clamp-2 leading-relaxed bg-white p-1.5 rounded border border-slate-200/60">
+                      {item.raw}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Card 5: Idempotency & Security Guarantee */}
         <div className="rounded-xl border border-slate-200/70 bg-slate-50/50 p-3.5 flex items-start gap-2.5 text-xs text-slate-600">
           <ShieldCheck className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
           <div className="leading-relaxed text-[11px]">

@@ -1,7 +1,41 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { matchPayment } from '@/lib/daraja/matcher';
 import { parsePaymentAlert } from '@/lib/reconciliation/sms-parser';
+
+/**
+ * Records ignored, non-conforming, or unparsed SMS into payment_ingest_log
+ * so developers and business owners have complete visibility into what came from the device.
+ */
+async function recordIngestFailure(
+  admin: ReturnType<typeof createAdminClient>,
+  rawText: string,
+  sender: string | undefined,
+  reason: string
+) {
+  try {
+    const rawWithSender = sender ? `[Sender: ${sender}] ${rawText}` : rawText;
+    const contentSha256 = crypto
+      .createHash('sha256')
+      .update(`failed|${rawWithSender}`)
+      .digest('hex');
+
+    await admin.from('payment_ingest_log').upsert(
+      {
+        source: 'sms_forwarder',
+        content_sha256: contentSha256,
+        raw: rawWithSender,
+        outcome: 'parse_failed',
+        error: reason,
+        last_seen_at: new Date().toISOString(),
+      },
+      { onConflict: 'content_sha256' }
+    );
+  } catch (err) {
+    console.error('Error recording SMS ingest failure:', err);
+  }
+}
 
 /**
  * Android SMS Message Reader / Forwarder Webhook
@@ -104,9 +138,11 @@ export async function POST(request: Request) {
       }, { status: 200 });
     }
 
+    const admin = createAdminClient();
+
     // Filter 1: Sender allowlist & anti-spoofing check
     // SMS2Webhook forwards all device SMS with `address` set to the sender ID or phone number.
-    // Ignore messages from regular phone numbers (+254..., 07...) or non-financial sender IDs.
+    // Ignore messages from regular personal phone numbers (+254..., 07...) or non-financial sender IDs.
     const hasRealSender =
       sender.length > 0 &&
       sender !== '[from]' &&
@@ -117,13 +153,23 @@ export async function POST(request: Request) {
       const isPersonalPhoneNumber = /^\+?\d{7,15}$/.test(compactSender);
       const isShortcode = /^\d{4,6}$/.test(compactSender);
       const isAllowedFinancialSender =
-        /mpesa|m-pesa|equity|ncba|absa/i.test(sender) || isShortcode;
+        /mpesa|m-pesa|equity|ncba|absa|kcb|coop|co-op|stanbic|family|dtb|i&m|im[\s-]?bank|standardchartered|stanchart|postbank|creditbank/i.test(
+          sender
+        ) || isShortcode;
 
       if (isPersonalPhoneNumber || !isAllowedFinancialSender) {
+        await recordIngestFailure(
+          admin,
+          rawText,
+          sender,
+          isPersonalPhoneNumber
+            ? `ignored_personal_phone_sender: ${sender}`
+            : `ignored_unrecognized_sender: ${sender}`
+        );
         return NextResponse.json({
           status: 'ignored_unrecognized_sender',
           sender,
-          note: 'Sender is not an allowed financial institution (MPESA, EQUITY, NCBA, ABSA)',
+          note: 'Sender is not an allowed financial institution (MPESA, EQUITY, NCBA, ABSA, KCB, COOP, etc.)',
         }, { status: 200 });
       }
     }
@@ -136,14 +182,24 @@ export async function POST(request: Request) {
       parsed.amountMinor <= 0 ||
       parsed.detectedFormat === 'generic'
     ) {
+      await recordIngestFailure(
+        admin,
+        rawText,
+        sender,
+        !parsed
+          ? 'ignored_unrecognized_pattern: format_unrecognized'
+          : parsed.detectedFormat === 'generic'
+          ? 'ignored_generic_format'
+          : !parsed.transactionRef
+          ? 'ignored_missing_transaction_ref'
+          : 'ignored_invalid_amount'
+      );
       return NextResponse.json({
         status: 'ignored_unrecognized_pattern',
         note: 'Message did not match an incoming Equity, NCBA, ABSA, or M-Pesa credit format',
         receivedTextPreview: rawText.slice(0, 100),
       }, { status: 200 });
     }
-
-    const admin = createAdminClient();
 
     // Resolve tenant business attribution
     let targetBusinessId: string | null = explicitBusinessId;
@@ -328,9 +384,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: 'unauthorized', message: 'Provide valid ?secret= token' }, { status: 401 });
   }
 
+  const admin = createAdminClient();
+  const { data: recentLogs } = await admin
+    .from('payment_ingest_log')
+    .select('id, content_sha256, raw, outcome, error, seen_count, first_seen_at, last_seen_at, payment_id')
+    .eq('source', 'sms_forwarder')
+    .order('last_seen_at', { ascending: false })
+    .limit(10);
+
   return NextResponse.json({
     status: 'online',
     message: 'HEMS SMS Message Reader endpoint is active and accepting POST requests',
     timestamp: new Date().toISOString(),
+    recentActivity: recentLogs || [],
   });
 }
