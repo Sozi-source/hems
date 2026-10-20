@@ -21,6 +21,9 @@ import {
 } from 'lucide-react';
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
 import { StkPromptModal } from '@/components/payments/stk-prompt-modal';
+import { PaginationBar } from '@/components/ui/pagination-bar';
+
+const PAGE_SIZE = 15;
 
 interface ObligationItem {
   id: string;
@@ -44,6 +47,8 @@ export default function ObligationsPage() {
   const [directionFilter, setDirectionFilter] = useState<ObligationDirection | 'all'>('all');
   const [obligations, setObligations] = useState<ObligationItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showAll, setShowAll] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [stkTarget, setStkTarget] = useState<ObligationItem | null>(null);
@@ -133,13 +138,8 @@ export default function ObligationsPage() {
   }, [activeBusinessId, isMasterView, directionFilter]);
 
   useEffect(() => {
-    if (!obligations.length || !window.location.hash) return;
-    const targetId = decodeURIComponent(window.location.hash.slice(1));
-    const frame = window.requestAnimationFrame(() => {
-      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [obligations]);
+    setCurrentPage(1);
+  }, [searchQuery, directionFilter, activeBusinessId, isMasterView]);
 
   const receivablesBalanceMinor = obligations
     .filter((o) => o.direction === 'receivable')
@@ -162,6 +162,26 @@ export default function ObligationsPage() {
       ob.kind?.toLowerCase().includes(q)
     );
   });
+
+  useEffect(() => {
+    if (!filteredObligations.length || !window.location.hash) return;
+    const targetId = decodeURIComponent(window.location.hash.slice(1));
+    const idx = filteredObligations.findIndex((o) => o.id === targetId);
+    if (idx >= 0 && !showAll) {
+      const targetPage = Math.floor(idx / PAGE_SIZE) + 1;
+      setCurrentPage(targetPage);
+    }
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [obligations]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredObligations.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedObligations = showAll
+    ? filteredObligations
+    : filteredObligations.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -300,7 +320,7 @@ export default function ObligationsPage() {
         <>
           {/* Mobile Native Debt Card List (< md) — Zero Horizontal Scrolling */}
           <div className="grid grid-cols-1 gap-2.5 md:hidden">
-            {filteredObligations.map((ob) => {
+            {paginatedObligations.map((ob) => {
               const isReceivable = ob.direction === 'receivable';
               const isSettled = ob.balance_minor === 0 || ob.status === 'paid';
               const paidAmt = Math.max(0, ob.original_minor - ob.balance_minor);
@@ -419,7 +439,7 @@ export default function ObligationsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E7EDE8] text-xs">
-                  {filteredObligations.map((ob) => {
+                  {paginatedObligations.map((ob) => {
                     const isReceivable = ob.direction === 'receivable';
 
                     return (
@@ -492,6 +512,16 @@ export default function ObligationsPage() {
               </table>
             </div>
           </Card>
+
+          <PaginationBar
+            currentPage={safePage}
+            totalItems={filteredObligations.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+            isShowingAll={showAll}
+            onToggleShowAll={() => setShowAll((prev) => !prev)}
+            itemLabel="records"
+          />
         </>
       )}
 

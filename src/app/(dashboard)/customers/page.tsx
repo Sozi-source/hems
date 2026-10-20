@@ -23,6 +23,9 @@ import {
 import { AddCustomerModal } from '@/components/customers/add-customer-modal';
 import { ImportPhonebookModal } from '@/components/customers/import-phonebook-modal';
 import { StkPromptModal } from '@/components/payments/stk-prompt-modal';
+import { PaginationBar } from '@/components/ui/pagination-bar';
+
+const PAGE_SIZE = 15;
 
 interface CustomerItem {
   id: string;
@@ -48,6 +51,8 @@ export default function CustomersPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debtFilter, setDebtFilter] = useState<'all' | 'owing' | 'settled'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showAll, setShowAll] = useState(false);
 
   async function loadCustomers() {
     setIsLoading(true);
@@ -173,6 +178,10 @@ export default function CustomersPage() {
     }
   }
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, debtFilter, activeBusinessId, isMasterView]);
+
   const totalDebtMinor = customers.reduce((sum, c) => sum + (c.outstanding_minor || 0), 0);
   const owingCustomersCount = customers.filter((c) => (c.outstanding_minor || 0) > 0).length;
   const settledCustomersCount = customers.length - owingCustomersCount;
@@ -191,6 +200,12 @@ export default function CustomersPage() {
       cust.phone?.toLowerCase().includes(q)
     );
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedCustomers = showAll
+    ? filteredCustomers
+    : filteredCustomers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -348,7 +363,7 @@ export default function CustomersPage() {
         <>
           {/* Mobile Native Card List (< md) — Zero Horizontal Scrolling */}
           <div className="grid grid-cols-1 gap-2.5 md:hidden">
-            {filteredCustomers.map((cust) => {
+            {paginatedCustomers.map((cust) => {
               const hasDebt = (cust.outstanding_minor || 0) > 0;
               const bizName = businesses.find((b) => b.id === cust.business_id)?.name;
 
@@ -458,7 +473,7 @@ export default function CustomersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E7EDE8] text-[13px]">
-                  {filteredCustomers.map((cust) => (
+                  {paginatedCustomers.map((cust) => (
                     <tr key={cust.id} className="hover:bg-[#F8FAF8] transition-colors">
                       <td className="py-3.5 px-4">
                         <span className="font-mono font-bold text-[#8DDBA0] bg-[#144827] px-2 py-1 rounded text-xs">
@@ -545,6 +560,16 @@ export default function CustomersPage() {
               </table>
             </div>
           </Card>
+
+          <PaginationBar
+            currentPage={safePage}
+            totalItems={filteredCustomers.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+            isShowingAll={showAll}
+            onToggleShowAll={() => setShowAll((prev) => !prev)}
+            itemLabel="customers"
+          />
         </>
       )}
 

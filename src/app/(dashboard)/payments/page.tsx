@@ -27,6 +27,9 @@ import { SimulatePaymentModal } from '@/components/payments/simulate-payment-mod
 import { ImportStatementModal } from '@/components/payments/import-statement-modal';
 import { PasteAlertModal } from '@/components/payments/paste-alert-modal';
 import { SmsReaderSetupModal } from '@/components/payments/sms-reader-setup-modal';
+import { PaginationBar } from '@/components/ui/pagination-bar';
+
+const PAGE_SIZE = 15;
 
 export default function PaymentsPage() {
   const { activeBusinessId, isMasterView } = useBusiness();
@@ -39,6 +42,8 @@ export default function PaymentsPage() {
     approvedCount: 0,
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showAll, setShowAll] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const [activePaymentForApproval, setActivePaymentForApproval] = useState<PaymentTransaction | null>(null);
@@ -103,6 +108,10 @@ export default function PaymentsPage() {
     return () => window.removeEventListener('hems:payment-received', handleNewPayment);
   }, [activeBusinessId, isMasterView, filterStatus]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterStatus, activeBusinessId, isMasterView]);
+
   const filteredPayments = payments.filter((item) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
@@ -113,6 +122,12 @@ export default function PaymentsPage() {
       item.account_reference?.toLowerCase().includes(q)
     );
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedPayments = showAll
+    ? filteredPayments
+    : filteredPayments.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -281,7 +296,7 @@ export default function PaymentsPage() {
         <>
           {/* Mobile Native Card List (< md) — Zero Horizontal Scrolling */}
           <div className="grid grid-cols-1 gap-2.5 md:hidden">
-            {filteredPayments.map((item) => {
+            {paginatedPayments.map((item) => {
               const isPending = item.status === 'pending';
               const hasConflict = isPending && (item.conflict_flags?.length || 0) > 0;
 
@@ -395,7 +410,7 @@ export default function PaymentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E7EDE8] text-[13px]">
-                  {filteredPayments.map((item) => (
+                  {paginatedPayments.map((item) => (
                     <tr key={item.id} className="hover:bg-[#F8FAF8] transition-colors">
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-900 whitespace-nowrap tabular-nums">
                         <span className="font-mono font-bold text-[#8DDBA0] bg-[#144827] px-2 py-0.5 rounded text-xs">
@@ -492,6 +507,16 @@ export default function PaymentsPage() {
               </table>
             </div>
           </Card>
+
+          <PaginationBar
+            currentPage={safePage}
+            totalItems={filteredPayments.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+            isShowingAll={showAll}
+            onToggleShowAll={() => setShowAll((prev) => !prev)}
+            itemLabel="payments"
+          />
         </>
       )}
 
