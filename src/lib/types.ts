@@ -1,4 +1,4 @@
-export type BusinessCode = 'HARON_FASHION' | 'ZENITH_PLAST' | 'MASTER';
+export type BusinessCode = 'HARON_FASHION' | 'ZENITH_PLAST' | 'DEV_HARON_FASHION' | 'DEV_ZENITH_PLAST' | 'MASTER' | (string & {});
 
 export type UserRole = 'owner' | 'admin' | 'accountant' | 'cashier' | 'viewer';
 

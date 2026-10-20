@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Smartphone, Check, Copy, AlertCircle, Globe, Laptop, ShieldCheck, Activity } from 'lucide-react';
+import { useBusiness } from '@/context/business-context';
 
 interface SmsReaderSetupModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface SmsReaderSetupModalProps {
 }
 
 export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProps) {
+  const { activeBusinessId, businesses } = useBusiness();
   const [copied, setCopied] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
   const [isLocalhost, setIsLocalhost] = useState(false);
@@ -30,7 +32,11 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hems-gamma.vercel.app';
   const activeBaseUrl = domainMode === 'production' ? productionDomain : origin;
-  const webhookUrl = `${activeBaseUrl}/api/payments/sms-forwarder`;
+  const isDevTenant = businesses.some((b) => b.code.startsWith('DEV_'));
+  const scopedBusinessId = activeBusinessId || (isDevTenant ? businesses[0]?.id : null);
+  const webhookUrl = scopedBusinessId
+    ? `${activeBaseUrl}/api/payments/sms-forwarder?businessId=${scopedBusinessId}`
+    : `${activeBaseUrl}/api/payments/sms-forwarder`;
 
   const copyUrl = () => {
     navigator.clipboard.writeText(webhookUrl);

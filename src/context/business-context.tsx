@@ -39,30 +39,41 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // 1. Restore saved choice
     const saved = localStorage.getItem('hems_active_business') as BusinessCode | null;
-    if (saved && (saved === 'HARON_FASHION' || saved === 'ZENITH_PLAST' || saved === 'MASTER')) {
+    if (saved) {
       setActiveCode(saved);
     }
 
-    // 2. Fetch real businesses from API / Supabase
+    // 2. Fetch real businesses from API / Supabase (strictly scoped by RLS is_member)
     async function fetchRealBusinesses() {
       try {
+        let loaded: Business[] | null = null;
         const res = await fetch('/api/businesses');
         if (res.ok) {
           const json = await res.json();
           if (json.businesses && json.businesses.length > 0) {
-            setBusinesses(json.businesses as Business[]);
-            return;
+            loaded = json.businesses as Business[];
           }
         }
 
-        const supabase = createClient();
-        const { data } = await supabase
-          .from('businesses')
-          .select('id, code, name, legal_name')
-          .order('name');
+        if (!loaded) {
+          const supabase = createClient();
+          const { data } = await supabase
+            .from('businesses')
+            .select('id, code, name, legal_name')
+            .order('name');
 
-        if (data && data.length > 0) {
-          setBusinesses(data as Business[]);
+          if (data && data.length > 0) {
+            loaded = data as Business[];
+          }
+        }
+
+        if (loaded && loaded.length > 0) {
+          setBusinesses(loaded);
+          const currentSaved = localStorage.getItem('hems_active_business');
+          if (currentSaved && currentSaved !== 'MASTER' && !loaded.some((b) => b.code === currentSaved)) {
+            setActiveCode('MASTER');
+            localStorage.setItem('hems_active_business', 'MASTER');
+          }
         }
       } catch {
         // Keeps clean defaults if offline

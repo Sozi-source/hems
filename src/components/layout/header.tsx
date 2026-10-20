@@ -64,7 +64,7 @@ export function Header() {
           <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-900 border border-slate-200">
             {isMasterView
               ? 'All Businesses'
-              : activeBusiness?.name || (activeBusinessCode === 'HARON_FASHION' ? 'Haron Fashion' : 'Zenith Plast')}
+              : activeBusiness?.name || activeBusinessCode}
           </span>
         </div>
 

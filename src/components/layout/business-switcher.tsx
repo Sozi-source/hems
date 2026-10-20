@@ -28,33 +28,29 @@ export function BusinessSwitcher({ variant = 'sidebar' }: BusinessSwitcherProps)
   const isHeader = variant === 'header';
 
   const getBusinessInfo = (code: BusinessCode) => {
-    switch (code) {
-      case 'HARON_FASHION':
-        return {
-          name: 'Haron Fashion',
-          badge: 'HF',
-          badgeBg: isHeader
-            ? 'bg-[#123520] text-white border-[#123520]'
-            : 'bg-white/15 text-white border-white/20',
-        };
-      case 'ZENITH_PLAST':
-        return {
-          name: 'Zenith Plast',
-          badge: 'ZP',
-          badgeBg: isHeader
-            ? 'bg-slate-800 text-white border-slate-800'
-            : 'bg-white/15 text-white border-white/20',
-        };
-      case 'MASTER':
-      default:
-        return {
-          name: 'All Businesses',
-          badge: 'ALL',
-          badgeBg: isHeader
-            ? 'bg-slate-700 text-white border-slate-700'
-            : 'bg-white/15 text-white border-white/20',
-        };
+    if (code === 'MASTER') {
+      return {
+        name: 'All Businesses',
+        badge: 'ALL',
+        badgeBg: isHeader
+          ? 'bg-slate-700 text-white border-slate-700'
+          : 'bg-white/15 text-white border-white/20',
+      };
     }
+
+    const matched = businesses.find((b) => b.code === code);
+    const isHaron = code.includes('HARON');
+    const isZenith = code.includes('ZENITH');
+
+    return {
+      name: matched?.name || (isHaron ? 'Haron Fashion' : isZenith ? 'Zenith Plast' : code),
+      badge: isHaron ? 'HF' : isZenith ? 'ZP' : code.slice(0, 2).toUpperCase(),
+      badgeBg: isHeader
+        ? isHaron
+          ? 'bg-[#123520] text-white border-[#123520]'
+          : 'bg-slate-800 text-white border-slate-800'
+        : 'bg-white/15 text-white border-white/20',
+    };
   };
 
   const currentInfo = getBusinessInfo(activeBusinessCode);

@@ -246,81 +246,56 @@ export default function DashboardOverviewPage() {
       </div>
 
       {/* Business Breakdown in Master View — Clean Matching Enterprise Cards */}
-      {isMasterView && (
+      {isMasterView && businesses.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
-          {/* Haron Fashion */}
-          <Card className="border border-slate-200/90 bg-white shadow-2xs p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-[#123520] text-white flex items-center justify-center font-bold text-[11px]">
-                  HF
-                </div>
-                <h4 className="text-sm font-bold text-slate-900">Haron Fashion</h4>
-              </div>
-              <Badge variant="neutral" size="sm">Active</Badge>
-            </div>
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
-              <div>
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
-                  Customer Debts
-                </span>
-                <div className="mt-1">
-                  <MoneyDisplay
-                    minorUnits={businessCardsData['HARON_FASHION']?.debt || 0}
-                    size="md"
-                  />
-                </div>
-              </div>
-              <div>
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
-                  Collected (Mo)
-                </span>
-                <div className="mt-1">
-                  <MoneyDisplay
-                    minorUnits={businessCardsData['HARON_FASHION']?.collected || 0}
-                    size="md"
-                  />
-                </div>
-              </div>
-            </div>
-          </Card>
+          {businesses.map((b, idx) => {
+            const isHaron = b.code.includes('HARON');
+            const initials = isHaron
+              ? 'HF'
+              : b.code.includes('ZENITH')
+              ? 'ZP'
+              : b.name.slice(0, 2).toUpperCase();
+            const badgeBg = isHaron || idx === 0 ? 'bg-[#123520]' : 'bg-slate-800';
+            const cardStats = businessCardsData[b.code] || { debt: 0, collected: 0 };
 
-          {/* Zenith Plast */}
-          <Card className="border border-slate-200/90 bg-white shadow-2xs p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3.5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-slate-800 text-white flex items-center justify-center font-bold text-[11px]">
-                  ZP
+            return (
+              <Card key={b.id} className="border border-slate-200/90 bg-white shadow-2xs p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-7 h-7 rounded-md ${badgeBg} text-white flex items-center justify-center font-bold text-[11px]`}>
+                      {initials}
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-900">{b.name}</h4>
+                  </div>
+                  <Badge variant="neutral" size="sm">Active</Badge>
                 </div>
-                <h4 className="text-sm font-bold text-slate-900">Zenith Plast Distributors Ltd</h4>
-              </div>
-              <Badge variant="neutral" size="sm">Active</Badge>
-            </div>
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
-              <div>
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
-                  Customer Debts
-                </span>
-                <div className="mt-1">
-                  <MoneyDisplay
-                    minorUnits={businessCardsData['ZENITH_PLAST']?.debt || 0}
-                    size="md"
-                  />
+                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+                  <div>
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                      Customer Debts
+                    </span>
+                    <div className="mt-1">
+                      <MoneyDisplay
+                        minorUnits={cardStats.debt}
+                        size="md"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                      Collected (Mo)
+                    </span>
+                    <div className="mt-1">
+                      <MoneyDisplay
+                        minorUnits={cardStats.collected}
+                        size="md"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div>
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
-                  Collected (Mo)
-                </span>
-                <div className="mt-1">
-                  <MoneyDisplay
-                    minorUnits={businessCardsData['ZENITH_PLAST']?.collected || 0}
-                    size="md"
-                  />
-                </div>
-              </div>
-            </div>
-          </Card>
+              </Card>
+            );
+          })}
         </div>
       )}
 

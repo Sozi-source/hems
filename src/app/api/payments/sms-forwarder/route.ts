@@ -148,11 +148,31 @@ export async function POST(request: Request) {
     // Resolve tenant business attribution
     let targetBusinessId: string | null = explicitBusinessId;
 
-    if (!targetBusinessId && parsed.accountReference) {
-      // 1. Try matching payment channel by shortcode or till number
+    // Fetch production businesses vs developer sandbox businesses for strict tenant isolation
+    const { data: allBusinesses } = await admin
+      .from('businesses')
+      .select('id, code, name, legal_name, created_at')
+      .order('created_at', { ascending: true });
+
+    const prodBusinesses = (allBusinesses || []).filter((b) => !b.code.startsWith('DEV_'));
+    const devBusinesses = (allBusinesses || []).filter((b) => b.code.startsWith('DEV_'));
+    const prodBusinessIds = prodBusinesses.map((b) => b.id);
+
+    // If no explicit businessId is provided, check if the SMS is from the developer's own test number/identity
+    if (
+      !targetBusinessId &&
+      devBusinesses.length > 0 &&
+      (/WILFRED\s+OSOZI/i.test(rawText) || /711390861/.test(rawText))
+    ) {
+      targetBusinessId = devBusinesses[0].id;
+    }
+
+    if (!targetBusinessId && parsed.accountReference && prodBusinessIds.length > 0) {
+      // 1. Try matching payment channel by shortcode or till number (production businesses only)
       const { data: channel } = await admin
         .from('payment_channels')
         .select('business_id')
+        .in('business_id', prodBusinessIds)
         .or(`shortcode.eq.${parsed.accountReference},business_shortcode.eq.${parsed.accountReference}`)
         .eq('is_active', true)
         .limit(1)
@@ -161,10 +181,11 @@ export async function POST(request: Request) {
       if (channel?.business_id) {
         targetBusinessId = channel.business_id;
       } else {
-        // 2. Try matching customer_no
+        // 2. Try matching customer_no in production businesses
         const { data: customer } = await admin
           .from('customers')
           .select('business_id')
+          .in('business_id', prodBusinessIds)
           .eq('customer_no', parsed.accountReference)
           .limit(1)
           .maybeSingle();
@@ -172,10 +193,11 @@ export async function POST(request: Request) {
         if (customer?.business_id) {
           targetBusinessId = customer.business_id;
         } else {
-          // 3. Try matching open obligation reference (e.g. CD0001)
+          // 3. Try matching open obligation reference (e.g. CD0001) in production businesses
           const { data: obligation } = await admin
             .from('obligations')
             .select('business_id')
+            .in('business_id', prodBusinessIds)
             .eq('reference_no', parsed.accountReference)
             .limit(1)
             .maybeSingle();
@@ -187,11 +209,12 @@ export async function POST(request: Request) {
       }
     }
 
-    // Check if rawText mentions any active business channel's shortcode/till
-    if (!targetBusinessId) {
+    // Check if rawText mentions any active production business channel's shortcode/till
+    if (!targetBusinessId && prodBusinessIds.length > 0) {
       const { data: channels } = await admin
         .from('payment_channels')
         .select('business_id, shortcode, business_shortcode')
+        .in('business_id', prodBusinessIds)
         .eq('is_active', true);
 
       if (channels) {
@@ -206,22 +229,20 @@ export async function POST(request: Request) {
 
     // Check if rawText mentions Haron Enterprise / Mulot or common client ledger accounts
     if (!targetBusinessId && /HARON|MULOT|650166|XX6709/i.test(rawText)) {
-      const { data: haronBiz } = await admin
-        .from('businesses')
-        .select('id')
-        .or('name.ilike.%Haron%,legal_name.ilike.%Haron%')
-        .limit(1)
-        .maybeSingle();
-      if (haronBiz?.id) {
-        targetBusinessId = haronBiz.id;
+      const haronProd = prodBusinesses.find(
+        (b) => /haron/i.test(b.name) || /haron/i.test(b.legal_name || '')
+      );
+      if (haronProd?.id) {
+        targetBusinessId = haronProd.id;
       }
     }
 
-    // Fallback to phone match if available
-    if (!targetBusinessId && parsed.payerPhone && !parsed.payerPhone.includes('*')) {
+    // Fallback to phone match in production businesses if available
+    if (!targetBusinessId && parsed.payerPhone && !parsed.payerPhone.includes('*') && prodBusinessIds.length > 0) {
       const { data: customerByPhone } = await admin
         .from('customers')
         .select('business_id')
+        .in('business_id', prodBusinessIds)
         .eq('phone', parsed.payerPhone)
         .limit(1)
         .maybeSingle();
@@ -231,16 +252,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. Default to first active business if only 1 exists
+    // 4. Default to first active production business (never a DEV_ sandbox business)
     if (!targetBusinessId) {
-      const { data: firstBiz } = await admin
-        .from('businesses')
-        .select('id')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      targetBusinessId = firstBiz?.id || null;
+      targetBusinessId = prodBusinesses[0]?.id || allBusinesses?.[0]?.id || null;
     }
 
     // Ingest into payment_transactions with source: 'sms_forwarder'
