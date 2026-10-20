@@ -134,18 +134,22 @@ export function LivePaymentNotifier() {
           return;
         }
 
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
         for (const row of [...recent].reverse()) {
           if (!seenIdsRef.current.has(row.id)) {
             seenIdsRef.current.add(row.id);
-            pushToast({
-              id: row.id,
-              transaction_ref: row.transaction_ref,
-              amount_minor: row.amount_minor,
-              payer_name: row.payer_name,
-              payer_msisdn: row.payer_msisdn,
-              provider: row.provider,
-              occurred_at: row.occurred_at,
-            });
+            const isHistorical = row.occurred_at && new Date(row.occurred_at).getTime() < sevenDaysAgo;
+            if (!isHistorical) {
+              pushToast({
+                id: row.id,
+                transaction_ref: row.transaction_ref,
+                amount_minor: row.amount_minor,
+                payer_name: row.payer_name,
+                payer_msisdn: row.payer_msisdn,
+                provider: row.provider,
+                occurred_at: row.occurred_at,
+              });
+            }
           }
         }
       } catch {
@@ -171,20 +175,23 @@ export function LivePaymentNotifier() {
           }
           if (!seenIdsRef.current.has(row.id)) {
             seenIdsRef.current.add(row.id);
-            setPendingCount((c) => {
-              const next = c + 1;
-              window.dispatchEvent(new CustomEvent('hems:pending-payments-count', { detail: next }));
-              return next;
-            });
-            pushToast({
-              id: row.id,
-              transaction_ref: String(row.transaction_ref || ''),
-              amount_minor: Number(row.amount_minor || 0),
-              payer_name: row.payer_name || null,
-              payer_msisdn: row.payer_msisdn || null,
-              provider: String(row.provider || 'mpesa'),
-              occurred_at: String(row.occurred_at || new Date().toISOString()),
-            });
+            const isHistorical = row.occurred_at && new Date(row.occurred_at).getTime() < (Date.now() - 7 * 24 * 60 * 60 * 1000);
+            if (!isHistorical && row.status === 'pending') {
+              setPendingCount((c) => {
+                const next = c + 1;
+                window.dispatchEvent(new CustomEvent('hems:pending-payments-count', { detail: next }));
+                return next;
+              });
+              pushToast({
+                id: row.id,
+                transaction_ref: String(row.transaction_ref || ''),
+                amount_minor: Number(row.amount_minor || 0),
+                payer_name: row.payer_name || null,
+                payer_msisdn: row.payer_msisdn || null,
+                provider: String(row.provider || 'mpesa'),
+                occurred_at: String(row.occurred_at || new Date().toISOString()),
+              });
+            }
           }
         }
       )

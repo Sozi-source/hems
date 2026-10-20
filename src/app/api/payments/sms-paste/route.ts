@@ -78,6 +78,25 @@ export async function POST(request: Request) {
       matchResult = await matchPayment(ingestResult.payment_id);
     }
 
+    // Gracefully handle historical pasted SMS (> 7 days old)
+    const occurredTime = new Date(parsed?.occurredAt || new Date().toISOString()).getTime();
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const isHistorical = occurredTime < sevenDaysAgo;
+    let wasAutoApproved = false;
+
+    if (isHistorical && ingestResult?.outcome === 'created' && ingestResult?.payment_id && businessId) {
+      const { error: autoApproveErr } = await admin.rpc('approve_payment', {
+        p_payment_id: ingestResult.payment_id,
+        p_allocations: [],
+        p_business: businessId,
+        p_note: 'Auto-approved historical SMS (> 7 days old)',
+      });
+
+      if (!autoApproveErr) {
+        wasAutoApproved = true;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       outcome: ingestResult?.outcome,

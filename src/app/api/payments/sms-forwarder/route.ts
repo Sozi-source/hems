@@ -423,10 +423,34 @@ export async function POST(request: Request) {
       matchResult = await matchPayment(ingestResult.payment_id);
     }
 
+    // Gracefully handle historical SMS (> 7 days old) so they do NOT flood the owner's review queue
+    const occurredTime = new Date(parsed.occurredAt || deviceOccurredAt || new Date().toISOString()).getTime();
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const isHistorical = occurredTime < sevenDaysAgo;
+    let wasAutoApproved = false;
+
+    if (isHistorical && ingestResult?.outcome === 'created' && ingestResult?.payment_id && targetBusinessId) {
+      const { error: autoApproveErr } = await admin.rpc('approve_payment', {
+        p_payment_id: ingestResult.payment_id,
+        p_allocations: [],
+        p_business: targetBusinessId,
+        p_note: 'Auto-approved historical SMS (> 7 days old)',
+      });
+
+      if (!autoApproveErr) {
+        wasAutoApproved = true;
+      } else {
+        console.warn('Could not auto-approve historical SMS:', autoApproveErr.message);
+      }
+    }
+
     const isDuplicate = ingestResult?.outcome === 'duplicate_ref';
     const responseHeaders: Record<string, string> = {};
     if (isDuplicate) {
       responseHeaders['X-Already-Existed'] = 'true';
+    }
+    if (wasAutoApproved) {
+      responseHeaders['X-Auto-Approved'] = 'true';
     }
 
     return NextResponse.json(
