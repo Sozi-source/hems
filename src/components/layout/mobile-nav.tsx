@@ -37,7 +37,7 @@ export function MobileNav() {
   }, []);
 
   return (
-    <nav aria-label="Main navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#102719]/[0.98] border-t border-[#264632] z-40 pb-[env(safe-area-inset-bottom)]">
+    <nav aria-label="Main navigation" className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#102719] border-t border-[#264632] shadow-[0_-4px_16px_rgb(16_39_25/0.18)] z-40 pb-[env(safe-area-inset-bottom)]">
       <div className="grid grid-cols-5 items-stretch px-1 pt-1.5">
         {primaryItems.map((item) => {
           const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));

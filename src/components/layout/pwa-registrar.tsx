@@ -71,10 +71,12 @@ export function PwaRegistrar() {
       type="button"
       onClick={handleInstallClick}
       title="Install HEMS App"
-      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#F1F5F2] hover:bg-[#E3ECE6] text-[#14231A] border border-[#DCE5DF] transition-colors shrink-0"
+      aria-label="Install HEMS App"
+      className="inline-flex h-9 w-9 md:w-auto md:px-2.5 items-center justify-center gap-1.5 rounded-lg text-xs font-semibold bg-[#EAEFEC] hover:bg-[#DDE6E1] text-[#14231A] border border-[#CBD6CF] transition-colors shrink-0"
     >
-      <Download className="w-3.5 h-3.5 text-[#1F7A3D]" />
+      <Download className="w-4 h-4 text-[#144827] shrink-0" />
       <span className="hidden md:inline">Install App</span>
     </button>
   );
 }
+

@@ -204,13 +204,13 @@ export function LivePaymentNotifier() {
           type="button"
           onClick={() => router.push('/payments')}
           title={`${pendingCount} payment(s) waiting for review`}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
+          className={`inline-flex h-9 items-center gap-1.5 px-2.5 rounded-lg text-xs font-bold transition-colors border shrink-0 ${
             pathname === '/payments'
-              ? 'bg-emerald-50 text-[#1F7A3D] border-emerald-200'
-              : 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100'
+              ? 'bg-[#E8F5EB] text-[#144827] border-[#BBDCC4]'
+              : 'bg-[#FDF2D0] text-[#5C3B00] border-[#E6C775] hover:bg-[#F9E8B2]'
           }`}
         >
-          <BellRing className="w-3.5 h-3.5 text-amber-600 animate-pulse shrink-0" />
+          <BellRing className="w-3.5 h-3.5 text-[#B45309] animate-pulse shrink-0" />
           <span className="tabular-nums">{pendingCount}</span>
           <span className="hidden md:inline">Pending SMS</span>
         </button>
