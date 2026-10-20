@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
 import { StkPromptModal } from '@/components/payments/stk-prompt-modal';
+import { ObligationHistoryModal } from '@/components/obligations/obligation-history-modal';
 import { PaginationBar } from '@/components/ui/pagination-bar';
 
 const PAGE_SIZE = 15;
@@ -50,6 +51,7 @@ export default function ObligationsPage() {
   const [showAll, setShowAll] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [stkTarget, setStkTarget] = useState<ObligationItem | null>(null);
+  const [selectedObligationForLedger, setSelectedObligationForLedger] = useState<ObligationItem | null>(null);
 
   async function loadObligations() {
     try {
@@ -313,7 +315,8 @@ export default function ObligationsPage() {
                 <Card
                   id={ob.id}
                   key={ob.id}
-                  className="p-3.5 bg-white border-slate-200/90 shadow-2xs scroll-mt-24"
+                  onClick={() => setSelectedObligationForLedger(ob)}
+                  className="p-3.5 bg-white border-slate-200/90 shadow-2xs scroll-mt-24 cursor-pointer hover:border-slate-300 transition-all"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -381,7 +384,10 @@ export default function ObligationsPage() {
                     <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-end">
                       <button
                         type="button"
-                        onClick={() => setStkTarget(ob)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStkTarget(ob);
+                        }}
                         className="w-full sm:w-auto min-h-8 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors"
                       >
                         <Smartphone className="w-3.5 h-3.5" />
@@ -414,9 +420,14 @@ export default function ObligationsPage() {
                     const isReceivable = ob.direction === 'receivable';
 
                     return (
-                      <tr id={ob.id} key={ob.id} className="hover:bg-slate-50/60 transition-colors scroll-mt-24">
+                      <tr
+                        id={ob.id}
+                        key={ob.id}
+                        onClick={() => setSelectedObligationForLedger(ob)}
+                        className="hover:bg-slate-50/70 transition-colors scroll-mt-24 cursor-pointer group"
+                      >
                         <td className="py-3.5 px-4">
-                          <span className="font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded text-xs">
+                          <span className="font-mono font-semibold text-slate-700 bg-slate-100 group-hover:bg-slate-200 border border-slate-200/80 px-2 py-0.5 rounded text-xs transition-colors">
                             {ob.reference_no}
                           </span>
                           <div className="mt-1 text-[11px] text-slate-500 capitalize">
@@ -466,14 +477,19 @@ export default function ObligationsPage() {
                               variant="outline"
                               size="sm"
                               className="h-8 px-2.5 text-xs text-slate-700"
-                              onClick={() => setStkTarget(ob)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setStkTarget(ob);
+                              }}
                               title="Prompt customer via M-Pesa"
                             >
                               <Smartphone className="w-3.5 h-3.5 mr-1 text-slate-500" />
                               Prompt M-Pesa
                             </Button>
                           ) : (
-                            <span className="text-[11px] text-slate-400">—</span>
+                            <span className="text-[11px] text-slate-400 group-hover:text-slate-600 transition-colors">
+                              View Ledger →
+                            </span>
                           )}
                         </td>
                       </tr>
@@ -513,6 +529,18 @@ export default function ObligationsPage() {
           amountMinor={stkTarget.balance_minor}
           accountReference={stkTarget.reference_no}
           onSuccess={loadObligations}
+        />
+      )}
+
+      {selectedObligationForLedger && (
+        <ObligationHistoryModal
+          isOpen={Boolean(selectedObligationForLedger)}
+          onClose={() => setSelectedObligationForLedger(null)}
+          obligation={selectedObligationForLedger}
+          onPromptMpesa={(ob) => {
+            setSelectedObligationForLedger(null);
+            setStkTarget(ob);
+          }}
         />
       )}
     </div>
