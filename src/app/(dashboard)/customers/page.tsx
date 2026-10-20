@@ -96,11 +96,11 @@ export default function CustomersPage() {
 
       const { data: obList } = await obQuery;
 
-      // 3. Fetch settled payments to attribute payments by phone / account reference
+      // 3. Fetch approved payments to attribute payments by phone / account reference
       let payQuery = supabase
         .from('payment_transactions')
         .select('id, payer_msisdn, account_reference, amount_minor, status')
-        .in('status', ['approved', 'settled']);
+        .eq('status', 'approved');
 
       if (!isMasterView && activeBusinessId) {
         payQuery = payQuery.eq('business_id', activeBusinessId);

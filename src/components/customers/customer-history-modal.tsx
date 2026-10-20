@@ -148,13 +148,6 @@ export function CustomerHistoryModal({
     loadLedger();
   }, [isOpen, customer]);
 
-  if (!customer) return null;
-
-  const totalBorrowed = customer.total_borrowed_minor || 0;
-  const totalPaid = customer.total_paid_minor || 0;
-  const balance = customer.outstanding_minor || 0;
-  const hasDebt = balance > 0;
-
   const debtsOnly = useMemo(() => events.filter((e) => e.type === 'debt'), [events]);
   const paymentsOnly = useMemo(() => events.filter((e) => e.type === 'payment'), [events]);
 
@@ -178,6 +171,13 @@ export function CustomerHistoryModal({
     }
     return list;
   }, [events, debtsOnly, paymentsOnly, activeTab, searchQuery]);
+
+  if (!customer) return null;
+
+  const totalBorrowed = customer.total_borrowed_minor || 0;
+  const totalPaid = customer.total_paid_minor || 0;
+  const balance = customer.outstanding_minor || 0;
+  const hasDebt = balance > 0;
 
   const shareStatementText = () => {
     const lines = [
