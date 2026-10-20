@@ -92,7 +92,29 @@ export default function DashboardOverviewPage() {
       }));
       setRecentObligations(formattedObligations as Obligation[]);
 
-      // 3. Fetch KPI metrics from live views
+      // 3. Fetch settled payments this month for real collection totals
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      let settledMonthQuery = supabase
+        .from('payment_transactions')
+        .select('business_id, amount_minor')
+        .in('status', ['approved', 'settled'])
+        .gte('occurred_at', startOfMonth.toISOString());
+
+      if (!isMasterView && activeBusinessId) {
+        settledMonthQuery = settledMonthQuery.eq('business_id', activeBusinessId);
+      }
+
+      const { data: settledMonthData } = await settledMonthQuery;
+      const settledList = settledMonthData || [];
+      const totalCollectedMonth = settledList.reduce(
+        (sum: number, item: any) => sum + Number(item.amount_minor || 0),
+        0
+      );
+
+      // 4. Fetch KPI metrics from live views
       if (isMasterView) {
         const { data: masterData } = await supabase
           .from('v_master_dashboard')
@@ -103,12 +125,20 @@ export default function DashboardOverviewPage() {
           .from('v_business_dashboard')
           .select('business_id, code, customers_owing_minor');
 
+        const collectedByBizId: Record<string, number> = {};
+        for (const row of settledList) {
+          if (row.business_id) {
+            collectedByBizId[row.business_id] =
+              (collectedByBizId[row.business_id] || 0) + Number(row.amount_minor || 0);
+          }
+        }
+
         const breakdownMap: Record<string, { debt: number; collected: number }> = {};
         if (bizBreakdown) {
           for (const b of bizBreakdown) {
             breakdownMap[b.code] = {
               debt: Number(b.customers_owing_minor || 0),
-              collected: 0,
+              collected: collectedByBizId[b.business_id] || 0,
             };
           }
         }
@@ -123,7 +153,7 @@ export default function DashboardOverviewPage() {
           setStats({
             receivablesTotalMinor: Number(masterData.customers_owing_minor || 0),
             payablesTotalMinor: Number(masterData.total_obligations_minor || 0),
-            collectedMonthMinor: 0,
+            collectedMonthMinor: totalCollectedMonth,
             pendingApprovalMinor: totalPending,
           });
         }
@@ -143,7 +173,7 @@ export default function DashboardOverviewPage() {
           setStats({
             receivablesTotalMinor: Number(singleBizData.customers_owing_minor || 0),
             payablesTotalMinor: Number(singleBizData.total_obligations_minor || 0),
-            collectedMonthMinor: 0,
+            collectedMonthMinor: totalCollectedMonth,
             pendingApprovalMinor: totalPending,
           });
         }
@@ -155,125 +185,168 @@ export default function DashboardOverviewPage() {
 
   useEffect(() => {
     loadDashboard();
+    const handleNewSms = () => {
+      loadDashboard();
+    };
+    window.addEventListener('hems:payment-received', handleNewSms);
+    return () => window.removeEventListener('hems:payment-received', handleNewSms);
   }, [activeBusinessId, isMasterView]);
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      {/* Page Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
-          {isMasterView ? 'All Businesses' : activeBusiness?.name || activeBusinessCode}
-        </h1>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Page Header & Ergonomic Mobile Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#1F7A3D]">
+            Live Financial Ledger
+          </p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
+            {isMasterView ? 'All Businesses Overview' : activeBusiness?.name || activeBusinessCode}
+          </h1>
+        </div>
 
-        <div className="flex items-center gap-2">
-          <Link href="/payments">
-            <Button variant="secondary" size="sm">
-              <CreditCard className="w-3.5 h-3.5 mr-1" />
-              <span className="hidden sm:inline">Payments</span>
-              <span className="sr-only sm:hidden">Payments</span>
+        <div className="grid grid-cols-2 sm:flex items-center gap-2">
+          <Link href="/payments" className="w-full sm:w-auto">
+            <Button variant="secondary" size="sm" className="w-full sm:w-auto justify-center">
+              <CreditCard className="w-3.5 h-3.5 mr-1.5" />
+              <span>Payments</span>
+              {pendingPayments.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-amber-500 text-slate-950">
+                  {pendingPayments.length}
+                </span>
+              )}
             </Button>
           </Link>
-          <Button variant="primary" size="sm" onClick={() => setIsCreateModalOpen(true)}>
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            <span className="hidden sm:inline">New Debt or Bill</span>
-            <span className="sr-only sm:hidden">New Debt or Bill</span>
+          <Button
+            variant="primary"
+            size="sm"
+            className="w-full sm:w-auto justify-center"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            <span>New Debt or Bill</span>
           </Button>
         </div>
       </div>
 
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Summary KPI Cards — Solid Safaricom, Deep Cream, Slate Gray & Charcoal/Amber */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <MetricCard
           title="Customer Debts"
           minorUnits={stats.receivablesTotalMinor}
           icon={Wallet}
+          tone="safaricom"
+          subtitle="Total owed to you"
+        />
+        <MetricCard
+          title="Collected (Month)"
+          minorUnits={stats.collectedMonthMinor}
+          icon={CheckCircle2}
+          tone="cream"
           variant="positive"
+          subtitle="Settled SMS & M-Pesa"
         />
         <MetricCard
           title="Bills to Pay"
           minorUnits={stats.payablesTotalMinor}
           icon={TrendingDown}
+          tone="gray"
           variant="negative"
+          subtitle="Supplier obligations"
         />
         <MetricCard
-          title="Collected This Month"
-          minorUnits={stats.collectedMonthMinor}
-          icon={CheckCircle2}
-          variant="positive"
-        />
-        <MetricCard
-          title="Pending Payments"
+          title="Pending Review"
           minorUnits={stats.pendingApprovalMinor}
           icon={Clock}
+          tone={pendingPayments.length > 0 ? 'amber' : 'charcoal'}
           variant={pendingPayments.length > 0 ? 'amber' : 'neutral'}
+          subtitle={
+            pendingPayments.length > 0
+              ? `${pendingPayments.length} awaiting approval`
+              : 'All SMS reconciled'
+          }
         />
       </div>
 
       {/* Business Breakdown in Master View */}
       {isMasterView && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Haron Fashion (Rich Maroon Accent) */}
-          <Card className="border border-slate-200 border-l-4 border-l-[#1F7A3D] bg-white shadow-sm">
-            <div className="flex items-center justify-between mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
+          {/* Haron Fashion */}
+          <Card className="border border-[#DFD2B6] bg-[#F7F3E8] shadow-sm p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3.5">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded bg-rose-100 border border-rose-200 flex items-center justify-center font-bold text-xs text-[#881337]">
+                <div className="w-8 h-8 rounded-lg bg-[#144827] text-[#8DDBA0] flex items-center justify-center font-bold text-xs shadow-sm">
                   HF
                 </div>
-                <h4 className="text-sm font-bold text-slate-900">Haron Fashion</h4>
+                <div>
+                  <h4 className="text-sm font-bold text-[#14231A]">Haron Fashion</h4>
+                  <p className="text-[11px] text-[#5E523B] font-medium">Retail & Apparel Ledger</p>
+                </div>
               </div>
-              <Badge variant="danger" size="sm">Active</Badge>
+              <Badge variant="success" size="sm" dot>Active</Badge>
             </div>
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
-              <div>
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Customer Debts</span>
-                <div className="text-base font-bold text-slate-900 mt-0.5">
+            <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-[#E3D7BE]">
+              <div className="rounded-lg bg-white/80 border border-[#E5DAC3] p-2.5">
+                <span className="text-[10px] font-bold text-[#5E523B] uppercase tracking-wider block">
+                  Customer Debts
+                </span>
+                <div className="mt-1">
                   <MoneyDisplay
                     minorUnits={businessCardsData['HARON_FASHION']?.debt || 0}
                     size="md"
                   />
                 </div>
               </div>
-              <div>
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Collected</span>
-                <div className="text-base font-bold text-[#1F7A3D] mt-0.5">
+              <div className="rounded-lg bg-[#144827] text-white p-2.5">
+                <span className="text-[10px] font-bold text-[#9FE3B0] uppercase tracking-wider block">
+                  Collected (Mo)
+                </span>
+                <div className="mt-1">
                   <MoneyDisplay
                     minorUnits={businessCardsData['HARON_FASHION']?.collected || 0}
                     size="md"
-                    variant="positive"
+                    variant="inverse"
                   />
                 </div>
               </div>
             </div>
           </Card>
 
-          {/* Zenith Plast (Deep Navy Accent) */}
-          <Card className="border border-slate-200 border-l-4 border-l-[#1F7A3D] bg-white shadow-sm">
-            <div className="flex items-center justify-between mb-4">
+          {/* Zenith Plast */}
+          <Card className="border border-[#CBD6CF] bg-[#EAEFEC] shadow-sm p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3.5">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded bg-[#F1F5F2] border border-[#DCE5DF] flex items-center justify-center font-bold text-xs text-[#214A30]">
+                <div className="w-8 h-8 rounded-lg bg-[#1E2923] text-[#8DDBA0] flex items-center justify-center font-bold text-xs shadow-sm">
                   ZP
                 </div>
-                <h4 className="text-sm font-bold text-slate-900">Zenith Plast Distributors Ltd</h4>
+                <div>
+                  <h4 className="text-sm font-bold text-[#14231A]">Zenith Plast Distributors Ltd</h4>
+                  <p className="text-[11px] text-[#4A5D52] font-medium">Wholesale & Distribution Ledger</p>
+                </div>
               </div>
-              <Badge variant="info" size="sm">Active</Badge>
+              <Badge variant="info" size="sm" dot>Active</Badge>
             </div>
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
-              <div>
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Customer Debts</span>
-                <div className="text-base font-bold text-slate-900 mt-0.5">
+            <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-[#D2DDD6]">
+              <div className="rounded-lg bg-white/85 border border-[#D5DFD9] p-2.5">
+                <span className="text-[10px] font-bold text-[#4A5D52] uppercase tracking-wider block">
+                  Customer Debts
+                </span>
+                <div className="mt-1">
                   <MoneyDisplay
                     minorUnits={businessCardsData['ZENITH_PLAST']?.debt || 0}
                     size="md"
                   />
                 </div>
               </div>
-              <div>
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Collected</span>
-                <div className="text-base font-bold text-[#1F7A3D] mt-0.5">
+              <div className="rounded-lg bg-[#1E2923] text-white p-2.5">
+                <span className="text-[10px] font-bold text-[#9FE3B0] uppercase tracking-wider block">
+                  Collected (Mo)
+                </span>
+                <div className="mt-1">
                   <MoneyDisplay
                     minorUnits={businessCardsData['ZENITH_PLAST']?.collected || 0}
                     size="md"
-                    variant="positive"
+                    variant="inverse"
                   />
                 </div>
               </div>

@@ -4,7 +4,7 @@ import { fmt_kes } from '@/lib/format';
 
 export interface MoneyDisplayProps extends React.HTMLAttributes<HTMLSpanElement> {
   minorUnits: bigint | number | null | undefined;
-  variant?: 'neutral' | 'positive' | 'negative' | 'amber';
+  variant?: 'neutral' | 'positive' | 'negative' | 'amber' | 'inverse' | 'mint';
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   showCents?: boolean;
 }
@@ -28,25 +28,29 @@ export function MoneyDisplay({
   const sizeStyles = {
     sm: 'text-sm font-semibold',
     md: 'text-base font-bold',
-    lg: 'text-xl font-bold',
-    xl: 'text-2xl font-bold tracking-tight',
-    '2xl': 'text-3xl font-extrabold tracking-tight',
+    lg: 'text-lg sm:text-xl font-bold',
+    xl: 'text-xl sm:text-2xl font-bold tracking-tight',
+    '2xl': 'text-2xl sm:text-3xl font-extrabold tracking-tight',
   };
 
   const decimalSizes = {
     sm: 'text-xs',
     md: 'text-xs',
-    lg: 'text-sm font-medium',
-    xl: 'text-base font-medium',
-    '2xl': 'text-lg font-medium',
+    lg: 'text-xs sm:text-sm font-medium',
+    xl: 'text-sm sm:text-base font-medium',
+    '2xl': 'text-base sm:text-lg font-medium',
   };
 
   const variantStyles = {
     neutral: 'text-[#17291D]',
     positive: 'text-[#1F7A3D]',
     negative: 'text-[#B42332]',
-    amber: 'text-[#8A5700]',
+    amber: 'text-[#7A4B00]',
+    inverse: 'text-white',
+    mint: 'text-[#8DDBA0]',
   };
+
+  const isLightOnDark = variant === 'inverse' || variant === 'mint';
 
   return (
     <span
@@ -58,10 +62,23 @@ export function MoneyDisplay({
       )}
       {...props}
     >
-      <span className="text-slate-500 font-sans mr-1 text-xs font-normal">{symbol.trim()}</span>
+      <span
+        className={cn(
+          'font-sans mr-1 text-[11px] sm:text-xs font-semibold',
+          isLightOnDark ? 'text-[#9FE3B0]' : 'text-slate-500'
+        )}
+      >
+        {symbol.trim()}
+      </span>
       <span>{integer}</span>
       {showCents && (
-        <span className={cn('text-slate-600 font-mono opacity-90', decimalSizes[size])}>
+        <span
+          className={cn(
+            'font-mono',
+            isLightOnDark ? 'text-white/75' : 'text-slate-600 opacity-90',
+            decimalSizes[size]
+          )}
+        >
           {decimal}
         </span>
       )}
