@@ -95,7 +95,7 @@ export function PaginationBar({
             type="button"
             disabled={safePage >= totalPages}
             onClick={() => handleStep(safePage + 1)}
-            className="min-h-9 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold disabled:opacity-40 disabled:pointer-events-none inline-flex items-center justify-center gap-1 transition-colors"
+            className="min-h-9 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold disabled:opacity-40 disabled:pointer-events-none inline-flex items-center justify-center gap-1 transition-colors"
           >
             <span>Next</span>
             <ChevronRight className="w-4 h-4 shrink-0" />

@@ -47,7 +47,7 @@ export function BusinessSwitcher({ variant = 'sidebar' }: BusinessSwitcherProps)
       badge: isHaron ? 'HF' : isZenith ? 'ZP' : code.slice(0, 2).toUpperCase(),
       badgeBg: isHeader
         ? isHaron
-          ? 'bg-[#123520] text-white border-[#123520]'
+          ? 'bg-[#AEF359] text-slate-950 font-bold border border-[#9fe648]'
           : 'bg-slate-800 text-white border-slate-800'
         : 'bg-white/15 text-white border-white/20',
     };

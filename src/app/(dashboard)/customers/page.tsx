@@ -343,18 +343,19 @@ export default function CustomersPage() {
 
       {/* Consolidated Financial Summary Strip (4 KPI Cards) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        {/* Card 1: Outstanding Debt (Hero Forest Card) */}
-        <Card className="bg-[#123520] border-[#1E4D30] text-white p-3.5 sm:p-4 shadow-sm">
+        {/* Card 1: Outstanding Debt */}
+        <Card className="bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#AEF359]" />
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-emerald-100/80">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               Outstanding Debt
             </span>
-            <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/15 text-emerald-200 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-[#AEF359]/25 border border-[#AEF359]/70 text-slate-900 flex items-center justify-center">
               <Wallet className="w-3.5 h-3.5" />
             </div>
           </div>
-          <MoneyDisplay minorUnits={consolidatedBalanceMinor} size="lg" variant="inverse" />
-          <p className="mt-1 text-[11px] text-emerald-100/75 font-medium">
+          <MoneyDisplay minorUnits={consolidatedBalanceMinor} size="lg" variant="neutral" />
+          <p className="mt-1 text-[11px] text-slate-500 font-medium">
             Across {owingCount} active credit debtors
           </p>
         </Card>

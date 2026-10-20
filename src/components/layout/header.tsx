@@ -76,7 +76,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="hidden sm:inline-flex h-9 px-3 items-center justify-center rounded-lg bg-[#123520] hover:bg-[#19472B] text-white text-xs font-semibold transition-colors shrink-0"
+            className="hidden sm:inline-flex h-9 px-3 items-center justify-center rounded-lg bg-[#AEF359] hover:bg-[#9fe648] text-slate-950 font-semibold text-xs border border-[#9fe648] transition-colors shrink-0 shadow-2xs"
           >
             <Plus className="w-3.5 h-3.5 mr-1.5 shrink-0" />
             <span>New Entry</span>

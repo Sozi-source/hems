@@ -82,7 +82,7 @@ export function PendingApprovalsCard({
                   {onApprove && (
                     <button
                       type="button"
-                      className="h-8 px-3 rounded-md bg-[#123520] hover:bg-[#19472B] text-white text-xs font-semibold transition-colors"
+                      className="h-8 px-3 rounded-md bg-[#AEF359] hover:bg-[#9fe648] text-slate-950 font-semibold border border-[#9fe648] text-xs transition-colors shadow-2xs"
                       onClick={() => onApprove(p)}
                     >
                       Approve

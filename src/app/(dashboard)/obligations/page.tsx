@@ -198,17 +198,18 @@ export default function ObligationsPage() {
 
       {/* Enterprise KPI Strip: 1 Deep Forest Hero Card + 2 Clean White Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
-        <Card className="bg-[#123520] border-[#1E4D30] text-white p-3.5 sm:p-4 shadow-sm">
+        <Card className="bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#AEF359]" />
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-emerald-100/80">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               Owed to You
             </span>
-            <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/15 text-emerald-200 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-[#AEF359]/25 border border-[#AEF359]/70 text-slate-900 flex items-center justify-center">
               <Wallet className="w-3.5 h-3.5" />
             </div>
           </div>
-          <MoneyDisplay minorUnits={receivablesBalanceMinor} size="lg" variant="inverse" />
-          <p className="mt-1 text-[11px] text-emerald-100/75 font-medium">
+          <MoneyDisplay minorUnits={receivablesBalanceMinor} size="lg" variant="neutral" />
+          <p className="mt-1 text-[11px] text-slate-500 font-medium">
             Open customer debt balance
           </p>
         </Card>
@@ -371,7 +372,7 @@ export default function ObligationsPage() {
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                       <div
-                        className="h-full bg-[#123520] rounded-full transition-all"
+                        className="h-full bg-[#AEF359] border-r border-[#9fe648] rounded-full transition-all"
                         style={{ width: `${pctPaid}%` }}
                       />
                     </div>

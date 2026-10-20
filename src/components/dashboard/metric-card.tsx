@@ -35,27 +35,21 @@ export function MetricCard({
     <Card
       className={cn(
         'relative overflow-hidden transition-all duration-150 p-3.5 sm:p-5 [container-type:inline-size]',
-        isHero
-          ? 'bg-[#123520] border-[#1E4D30] text-white shadow-xs'
-          : isWarm
+        isWarm
           ? 'bg-[#F7F5EE] border-[#E5E0D3] text-[#0F172A] shadow-2xs'
-          : 'bg-white border-[#E2E8E4] text-[#0F172A] shadow-2xs'
+          : 'bg-white border-slate-200/90 text-[#0F172A] shadow-2xs'
       )}
     >
+      {isHero && <div className="absolute top-0 left-0 right-0 h-1 bg-[#AEF359]" />}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <span
-          className={cn(
-            'text-[11px] font-semibold uppercase tracking-[0.04em] leading-snug',
-            isHero ? 'text-[#A7C4B2]' : 'text-slate-500'
-          )}
-        >
+        <span className="text-[11px] font-semibold uppercase tracking-[0.04em] leading-snug text-slate-500">
           {title}
         </span>
         <div
           className={cn(
             'w-7 h-7 rounded-md flex items-center justify-center border shrink-0',
             isHero
-              ? 'bg-white/10 text-[#8DDBA0] border-white/10'
+              ? 'bg-[#AEF359]/25 text-slate-900 border-[#AEF359]/70'
               : 'bg-slate-100/80 text-slate-600 border-slate-200/80'
           )}
         >
@@ -68,17 +62,12 @@ export function MetricCard({
           minorUnits={minorUnits}
           size="lg"
           className="text-[clamp(14px,4.5cqi,22px)] sm:text-[clamp(16px,1.35vw,22px)]"
-          variant={isHero ? 'inverse' : 'neutral'}
+          variant="neutral"
         />
       </div>
 
       {subtitle && (
-        <p
-          className={cn(
-            'mt-1 text-[11px] font-normal truncate',
-            isHero ? 'text-[#A7C4B2]' : 'text-slate-500'
-          )}
-        >
+        <p className="mt-1 text-[11px] font-normal truncate text-slate-500">
           {subtitle}
         </p>
       )}

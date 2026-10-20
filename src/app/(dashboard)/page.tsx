@@ -202,14 +202,14 @@ export default function DashboardOverviewPage() {
         <button
           type="button"
           onClick={() => setIsCreateModalOpen(true)}
-          className="inline-flex h-9 px-3.5 items-center justify-center rounded-lg bg-[#123520] hover:bg-[#19472B] text-white text-xs font-semibold transition-colors shrink-0"
+          className="inline-flex h-9 px-3.5 items-center justify-center rounded-lg bg-[#AEF359] hover:bg-[#9fe648] text-slate-950 font-semibold text-xs border border-[#9fe648] transition-colors shrink-0 shadow-2xs"
         >
           <Plus className="w-3.5 h-3.5 mr-1.5" />
           <span>New Debt or Bill</span>
         </button>
       </div>
 
-      {/* Summary KPI Cards — 1 Hero Forest Card + 3 Uniform Neutral Enterprise Cards */}
+      {/* Summary KPI Cards — 4 Clean White Cards with minimal lime accent */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <MetricCard
           title="Customer Debts"
@@ -255,7 +255,7 @@ export default function DashboardOverviewPage() {
               : b.code.includes('ZENITH')
               ? 'ZP'
               : b.name.slice(0, 2).toUpperCase();
-            const badgeBg = isHaron || idx === 0 ? 'bg-[#123520]' : 'bg-slate-800';
+            const badgeBg = isHaron || idx === 0 ? 'bg-[#AEF359] text-slate-950 font-bold border border-[#9fe648]' : 'bg-slate-800 text-white';
             const cardStats = businessCardsData[b.code] || { debt: 0, collected: 0 };
 
             return (

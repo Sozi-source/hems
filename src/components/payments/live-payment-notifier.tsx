@@ -207,7 +207,7 @@ export function LivePaymentNotifier() {
           className="inline-flex h-9 items-center gap-1.5 px-2.5 rounded-lg text-xs font-semibold transition-colors border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shrink-0"
         >
           <BellRing className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-          <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold tabular-nums bg-[#123520] text-white leading-none">
+          <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold tabular-nums bg-[#AEF359] text-slate-950 border border-[#9fe648] leading-none">
             {pendingCount}
           </span>
           <span className="hidden md:inline text-slate-600">Review</span>
