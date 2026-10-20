@@ -18,23 +18,26 @@ import {
   Phone,
   Wallet,
   UserCheck,
+  History,
+  ArrowUpDown,
+  Filter,
+  CheckCircle2,
+  TrendingDown,
+  TrendingUp,
+  X,
 } from 'lucide-react';
 import { AddCustomerModal } from '@/components/customers/add-customer-modal';
 import { ImportPhonebookModal } from '@/components/customers/import-phonebook-modal';
 import { StkPromptModal } from '@/components/payments/stk-prompt-modal';
+import {
+  CustomerHistoryModal,
+  CustomerHistoryItem,
+} from '@/components/customers/customer-history-modal';
 import { PaginationBar } from '@/components/ui/pagination-bar';
 
 const PAGE_SIZE = 15;
 
-interface CustomerItem {
-  id: string;
-  business_id: string;
-  customer_no: string;
-  full_name: string;
-  nickname?: string | null;
-  phone: string | null;
-  outstanding_minor?: number;
-  open_debts?: number;
+export interface CustomerItem extends CustomerHistoryItem {
   sms_blocked_at?: string | null;
   sms_block_reason?: string | null;
 }
@@ -42,102 +45,155 @@ interface CustomerItem {
 export default function CustomersPage() {
   const { activeBusinessId, isMasterView, businesses } = useBusiness();
   const [customers, setCustomers] = useState<CustomerItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [stkTarget, setStkTarget] = useState<CustomerItem | null>(null);
+  const [selectedCustomerForHistory, setSelectedCustomerForHistory] =
+    useState<CustomerItem | null>(null);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Diverse Filtering and Searching State
   const [searchQuery, setSearchQuery] = useState('');
-  const [debtFilter, setDebtFilter] = useState<'all' | 'owing' | 'settled'>('all');
+  const [debtFilter, setDebtFilter] = useState<'all' | 'owing' | 'cleared' | 'cash_only'>('all');
+  const [sortBy, setSortBy] = useState<'balance_desc' | 'borrowed_desc' | 'paid_desc' | 'name_asc' | 'account_asc'>('balance_desc');
+  const [phoneFilter, setPhoneFilter] = useState<'all' | 'has_phone' | 'missing_phone'>('all');
+
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
 
   async function loadCustomers() {
+    setIsLoading(true);
     try {
       const supabase = createClient();
 
-      // Fetch customer metadata (nicknames, notes, and SMS block flags) from customers table
-      let metaQuery = supabase
+      // 1. Fetch raw customer profiles
+      let custQuery = supabase
         .from('customers')
-        .select('id, notes, sms_blocked_at, sms_block_reason');
-      
-      // Attempt to include nickname column if it exists in DB
-      try {
-        metaQuery = supabase
-          .from('customers')
-          .select('id, nickname, notes, sms_blocked_at, sms_block_reason');
-      } catch {
-        // Fallback to select without nickname if column query fails
-      }
-
-      if (!isMasterView && activeBusinessId) {
-        metaQuery = metaQuery.eq('business_id', activeBusinessId);
-      }
-      
-      const { data: custRows } = await metaQuery;
-      const custMetaById = new Map<string, { nickname: string | null; sms_blocked_at: string | null; sms_block_reason: string | null }>(
-        (custRows || []).map((row: any) => {
-          let nick = row.nickname || null;
-          if (!nick && row.notes) {
-            const m = row.notes.match(/Nickname:\s*([^\r\n]+)/i);
-            if (m) nick = m[1].trim();
-          }
-          return [row.id, {
-            nickname: nick,
-            sms_blocked_at: row.sms_blocked_at ?? null,
-            sms_block_reason: row.sms_block_reason ?? null,
-          }];
-        })
-      );
-
-      const withMeta = <T extends { id: string }>(items: T[]) =>
-        items.map((item) => ({
-          ...item,
-          nickname: custMetaById.get(item.id)?.nickname ?? null,
-          sms_blocked_at: custMetaById.get(item.id)?.sms_blocked_at ?? null,
-          sms_block_reason: custMetaById.get(item.id)?.sms_block_reason ?? null,
-        }));
-
-      let query = supabase
-        .from('v_customer_balances')
-        .select('customer_id, business_id, customer_no, full_name, phone, outstanding_minor, open_debts')
+        .select('id, business_id, customer_no, full_name, phone, notes, sms_blocked_at, sms_block_reason, nickname, is_active')
+        .eq('is_active', true)
         .order('customer_no');
 
       if (!isMasterView && activeBusinessId) {
-        query = query.eq('business_id', activeBusinessId);
+        custQuery = custQuery.eq('business_id', activeBusinessId);
       }
 
-      const { data, error } = await query;
+      const { data: rawCustomers, error: custError } = await custQuery;
+      if (custError) throw custError;
+      const custList = rawCustomers || [];
 
-      if (!error && data) {
-        setCustomers(
-          withMeta(
-            data.map((c: any) => ({
-              id: c.customer_id as string,
-              business_id: c.business_id,
-              customer_no: c.customer_no,
-              full_name: c.full_name,
-              phone: c.phone,
-              outstanding_minor: Number(c.outstanding_minor || 0),
-              open_debts: Number(c.open_debts || 0),
-            }))
-          )
+      // 2. Fetch customer obligations (debts) to compute borrowed and balance
+      let obQuery = supabase
+        .from('v_obligation_overview')
+        .select('customer_id, original_minor, balance_minor, paid_minor, status')
+        .eq('kind', 'customer_debt');
+
+      if (!isMasterView && activeBusinessId) {
+        obQuery = obQuery.eq('business_id', activeBusinessId);
+      }
+
+      const { data: obList } = await obQuery;
+
+      // 3. Fetch settled payments to attribute payments by phone / account reference
+      let payQuery = supabase
+        .from('payment_transactions')
+        .select('id, payer_msisdn, account_reference, amount_minor, status')
+        .in('status', ['approved', 'settled']);
+
+      if (!isMasterView && activeBusinessId) {
+        payQuery = payQuery.eq('business_id', activeBusinessId);
+      }
+
+      const { data: payList } = await payQuery;
+
+      // Aggregate debt totals per customer
+      const borrowedByCust = new Map<string, number>();
+      const paidByCust = new Map<string, number>();
+      const balanceByCust = new Map<string, number>();
+      const openDebtsByCust = new Map<string, number>();
+
+      for (const o of obList || []) {
+        if (!o.customer_id) continue;
+        borrowedByCust.set(
+          o.customer_id,
+          (borrowedByCust.get(o.customer_id) || 0) + Number(o.original_minor || 0)
         );
-      } else {
-        let fallbackQuery = supabase
-          .from('customers')
-          .select('id, business_id, customer_no, full_name, phone')
-          .order('customer_no');
+        balanceByCust.set(
+          o.customer_id,
+          (balanceByCust.get(o.customer_id) || 0) + Number(o.balance_minor || 0)
+        );
+        paidByCust.set(
+          o.customer_id,
+          (paidByCust.get(o.customer_id) || 0) + Number(o.paid_minor || 0)
+        );
+        if (o.status === 'open' || o.status === 'partially_paid') {
+          openDebtsByCust.set(
+            o.customer_id,
+            (openDebtsByCust.get(o.customer_id) || 0) + 1
+          );
+        }
+      }
 
-        if (!isMasterView && activeBusinessId) {
-          fallbackQuery = fallbackQuery.eq('business_id', activeBusinessId);
+      // Check payments matching customer phone or account_reference
+      const custIdByPhone = new Map<string, string>();
+      const custIdByAcc = new Map<string, string>();
+      for (const c of custList) {
+        if (c.phone) custIdByPhone.set(c.phone, c.id);
+        if (c.customer_no) custIdByAcc.set(c.customer_no, c.id);
+      }
+
+      for (const p of payList || []) {
+        const custId =
+          (p.account_reference && custIdByAcc.get(p.account_reference)) ||
+          (p.payer_msisdn && custIdByPhone.get(p.payer_msisdn));
+        if (custId) {
+          const currentPaid = paidByCust.get(custId) || 0;
+          const directAmount = Number(p.amount_minor || 0);
+          if (directAmount > currentPaid) {
+            paidByCust.set(custId, directAmount);
+          }
+        }
+      }
+
+      // Map into CustomerItem records
+      const fullItems: CustomerItem[] = custList.map((c: any) => {
+        let nick = c.nickname || null;
+        if (!nick && c.notes) {
+          const m = c.notes.match(/Nickname:\s*([^\r\n]+)/i);
+          if (m) nick = m[1].trim();
         }
 
-        const { data: fallbackData } = await fallbackQuery;
-        setCustomers(withMeta((fallbackData as CustomerItem[]) || []));
-      }
+        const borrowed = borrowedByCust.get(c.id) || 0;
+        const balance = balanceByCust.get(c.id) || 0;
+        const paid = paidByCust.get(c.id) || 0;
+        const openDebts = openDebtsByCust.get(c.id) || 0;
+
+        return {
+          id: c.id,
+          business_id: c.business_id,
+          customer_no: c.customer_no,
+          full_name: c.full_name,
+          nickname: nick,
+          phone: c.phone || null,
+          total_borrowed_minor: borrowed,
+          total_paid_minor: paid,
+          outstanding_minor: balance,
+          open_debts: openDebts,
+          sms_blocked_at: c.sms_blocked_at ?? null,
+          sms_block_reason: c.sms_block_reason ?? null,
+          notes: c.notes ?? null,
+        };
+      });
+
+      setCustomers(fullItems);
     } catch {
       setCustomers([]);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -156,7 +212,9 @@ export default function CustomersPage() {
     setUnblockingId(cust.id);
     try {
       const supabase = createClient();
-      const { error } = await supabase.rpc('clear_customer_sms_block', { p_customer_id: cust.id });
+      const { error } = await supabase.rpc('clear_customer_sms_block', {
+        p_customer_id: cust.id,
+      });
       if (error) {
         setActionError(
           error.code === '42501'
@@ -175,26 +233,74 @@ export default function CustomersPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, debtFilter, activeBusinessId, isMasterView]);
+  }, [searchQuery, debtFilter, sortBy, phoneFilter, activeBusinessId, isMasterView]);
 
-  const totalDebtMinor = customers.reduce((sum, c) => sum + (c.outstanding_minor || 0), 0);
-  const owingCustomersCount = customers.filter((c) => (c.outstanding_minor || 0) > 0).length;
-  const settledCustomersCount = customers.length - owingCustomersCount;
+  // Consolidated Global Totals
+  const consolidatedBorrowedMinor = customers.reduce(
+    (sum, c) => sum + (c.total_borrowed_minor || 0),
+    0
+  );
+  const consolidatedPaidMinor = customers.reduce(
+    (sum, c) => sum + (c.total_paid_minor || 0),
+    0
+  );
+  const consolidatedBalanceMinor = customers.reduce(
+    (sum, c) => sum + (c.outstanding_minor || 0),
+    0
+  );
 
-  const filteredCustomers = customers.filter((cust) => {
-    const hasDebt = (cust.outstanding_minor || 0) > 0;
-    if (debtFilter === 'owing' && !hasDebt) return false;
-    if (debtFilter === 'settled' && hasDebt) return false;
+  const owingCount = customers.filter((c) => (c.outstanding_minor || 0) > 0).length;
+  const clearedCount = customers.filter(
+    (c) => (c.outstanding_minor || 0) === 0 && (c.total_borrowed_minor || 0) > 0
+  ).length;
+  const cashOnlyCount = customers.filter(
+    (c) => (c.total_borrowed_minor || 0) === 0
+  ).length;
+  const withPhoneCount = customers.filter((c) => Boolean(c.phone)).length;
+  const missingPhoneCount = customers.length - withPhoneCount;
 
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase().trim();
-    return (
-      cust.full_name?.toLowerCase().includes(q) ||
-      cust.nickname?.toLowerCase().includes(q) ||
-      cust.customer_no?.toLowerCase().includes(q) ||
-      cust.phone?.toLowerCase().includes(q)
-    );
-  });
+  // Diverse Filtering & Searching
+  const filteredCustomers = customers
+    .filter((cust) => {
+      // 1. Debt Status Filter
+      const bal = cust.outstanding_minor || 0;
+      const borrowed = cust.total_borrowed_minor || 0;
+      if (debtFilter === 'owing' && bal <= 0) return false;
+      if (debtFilter === 'cleared' && (bal > 0 || borrowed === 0)) return false;
+      if (debtFilter === 'cash_only' && borrowed > 0) return false;
+
+      // 2. Phone Filter
+      if (phoneFilter === 'has_phone' && !cust.phone) return false;
+      if (phoneFilter === 'missing_phone' && cust.phone) return false;
+
+      // 3. Search Query (Name, Nickname, Customer No, Phone)
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase().trim();
+      return (
+        cust.full_name?.toLowerCase().includes(q) ||
+        cust.nickname?.toLowerCase().includes(q) ||
+        cust.customer_no?.toLowerCase().includes(q) ||
+        cust.phone?.toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      if (sortBy === 'balance_desc') {
+        return (b.outstanding_minor || 0) - (a.outstanding_minor || 0);
+      }
+      if (sortBy === 'borrowed_desc') {
+        return (b.total_borrowed_minor || 0) - (a.total_borrowed_minor || 0);
+      }
+      if (sortBy === 'paid_desc') {
+        return (b.total_paid_minor || 0) - (a.total_paid_minor || 0);
+      }
+      if (sortBy === 'name_asc') {
+        return a.full_name.localeCompare(b.full_name);
+      }
+      if (sortBy === 'account_asc') {
+        return a.customer_no.localeCompare(b.customer_no, undefined, { numeric: true });
+      }
+      return 0;
+    });
 
   const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -204,11 +310,16 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Clean Enterprise Page Header */}
+      {/* Page Header */}
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900">
-          Customers
-        </h1>
+        <div>
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900">
+            Customers & Debtors Ledger
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5 hidden sm:block">
+            Consolidated credit history, individual statements, and customer directory.
+          </p>
+        </div>
 
         <div className="flex items-center gap-2">
           <Button
@@ -232,46 +343,63 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Enterprise KPI Strip: 1 Deep Forest Hero Card + 2 Clean White Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
-        <Card className="col-span-2 sm:col-span-1 bg-[#123520] border-[#1E4D30] text-white p-3.5 sm:p-4 shadow-sm">
+      {/* Consolidated Financial Summary Strip (4 KPI Cards) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        {/* Card 1: Outstanding Debt (Hero Forest Card) */}
+        <Card className="bg-[#123520] border-[#1E4D30] text-white p-3.5 sm:p-4 shadow-sm">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-emerald-100/80">
-              Total Owed by Customers
+              Outstanding Debt
             </span>
             <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/15 text-emerald-200 flex items-center justify-center">
               <Wallet className="w-3.5 h-3.5" />
             </div>
           </div>
-          <MoneyDisplay minorUnits={totalDebtMinor} size="lg" variant="inverse" />
+          <MoneyDisplay minorUnits={consolidatedBalanceMinor} size="lg" variant="inverse" />
           <p className="mt-1 text-[11px] text-emerald-100/75 font-medium">
-            Across {owingCustomersCount} active credit accounts
+            Across {owingCount} active credit debtors
           </p>
         </Card>
 
+        {/* Card 2: Consolidated Borrowed */}
         <Card className="bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              With Open Debt
+              Total Borrowed
             </span>
-            <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/70 text-slate-500 flex items-center justify-center">
-              <Users className="w-3.5 h-3.5" />
+            <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200/60 text-amber-700 flex items-center justify-center">
+              <TrendingUp className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900">
-            {owingCustomersCount}
-          </div>
+          <MoneyDisplay minorUnits={consolidatedBorrowedMinor} size="lg" variant="neutral" />
           <p className="mt-1 text-[11px] text-slate-500 font-medium">
-            Ready for M-Pesa prompt
+            Lifetime credit goods issued
           </p>
         </Card>
 
+        {/* Card 3: Consolidated Paid */}
         <Card className="bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Total Directory
+              Total Paid
             </span>
-            <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/70 text-slate-500 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200/60 text-emerald-700 flex items-center justify-center">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <MoneyDisplay minorUnits={consolidatedPaidMinor} size="lg" variant="neutral" />
+          <p className="mt-1 text-[11px] text-slate-500 font-medium">
+            Verified payments collected
+          </p>
+        </Card>
+
+        {/* Card 4: Total Customer Base */}
+        <Card className="bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Customer Directory
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200/70 text-slate-500 flex items-center justify-center">
               <UserCheck className="w-3.5 h-3.5" />
             </div>
           </div>
@@ -279,78 +407,149 @@ export default function CustomersPage() {
             {customers.length}
           </div>
           <p className="mt-1 text-[11px] text-slate-500 font-medium">
-            {settledCustomersCount} fully settled
+            {clearedCount} cleared &bull; {cashOnlyCount} cash accounts
           </p>
         </Card>
       </div>
 
-      {/* Search & Neutral Segmented Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by customer name, nickname, phone, or #Account..."
-            className="w-full h-10 pl-9 pr-3 rounded-lg bg-white border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
-          />
+      {/* Diverse Search, Filters & Sorting Strip */}
+      <div className="space-y-2.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by client name, nickname, phone, or customer code..."
+              className="w-full h-10 pl-9 pr-8 rounded-lg bg-white border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Quick Filter Segmented Buttons */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200/80 shrink-0 overflow-x-auto">
+            {(
+              [
+                { id: 'all', label: `All (${customers.length})` },
+                { id: 'owing', label: `Owes Debt (${owingCount})` },
+                { id: 'cleared', label: `Cleared (${clearedCount})` },
+                { id: 'cash_only', label: `Cash (${cashOnlyCount})` },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setDebtFilter(tab.id)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-all ${
+                  debtFilter === tab.id
+                    ? 'bg-white text-slate-900 shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200/80 shrink-0">
-          {(
-            [
-              { id: 'all', label: `All (${customers.length})` },
-              { id: 'owing', label: `Owes Debt (${owingCustomersCount})` },
-              { id: 'settled', label: `Settled (${settledCustomersCount})` },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setDebtFilter(tab.id)}
-              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                debtFilter === tab.id
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Secondary Filter Row: Sort By & Phone Filter */}
+        <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Sort Selector */}
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700">
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[11px] text-slate-500">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-transparent font-medium text-slate-800 text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="balance_desc">Highest Debt Owed</option>
+                <option value="borrowed_desc">Highest Total Borrowed</option>
+                <option value="paid_desc">Highest Total Paid</option>
+                <option value="name_asc">Name (A &rarr; Z)</option>
+                <option value="account_asc">Account No (C0001 &rarr;)</option>
+              </select>
+            </div>
+
+            {/* Phone Number Filter */}
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700">
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-[11px] text-slate-500">Phone:</span>
+              <select
+                value={phoneFilter}
+                onChange={(e) => setPhoneFilter(e.target.value as any)}
+                className="bg-transparent font-medium text-slate-800 text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="all">All Contacts ({customers.length})</option>
+                <option value="has_phone">With Phone ({withPhoneCount})</option>
+                <option value="missing_phone">Needs Phone ({missingPhoneCount})</option>
+              </select>
+            </div>
+          </div>
+
+          <span className="text-[11px] text-slate-500 font-mono">
+            Showing {filteredCustomers.length} of {customers.length} clients
+          </span>
         </div>
       </div>
 
       {actionError && (
-        <div role="alert" className="rounded-md border border-[#F4C5CB] bg-[#FDECEE] px-3 py-2 text-xs text-[#8F1D2A]">
+        <div
+          role="alert"
+          className="rounded-md border border-[#F4C5CB] bg-[#FDECEE] px-3 py-2 text-xs text-[#8F1D2A]"
+        >
           {actionError}
         </div>
       )}
 
-      {filteredCustomers.length === 0 ? (
+      {/* Customer List Content */}
+      {isLoading ? (
+        <Card className="bg-white border-slate-200/90 shadow-2xs text-center py-12 px-4">
+          <div className="text-sm font-semibold text-slate-700">
+            Loading customers ledger...
+          </div>
+        </Card>
+      ) : filteredCustomers.length === 0 ? (
         <Card className="bg-white border-slate-200/90 shadow-2xs text-center py-12 px-4">
           <Users className="w-8 h-8 text-slate-400 mx-auto mb-2" />
           <div className="text-sm font-semibold text-slate-700">
-            {customers.length === 0 ? 'No customers added yet' : 'No matching customers found'}
+            {customers.length === 0
+              ? 'No customers added yet'
+              : 'No matching customer records found'}
           </div>
           <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
             {customers.length === 0
-              ? 'Add individual customers or import directly from your phonebook contacts (.vcf or .csv).'
-              : 'Try clearing your search or switching the debt filter tab above.'}
+              ? 'Add individual customers or import directly from your phonebook contacts.'
+              : 'Try clearing your search query or switching your filter criteria above.'}
           </p>
         </Card>
       ) : (
         <>
-          {/* Mobile Native Card List (< md) — Clean White Surface */}
+          {/* Mobile Native Card List (< md) */}
           <div className="grid grid-cols-1 gap-2.5 md:hidden">
             {paginatedCustomers.map((cust) => {
-              const hasDebt = (cust.outstanding_minor || 0) > 0;
+              const bal = cust.outstanding_minor || 0;
+              const borrowed = cust.total_borrowed_minor || 0;
+              const paid = cust.total_paid_minor || 0;
+              const hasDebt = bal > 0;
               const bizName = businesses.find((b) => b.id === cust.business_id)?.name;
 
               return (
                 <Card
                   key={cust.id}
-                  className="p-3.5 bg-white border-slate-200/90 shadow-2xs"
+                  className="p-3.5 bg-white border-slate-200/90 shadow-2xs hover:border-slate-300 transition-all cursor-pointer"
+                  onClick={() => setSelectedCustomerForHistory(cust)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -363,63 +562,101 @@ export default function CustomersPage() {
                             {bizName}
                           </span>
                         )}
+                        {cust.nickname && (
+                          <span className="text-[10px] font-medium text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                            {cust.nickname}
+                          </span>
+                        )}
                       </div>
-                      <h3 className="text-sm font-semibold text-slate-900 mt-1.5 leading-snug [overflow-wrap:anywhere]">
+                      <h3 className="text-sm font-bold text-slate-900 mt-1.5 leading-snug">
                         {cust.full_name}
                       </h3>
-                      {cust.nickname && (
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Alias: <strong className="font-medium text-slate-700">{cust.nickname}</strong>
-                        </p>
+                      {cust.phone ? (
+                        <span className="text-xs text-slate-500 font-mono mt-0.5 block">
+                          {fmt_phone(cust.phone)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-amber-600 italic mt-0.5 block">
+                          Phone missing
+                        </span>
                       )}
                     </div>
 
                     <div className="text-right shrink-0">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
-                        Balance
+                        Balance Owed
                       </span>
                       <MoneyDisplay
-                        minorUnits={cust.outstanding_minor || 0}
+                        minorUnits={bal}
                         size="md"
-                        variant="neutral"
+                        variant={hasDebt ? 'neutral' : 'neutral'}
                       />
+                      {hasDebt ? (
+                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60 inline-block mt-0.5">
+                          Owes Debt
+                        </span>
+                      ) : borrowed > 0 ? (
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 inline-block mt-0.5">
+                          Cleared
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 inline-block mt-0.5">
+                          Cash Client
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
-                      {cust.phone ? (
-                        <a
-                          href={`tel:${cust.phone}`}
-                          className="inline-flex items-center gap-1.5 text-slate-700 hover:text-slate-900 font-medium bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-200"
-                        >
-                          <Phone className="w-3 h-3 text-slate-500" />
-                          {fmt_phone(cust.phone)}
-                        </a>
-                      ) : (
-                        <span className="text-slate-400">No phone</span>
-                      )}
-
-                      {cust.sms_blocked_at && (
-                        <button
-                          type="button"
-                          onClick={() => clearSmsBlock(cust)}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-rose-50 border border-rose-200 text-[11px] font-semibold text-rose-700"
-                        >
-                          <MessageSquareOff className="w-3 h-3" />
-                          Unblock SMS
-                        </button>
-                      )}
+                  {/* 3 Consolidated Metrics Mini-Strip */}
+                  <div className="grid grid-cols-3 gap-2 mt-3 pt-2.5 border-t border-slate-100 text-xs">
+                    <div>
+                      <span className="text-[10px] font-medium text-slate-400 block">
+                        Borrowed
+                      </span>
+                      <span className="font-mono font-semibold text-slate-800 text-[11px]">
+                        KES {(borrowed / 100).toLocaleString()}
+                      </span>
                     </div>
+                    <div>
+                      <span className="text-[10px] font-medium text-slate-400 block">
+                        Paid
+                      </span>
+                      <span className="font-mono font-semibold text-emerald-700 text-[11px]">
+                        KES {(paid / 100).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-medium text-slate-400 block">
+                        Debts Count
+                      </span>
+                      <span className="font-mono font-semibold text-slate-700 text-[11px]">
+                        {cust.open_debts || 0} open
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div
+                    className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCustomerForHistory(cust)}
+                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                    >
+                      <History className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Ledger History</span>
+                    </button>
 
                     {hasDebt ? (
                       <button
                         type="button"
                         onClick={() => setStkTarget(cust)}
-                        className="min-h-8 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                        className="h-8 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
                       >
                         <Smartphone className="w-3.5 h-3.5" />
-                        Prompt M-Pesa
+                        <span>Prompt M-Pesa</span>
                       </button>
                     ) : (
                       <Badge variant="neutral" size="sm">
@@ -435,102 +672,112 @@ export default function CustomersPage() {
           {/* Desktop Table (md and up) */}
           <Card className="hidden md:block bg-white border-slate-200/90 shadow-2xs p-0">
             <div className="overflow-x-auto rounded-card">
-              <table className="w-full min-w-[760px] text-left border-collapse">
+              <table className="w-full min-w-[850px] text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
                     <th className="sticky left-0 z-10 bg-slate-50 py-3 px-4">Account No</th>
                     {isMasterView && <th className="py-3 px-4">Business</th>}
                     <th className="py-3 px-4">Customer Name & Nickname</th>
                     <th className="py-3 px-4">Phone</th>
-                    <th className="py-3 px-4">SMS Status</th>
-                    <th className="py-3 px-4 text-right">Current Debt</th>
+                    <th className="py-3 px-4 text-right">Total Borrowed</th>
+                    <th className="py-3 px-4 text-right">Total Paid</th>
+                    <th className="py-3 px-4 text-right">Balance Owed</th>
                     <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-[13px]">
-                  {paginatedCustomers.map((cust) => (
-                    <tr key={cust.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4">
-                        <span className="font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-1 rounded text-xs">
-                          {cust.customer_no}
-                        </span>
-                      </td>
+                  {paginatedCustomers.map((cust) => {
+                    const bal = cust.outstanding_minor || 0;
+                    const borrowed = cust.total_borrowed_minor || 0;
+                    const paid = cust.total_paid_minor || 0;
+                    const hasDebt = bal > 0;
 
-                      {isMasterView && (
-                        <td className="py-3.5 px-4 text-slate-600">
-                          {businesses.find((business) => business.id === cust.business_id)?.name || '—'}
+                    return (
+                      <tr
+                        key={cust.id}
+                        className="hover:bg-slate-50/70 transition-colors cursor-pointer"
+                        onClick={() => setSelectedCustomerForHistory(cust)}
+                      >
+                        <td className="py-3.5 px-4">
+                          <span className="font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-1 rounded text-xs">
+                            {cust.customer_no}
+                          </span>
                         </td>
-                      )}
 
-                      <td className="py-3.5 px-4 font-semibold text-slate-900 whitespace-normal">
-                        <div className="flex flex-col">
-                          <span className="text-slate-900 font-semibold">{cust.full_name}</span>
-                          {cust.nickname && (
-                            <span className="text-[11px] font-normal text-slate-500 mt-0.5">
-                              Alias: <strong className="font-medium text-slate-700">{cust.nickname}</strong>
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                        {isMasterView && (
+                          <td className="py-3.5 px-4 text-slate-600">
+                            {businesses.find((business) => business.id === cust.business_id)?.name || '—'}
+                          </td>
+                        )}
 
-                      <td className="py-3.5 px-4 font-mono text-slate-600">
-                        {fmt_phone(cust.phone)}
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        {cust.sms_blocked_at ? (
-                          <div className="flex flex-col items-start gap-1">
-                            <Badge
-                              variant="danger"
-                              size="sm"
-                              dot
-                              title={cust.sms_block_reason || 'Blocked by SMS provider'}
-                            >
-                              SMS blocked
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="min-h-8 px-2 text-[11px] text-slate-700"
-                              isLoading={unblockingId === cust.id}
-                              onClick={() => clearSmsBlock(cust)}
-                              title="Owner or admin only"
-                            >
-                              <MessageSquareOff className="w-3 h-3 mr-1" />
-                              Clear block
-                            </Button>
+                        <td className="py-3.5 px-4 font-semibold text-slate-900 whitespace-normal">
+                          <div className="flex flex-col">
+                            <span className="text-slate-900 font-semibold">{cust.full_name}</span>
+                            {cust.nickname && (
+                              <span className="text-[11px] font-normal text-slate-500 mt-0.5">
+                                Alias: <strong className="font-medium text-slate-700">{cust.nickname}</strong>
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="py-3.5 px-4 text-right">
-                        <MoneyDisplay
-                          minorUnits={cust.outstanding_minor || 0}
-                          size="sm"
-                          variant="neutral"
-                        />
-                      </td>
+                        <td className="py-3.5 px-4 font-mono text-slate-600">
+                          {cust.phone ? (
+                            fmt_phone(cust.phone)
+                          ) : (
+                            <span className="text-xs text-amber-600 italic">No phone</span>
+                          )}
+                        </td>
 
-                      <td className="py-3.5 px-4 text-right">
-                        {(cust.outstanding_minor || 0) > 0 ? (
-                          <Button
-                            variant="outline"
+                        <td className="py-3.5 px-4 text-right font-mono font-medium text-slate-800">
+                          {borrowed > 0 ? `KES ${(borrowed / 100).toLocaleString()}` : '—'}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right font-mono font-medium text-emerald-700">
+                          {paid > 0 ? `KES ${(paid / 100).toLocaleString()}` : '—'}
+                        </td>
+
+                        <td className="py-3.5 px-4 text-right">
+                          <MoneyDisplay
+                            minorUnits={bal}
                             size="sm"
-                            className="h-8 px-2.5 text-xs text-slate-700"
-                            onClick={() => setStkTarget(cust)}
-                            title="Prompt customer via M-Pesa"
-                          >
-                            <Smartphone className="w-3.5 h-3.5 mr-1 text-slate-500" />
-                            Prompt M-Pesa
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                            variant="neutral"
+                          />
+                        </td>
+
+                        <td
+                          className="py-3.5 px-4 text-right whitespace-nowrap"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2.5 text-xs text-slate-700"
+                              onClick={() => setSelectedCustomerForHistory(cust)}
+                              title="View complete customer ledger and statement"
+                            >
+                              <History className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                              Ledger
+                            </Button>
+
+                            {hasDebt && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2.5 text-xs text-slate-700"
+                                onClick={() => setStkTarget(cust)}
+                                title="Prompt customer via M-Pesa"
+                              >
+                                <Smartphone className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                                Prompt
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -547,6 +794,17 @@ export default function CustomersPage() {
           />
         </>
       )}
+
+      {/* Customer Historical Ledger Modal */}
+      <CustomerHistoryModal
+        isOpen={Boolean(selectedCustomerForHistory)}
+        customer={selectedCustomerForHistory}
+        onClose={() => setSelectedCustomerForHistory(null)}
+        onPromptMpesa={(cust) => {
+          setSelectedCustomerForHistory(null);
+          setStkTarget(cust);
+        }}
+      />
 
       <AddCustomerModal
         isOpen={isAddModalOpen}
