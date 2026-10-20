@@ -44,19 +44,19 @@ export function PaginationBar({
   return (
     <div
       className={cn(
-        'rounded-card bg-[#EAEFEC] border border-[#CBD6CF] p-3 sm:px-4 sm:py-3 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3',
+        'rounded-card bg-white border border-slate-200/90 p-3 sm:px-4 sm:py-3 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3',
         className
       )}
     >
       {/* Left: Range counter & Show All toggle */}
       <div className="flex items-center justify-between sm:justify-start gap-3">
-        <div className="text-xs text-[#26382E] font-medium">
+        <div className="text-xs text-slate-600 font-medium">
           Showing{' '}
-          <span className="font-mono font-bold tabular-nums text-[#14231A]">
+          <span className="font-mono font-semibold tabular-nums text-slate-900">
             {startItem}–{endItem}
           </span>{' '}
           of{' '}
-          <span className="font-mono font-bold tabular-nums text-[#144827]">
+          <span className="font-mono font-semibold tabular-nums text-slate-900">
             {totalItems}
           </span>{' '}
           {itemLabel}
@@ -66,7 +66,7 @@ export function PaginationBar({
           <button
             type="button"
             onClick={onToggleShowAll}
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#144827] hover:text-[#0E351C] bg-white/80 hover:bg-white px-2 py-1 rounded-md border border-[#CBD6CF] transition-colors shrink-0"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 transition-colors shrink-0"
           >
             <ListFilter className="w-3 h-3" />
             {isShowingAll ? `Paginate (${pageSize}/page)` : 'Show All'}
@@ -81,21 +81,21 @@ export function PaginationBar({
             type="button"
             disabled={safePage <= 1}
             onClick={() => handleStep(safePage - 1)}
-            className="min-h-10 px-3 rounded-lg bg-white border border-[#CBD6CF] text-xs font-bold text-[#14231A] hover:bg-[#F6F8F7] disabled:opacity-40 disabled:pointer-events-none inline-flex items-center justify-center gap-1 transition-colors shadow-2xs"
+            className="min-h-9 px-3 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none inline-flex items-center justify-center gap-1 transition-colors"
           >
             <ChevronLeft className="w-4 h-4 shrink-0" />
             <span>Prev</span>
           </button>
 
-          <div className="min-h-10 px-2.5 rounded-lg bg-[#F3EDE0] border border-[#DFD2B6] text-xs font-mono font-bold text-[#3D2E14] inline-flex items-center justify-center whitespace-nowrap tabular-nums">
-            Page {safePage} / {totalPages}
+          <div className="min-h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono font-semibold text-slate-700 inline-flex items-center justify-center whitespace-nowrap tabular-nums">
+            {safePage} / {totalPages}
           </div>
 
           <button
             type="button"
             disabled={safePage >= totalPages}
             onClick={() => handleStep(safePage + 1)}
-            className="min-h-10 px-3 rounded-lg bg-[#144827] hover:bg-[#1B5E34] text-white text-xs font-bold disabled:opacity-40 disabled:pointer-events-none inline-flex items-center justify-center gap-1 transition-colors shadow-2xs"
+            className="min-h-9 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold disabled:opacity-40 disabled:pointer-events-none inline-flex items-center justify-center gap-1 transition-colors"
           >
             <span>Next</span>
             <ChevronRight className="w-4 h-4 shrink-0" />

@@ -12,7 +12,6 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Plus,
   Receipt,
-  RefreshCw,
   Smartphone,
   Search,
   Wallet,
@@ -49,12 +48,10 @@ export default function ObligationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [stkTarget, setStkTarget] = useState<ObligationItem | null>(null);
 
   async function loadObligations() {
-    setIsLoading(true);
     try {
       const supabase = createClient();
 
@@ -128,8 +125,6 @@ export default function ObligationsPage() {
       }
     } catch {
       setObligations([]);
-    } finally {
-      setIsLoading(false);
     }
   }
 
@@ -185,89 +180,72 @@ export default function ObligationsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header & Ergonomic Mobile Action Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#1F7A3D]">
-            Receivables & Supplier Bills
-          </p>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
-            Debts & Invoices
-          </h1>
-        </div>
+      {/* Clean Enterprise Page Header */}
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900">
+          Debts & Invoices
+        </h1>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            className="flex-1 sm:flex-none justify-center"
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
-            New Debt or Bill
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadObligations}
-            isLoading={isLoading}
-            aria-label="Refresh debts and invoices"
-          >
-            <RefreshCw className="w-3.5 h-3.5 sm:mr-1" />
-            <span className="hidden sm:inline">Refresh</span>
-          </Button>
-        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          className="h-9 px-3 text-xs"
+          onClick={() => setIsCreateModalOpen(true)}
+        >
+          <Plus className="w-3.5 h-3.5 mr-1" />
+          New Debt or Bill
+        </Button>
       </div>
 
-      {/* Solid-Color KPI Summary Strip (Safaricom Green, Deep Cream, Slate Gray) */}
+      {/* Enterprise KPI Strip: 1 Deep Forest Hero Card + 2 Clean White Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
-        <Card className="bg-[#144827] border-[#216B3B] text-white p-3.5 sm:p-4 shadow-sm">
+        <Card className="bg-[#123520] border-[#1E4D30] text-white p-3.5 sm:p-4 shadow-sm">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#B8E8C4]">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-emerald-100/80">
               Owed to You
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#1E6337] border border-[#2E824C] text-[#8DDBA0] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/15 text-emerald-200 flex items-center justify-center">
               <Wallet className="w-3.5 h-3.5" />
             </div>
           </div>
           <MoneyDisplay minorUnits={receivablesBalanceMinor} size="lg" variant="inverse" />
-          <p className="mt-1 text-[10px] text-[#8DDBA0]/90 font-medium">
+          <p className="mt-1 text-[11px] text-emerald-100/75 font-medium">
             Open customer debt balance
           </p>
         </Card>
 
-        <Card className="bg-[#F3EDE0] border-[#DFD2B6] text-[#1F241D] p-3.5 sm:p-4 shadow-sm">
+        <Card className="bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#5A4D35]">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               Paid Toward Debts
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#E6DCC6] border border-[#D3C4A3] text-[#4A3B1C] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/70 text-slate-500 flex items-center justify-center">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
-          <MoneyDisplay minorUnits={receivablesPaidMinor} size="lg" variant="positive" />
-          <p className="mt-1 text-[10px] text-[#6E5F43] font-medium">
+          <MoneyDisplay minorUnits={receivablesPaidMinor} size="lg" variant="neutral" />
+          <p className="mt-1 text-[11px] text-slate-500 font-medium">
             Recovered from invoices
           </p>
         </Card>
 
-        <Card className="col-span-2 sm:col-span-1 bg-[#E7ECE9] border-[#CBD6CF] text-[#17231C] p-3.5 sm:p-4 shadow-sm">
+        <Card className="col-span-2 sm:col-span-1 bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#425449]">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               Bills to Pay
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#D7E0DB] border border-[#BFCBC4] text-[#26382E] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/70 text-slate-500 flex items-center justify-center">
               <TrendingDown className="w-3.5 h-3.5" />
             </div>
           </div>
-          <MoneyDisplay minorUnits={payablesBalanceMinor} size="lg" variant="negative" />
-          <p className="mt-1 text-[10px] text-[#526559] font-medium">
+          <MoneyDisplay minorUnits={payablesBalanceMinor} size="lg" variant="neutral" />
+          <p className="mt-1 text-[11px] text-slate-500 font-medium">
             Supplier & payable obligations
           </p>
         </Card>
       </div>
 
-      {/* Search & Filter Tabs */}
+      {/* Search & Neutral Segmented Filter Tabs */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -276,11 +254,11 @@ export default function ObligationsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by customer, supplier, or invoice reference..."
-            className="w-full h-10 pl-9 pr-3 rounded-lg bg-white border border-[#DCE5DF] text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#1F7A3D]"
+            className="w-full h-10 pl-9 pr-3 rounded-lg bg-white border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 bg-[#EAEFEC] p-1 rounded-lg border border-[#CFD8D2] shrink-0">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200/80 shrink-0">
           {(
             [
               { id: 'all', label: 'All' },
@@ -294,8 +272,8 @@ export default function ObligationsPage() {
               onClick={() => setDirectionFilter(tab.id)}
               className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
                 directionFilter === tab.id
-                  ? 'bg-[#144827] text-white shadow-sm'
-                  : 'text-[#3A4D41] hover:text-[#14231A]'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {tab.label}
@@ -305,7 +283,7 @@ export default function ObligationsPage() {
       </div>
 
       {filteredObligations.length === 0 ? (
-        <Card className="bg-white border-[#DCE5DF] shadow-sm text-center py-12 px-4">
+        <Card className="bg-white border-slate-200/90 shadow-2xs text-center py-12 px-4">
           <Receipt className="w-8 h-8 text-slate-400 mx-auto mb-2" />
           <div className="text-sm font-semibold text-slate-700">
             {obligations.length === 0
@@ -318,7 +296,7 @@ export default function ObligationsPage() {
         </Card>
       ) : (
         <>
-          {/* Mobile Native Debt Card List (< md) — Zero Horizontal Scrolling */}
+          {/* Mobile Native Debt Card List (< md) — Clean White Surface */}
           <div className="grid grid-cols-1 gap-2.5 md:hidden">
             {paginatedObligations.map((ob) => {
               const isReceivable = ob.direction === 'receivable';
@@ -335,26 +313,20 @@ export default function ObligationsPage() {
                 <Card
                   id={ob.id}
                   key={ob.id}
-                  className={`p-3.5 transition-all scroll-mt-24 ${
-                    isSettled
-                      ? 'bg-white border-[#DCE5DF]'
-                      : isReceivable
-                      ? 'bg-[#FDFBF6] border-[#DFD2B6] border-l-4 border-l-[#144827]'
-                      : 'bg-[#F8FAF9] border-[#CBD6CF] border-l-4 border-l-[#B42332]'
-                  }`}
+                  className="p-3.5 bg-white border-slate-200/90 shadow-2xs scroll-mt-24"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono text-[11px] font-bold text-[#8DDBA0] bg-[#144827] px-2 py-0.5 rounded">
+                        <span className="font-mono text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded">
                           {ob.reference_no}
                         </span>
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/80">
                           {ob.kind.replace('_', ' ')}
                         </span>
                       </div>
 
-                      <h3 className="text-sm font-bold text-slate-900 mt-1.5 leading-snug [overflow-wrap:anywhere]">
+                      <h3 className="text-sm font-semibold text-slate-900 mt-1.5 leading-snug [overflow-wrap:anywhere]">
                         {ob.counterparty_name}
                       </h3>
                       <p className="text-[11px] text-slate-500 mt-0.5">
@@ -363,13 +335,13 @@ export default function ObligationsPage() {
                     </div>
 
                     <div className="text-right shrink-0">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
                         {isSettled ? 'Settled' : 'Balance Due'}
                       </span>
                       <MoneyDisplay
                         minorUnits={ob.balance_minor}
                         size="md"
-                        variant={isSettled ? 'neutral' : isReceivable ? 'positive' : 'negative'}
+                        variant="neutral"
                       />
                       <div className="mt-1">
                         {isSettled ? (
@@ -381,7 +353,7 @@ export default function ObligationsPage() {
                             Overdue
                           </Badge>
                         ) : (
-                          <Badge variant="info" size="sm" dot>
+                          <Badge variant="neutral" size="sm" dot>
                             Active
                           </Badge>
                         )}
@@ -391,31 +363,30 @@ export default function ObligationsPage() {
 
                   {/* Repayment Progress Bar */}
                   <div className="mt-3">
-                    <div className="flex items-center justify-between text-[10px] font-semibold text-slate-600 mb-1">
+                    <div className="flex items-center justify-between text-[10px] font-medium text-slate-500 mb-1">
                       <span>
                         Original: <MoneyDisplay minorUnits={ob.original_minor} size="sm" className="text-[11px]" />
                       </span>
-                      <span className="text-[#144827] font-bold">{pctPaid}% Paid</span>
+                      <span className="text-slate-700 font-semibold">{pctPaid}% Paid</span>
                     </div>
-                    <div className="h-1.5 w-full rounded-full bg-[#E5ECE8] overflow-hidden">
+                    <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                       <div
-                        className="h-full bg-[#1F7A3D] rounded-full transition-all"
+                        className="h-full bg-[#123520] rounded-full transition-all"
                         style={{ width: `${pctPaid}%` }}
                       />
                     </div>
                   </div>
 
                   {isReceivable && ob.balance_minor > 0 && (
-                    <div className="mt-3 pt-2.5 border-t border-[#E6DEC8] flex justify-end">
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="w-full sm:w-auto min-h-9 px-3 text-xs font-semibold justify-center"
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-end">
+                      <button
+                        type="button"
                         onClick={() => setStkTarget(ob)}
+                        className="w-full sm:w-auto min-h-8 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors"
                       >
-                        <Smartphone className="w-3.5 h-3.5 mr-1.5" />
+                        <Smartphone className="w-3.5 h-3.5" />
                         Prompt Customer via M-Pesa
-                      </Button>
+                      </button>
                     </div>
                   )}
                 </Card>
@@ -424,11 +395,11 @@ export default function ObligationsPage() {
           </div>
 
           {/* Desktop Table (md and up) */}
-          <Card className="hidden md:block bg-white border-[#DCE5DF] shadow-sm p-0 overflow-hidden">
+          <Card className="hidden md:block bg-white border-slate-200/90 shadow-2xs p-0 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#EAEFEC] border-b border-[#CFD8D2] text-[11px] font-bold text-[#2F4036] uppercase tracking-wider">
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     <th className="py-3 px-4">Invoice / Ref</th>
                     <th className="py-3 px-4">Person or Company</th>
                     <th className="py-3 px-4">Due Date</th>
@@ -438,14 +409,14 @@ export default function ObligationsPage() {
                     <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E7EDE8] text-xs">
+                <tbody className="divide-y divide-slate-100 text-xs">
                   {paginatedObligations.map((ob) => {
                     const isReceivable = ob.direction === 'receivable';
 
                     return (
-                      <tr id={ob.id} key={ob.id} className="hover:bg-[#F8FAF8] transition-colors scroll-mt-24">
+                      <tr id={ob.id} key={ob.id} className="hover:bg-slate-50/60 transition-colors scroll-mt-24">
                         <td className="py-3.5 px-4">
-                          <span className="font-mono font-bold text-[#8DDBA0] bg-[#144827] px-2 py-0.5 rounded text-xs">
+                          <span className="font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded text-xs">
                             {ob.reference_no}
                           </span>
                           <div className="mt-1 text-[11px] text-slate-500 capitalize">
@@ -453,7 +424,7 @@ export default function ObligationsPage() {
                           </div>
                         </td>
 
-                        <td className="py-3.5 px-4 font-semibold text-slate-800">
+                        <td className="py-3.5 px-4 font-semibold text-slate-900">
                           {ob.counterparty_name}
                         </td>
 
@@ -462,14 +433,14 @@ export default function ObligationsPage() {
                         </td>
 
                         <td className="py-3.5 px-4 text-right">
-                          <MoneyDisplay minorUnits={ob.original_minor} size="sm" />
+                          <MoneyDisplay minorUnits={ob.original_minor} size="sm" variant="neutral" />
                         </td>
 
                         <td className="py-3.5 px-4 text-right">
                           <MoneyDisplay
                             minorUnits={ob.balance_minor}
                             size="sm"
-                            variant={ob.balance_minor === 0 ? 'neutral' : isReceivable ? 'positive' : 'negative'}
+                            variant="neutral"
                           />
                         </td>
 
@@ -483,7 +454,7 @@ export default function ObligationsPage() {
                               Overdue
                             </Badge>
                           ) : (
-                            <Badge variant="info" size="sm" dot>
+                            <Badge variant="neutral" size="sm" dot>
                               Active
                             </Badge>
                           )}
@@ -492,13 +463,13 @@ export default function ObligationsPage() {
                         <td className="py-3.5 px-4 text-right">
                           {isReceivable && ob.balance_minor > 0 ? (
                             <Button
-                              variant="secondary"
+                              variant="outline"
                               size="sm"
-                              className="h-8 px-2.5 text-xs text-slate-800"
+                              className="h-8 px-2.5 text-xs text-slate-700"
                               onClick={() => setStkTarget(ob)}
                               title="Prompt customer via M-Pesa"
                             >
-                              <Smartphone className="w-3.5 h-3.5 mr-1 text-emerald-700" />
+                              <Smartphone className="w-3.5 h-3.5 mr-1 text-slate-500" />
                               Prompt M-Pesa
                             </Button>
                           ) : (

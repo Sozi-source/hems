@@ -44,14 +44,14 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-[#DCE5DF] px-3 py-2 sm:px-4 sm:py-2.5 shadow-[0_1px_3px_rgb(16_39_25/0.04)]">
+    <header className="sticky top-0 z-30 bg-white border-b border-slate-200/90 px-3 py-2 sm:px-5 sm:py-2.5">
       <div className="flex items-center justify-between gap-2 sm:gap-4">
-        {/* Mobile: Logo + High-Contrast Business Switcher */}
+        {/* Mobile: Logo + Clean Business Switcher */}
         <div className="flex lg:hidden items-center gap-2 min-w-0 flex-1">
           <img
             src="/assets/icons/icon-192.png"
             alt="HEMS"
-            className="w-8 h-8 rounded-lg shrink-0 object-cover border border-[#216B3B]/20 shadow-2xs"
+            className="w-8 h-8 rounded-lg shrink-0 object-cover border border-slate-200"
           />
           <div className="flex-1 min-w-0">
             <BusinessSwitcher variant="header" />
@@ -60,42 +60,32 @@ export function Header() {
 
         {/* Desktop: Current View Scope */}
         <div className="hidden lg:flex items-center gap-2 text-xs">
-          <span className="text-slate-500 font-medium">Viewing:</span>
-          {isMasterView ? (
-            <Badge variant="purple" size="md">
-              All Businesses
-            </Badge>
-          ) : activeBusinessCode === 'HARON_FASHION' ? (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#F3EDE0] text-[#14231A] border border-[#DFD2B6]">
-              {activeBusiness?.name || 'Haron Fashion'}
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#EAEFEC] text-[#14231A] border border-[#CBD6CF]">
-              {activeBusiness?.name || 'Zenith Plast'}
-            </span>
-          )}
+          <span className="text-slate-500 font-medium">Workspace:</span>
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-900 border border-slate-200">
+            {isMasterView
+              ? 'All Businesses'
+              : activeBusiness?.name || (activeBusinessCode === 'HARON_FASHION' ? 'Haron Fashion' : 'Zenith Plast')}
+          </span>
         </div>
 
-        {/* Action Button & User Controls — Uniform h-9 (36px) bar */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+        {/* Right Controls — Clean, uncrowded enterprise bar */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <PwaRegistrar />
           <LivePaymentNotifier />
 
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            title="New Debt or Bill"
-            aria-label="New Debt or Bill"
-            className="inline-flex h-9 w-9 sm:w-auto sm:px-3 items-center justify-center rounded-lg bg-[#144827] hover:bg-[#1B5E34] text-white text-xs font-semibold transition-colors shadow-2xs shrink-0"
+            className="hidden sm:inline-flex h-9 px-3 items-center justify-center rounded-lg bg-[#123520] hover:bg-[#19472B] text-white text-xs font-semibold transition-colors shrink-0"
           >
-            <Plus className="w-4 h-4 sm:mr-1.5 shrink-0" />
-            <span className="hidden sm:inline">New Debt or Bill</span>
+            <Plus className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+            <span>New Entry</span>
           </button>
 
           {userEmail && (
             <div className="hidden md:flex items-center gap-1.5 pl-2 border-l border-slate-200 text-xs text-slate-600">
               <User className="w-3.5 h-3.5 text-slate-400" />
-              <span className="whitespace-nowrap tabular-nums text-[clamp(10px,0.75vw,12px)] font-medium">{userEmail}</span>
+              <span className="whitespace-nowrap tabular-nums text-xs font-medium">{userEmail}</span>
             </div>
           )}
 
@@ -104,7 +94,7 @@ export function Header() {
             onClick={handleSignOut}
             title="Sign Out"
             aria-label="Sign out"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE5DF] bg-[#F6F8F7] text-slate-700 hover:text-[#B42332] hover:bg-rose-50 hover:border-rose-200 transition-colors shrink-0"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shrink-0"
           >
             <LogOut className="w-4 h-4" />
           </button>

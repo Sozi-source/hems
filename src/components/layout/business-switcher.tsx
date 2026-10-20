@@ -34,16 +34,16 @@ export function BusinessSwitcher({ variant = 'sidebar' }: BusinessSwitcherProps)
           name: 'Haron Fashion',
           badge: 'HF',
           badgeBg: isHeader
-            ? 'bg-[#144827] text-[#8DDBA0] border-[#216B3B]'
-            : 'bg-rose-900/40 text-rose-300 border-rose-700/50',
+            ? 'bg-[#123520] text-white border-[#123520]'
+            : 'bg-white/15 text-white border-white/20',
         };
       case 'ZENITH_PLAST':
         return {
           name: 'Zenith Plast',
           badge: 'ZP',
           badgeBg: isHeader
-            ? 'bg-[#1E2923] text-[#8DDBA0] border-[#314238]'
-            : 'bg-sky-900/40 text-sky-300 border-sky-700/50',
+            ? 'bg-slate-800 text-white border-slate-800'
+            : 'bg-white/15 text-white border-white/20',
         };
       case 'MASTER':
       default:
@@ -51,8 +51,8 @@ export function BusinessSwitcher({ variant = 'sidebar' }: BusinessSwitcherProps)
           name: 'All Businesses',
           badge: 'ALL',
           badgeBg: isHeader
-            ? 'bg-[#4A3B1C] text-[#F3EDE0] border-[#6E5F43]'
-            : 'bg-purple-900/40 text-[#D4C5FF] border-purple-700/50',
+            ? 'bg-slate-700 text-white border-slate-700'
+            : 'bg-white/15 text-white border-white/20',
         };
     }
   };
@@ -60,14 +60,14 @@ export function BusinessSwitcher({ variant = 'sidebar' }: BusinessSwitcherProps)
   const currentInfo = getBusinessInfo(activeBusinessCode);
 
   return (
-    <div className="relative w-full max-w-[220px]" ref={dropdownRef}>
+    <div className="relative w-full max-w-[210px]" ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'w-full flex items-center justify-between gap-1.5 rounded-lg border transition-colors text-left group',
+          'w-full flex items-center justify-between gap-2 rounded-lg border transition-colors text-left group',
           isHeader
-            ? 'h-9 px-2 bg-[#F3EDE0] hover:bg-[#EAE1CE] border-[#DFD2B6] text-[#14231A] shadow-2xs'
+            ? 'h-9 px-2.5 bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-900'
             : 'p-2.5 rounded-fintech bg-white/10 hover:bg-white/15 border-white/15 text-slate-100'
         )}
         aria-label="Select business"
@@ -76,8 +76,8 @@ export function BusinessSwitcher({ variant = 'sidebar' }: BusinessSwitcherProps)
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div
             className={cn(
-              'rounded-md flex items-center justify-center font-bold border shrink-0',
-              isHeader ? 'w-6 h-6 text-[10px]' : 'w-7 h-7 text-[11px]',
+              'rounded flex items-center justify-center font-bold border shrink-0',
+              isHeader ? 'w-5 h-5 text-[10px]' : 'w-7 h-7 text-[11px]',
               currentInfo.badgeBg
             )}
           >
@@ -85,10 +85,8 @@ export function BusinessSwitcher({ variant = 'sidebar' }: BusinessSwitcherProps)
           </div>
           <span
             className={cn(
-              'font-bold truncate leading-tight',
-              isHeader
-                ? 'text-xs text-[#14231A]'
-                : 'text-xs text-slate-100'
+              'font-semibold truncate leading-tight text-xs',
+              isHeader ? 'text-slate-900' : 'text-slate-100'
             )}
           >
             {currentInfo.name}
@@ -97,7 +95,7 @@ export function BusinessSwitcher({ variant = 'sidebar' }: BusinessSwitcherProps)
         <ChevronDown
           className={cn(
             'w-3.5 h-3.5 transition-transform shrink-0',
-            isHeader ? 'text-[#5A4D35]' : 'text-slate-400',
+            isHeader ? 'text-slate-400' : 'text-slate-400',
             isOpen && 'rotate-180'
           )}
         />

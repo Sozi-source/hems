@@ -10,7 +10,6 @@ import { fmt_phone, fmt_date } from '@/lib/format';
 import { PaymentTransaction, PaymentStatus } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import {
-  RefreshCw,
   CreditCard,
   Play,
   UploadCloud,
@@ -19,7 +18,6 @@ import {
   Search,
   CheckCircle2,
   Clock,
-  ArrowDownLeft,
 } from 'lucide-react';
 import { ApprovePaymentModal } from '@/components/payments/approve-payment-modal';
 import { RejectPaymentModal } from '@/components/payments/reject-payment-modal';
@@ -44,7 +42,6 @@ export default function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const [activePaymentForApproval, setActivePaymentForApproval] = useState<PaymentTransaction | null>(null);
   const [activePaymentForRejection, setActivePaymentForRejection] = useState<PaymentTransaction | null>(null);
@@ -54,7 +51,6 @@ export default function PaymentsPage() {
   const [isReaderModalOpen, setIsReaderModalOpen] = useState(false);
 
   async function loadPayments() {
-    setIsLoading(true);
     try {
       const supabase = createClient();
       let query = supabase
@@ -93,8 +89,6 @@ export default function PaymentsPage() {
       }
     } catch {
       setPayments([]);
-    } finally {
-      setIsLoading(false);
     }
   }
 
@@ -131,35 +125,20 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header & Ergonomic Mobile Action Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#1F7A3D]">
-            SMS & M-Pesa Reconciliation
-          </p>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
-            Payments
-          </h1>
-        </div>
+      {/* Clean Enterprise Page Header */}
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900">
+          Payments
+        </h1>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            className="flex-1 sm:flex-none justify-center"
-            onClick={() => setIsPasteAlertModalOpen(true)}
-          >
-            <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-            Paste SMS Alert
-          </Button>
-
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 sm:flex-none justify-center"
             onClick={() => setIsReaderModalOpen(true)}
+            className="h-9 px-3 text-xs"
           >
-            <Smartphone className="w-3.5 h-3.5 mr-1.5 text-[#1F7A3D]" />
+            <Smartphone className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
             SMS Reader
           </Button>
 
@@ -167,83 +146,87 @@ export default function PaymentsPage() {
             variant="outline"
             size="sm"
             onClick={() => setIsImportModalOpen(true)}
-            className="hidden sm:inline-flex"
+            className="hidden md:inline-flex h-9 px-3 text-xs"
           >
-            <UploadCloud className="w-3.5 h-3.5 mr-1 text-[#1F7A3D]" />
+            <UploadCloud className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
             Import CSV
           </Button>
 
           {process.env.NODE_ENV !== 'production' && (
-            <Button variant="secondary" size="sm" onClick={() => setIsSimulateModalOpen(true)}>
-              <Play className="w-3.5 h-3.5 mr-1 text-[#1F7A3D]" />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsSimulateModalOpen(true)}
+              className="hidden lg:inline-flex h-9 px-3 text-xs"
+            >
+              <Play className="w-3.5 h-3.5 mr-1 text-slate-600" />
               Simulate
             </Button>
           )}
 
           <Button
-            variant="outline"
+            variant="primary"
             size="sm"
-            onClick={loadPayments}
-            isLoading={isLoading}
-            aria-label="Refresh payments"
+            onClick={() => setIsPasteAlertModalOpen(true)}
+            className="h-9 px-3 text-xs"
           >
-            <RefreshCw className="w-3.5 h-3.5 sm:mr-1" />
-            <span className="hidden sm:inline">Refresh</span>
+            <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+            Paste SMS
           </Button>
         </div>
       </div>
 
-      {/* Solid-Color KPI Strip (Safaricom Green, Deep Cream/Amber, Slate Gray) */}
+      {/* Enterprise KPI Strip: 1 Deep Forest Hero Card + 2 Clean White Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
-        <Card className="bg-[#144827] border-[#216B3B] text-white p-3.5 sm:p-4 shadow-sm">
+        <Card className="bg-[#123520] border-[#1E4D30] text-white p-3.5 sm:p-4 shadow-sm">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#B8E8C4]">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-emerald-100/80">
               Approved Receipts
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#1E6337] border border-[#2E824C] text-[#8DDBA0] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/15 text-emerald-200 flex items-center justify-center">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
           <MoneyDisplay minorUnits={summaryTotals.approvedMinor} size="lg" variant="inverse" />
-          <p className="mt-1 text-[10px] text-[#8DDBA0]/90 font-medium">
+          <p className="mt-1 text-[11px] text-emerald-100/75 font-medium">
             {summaryTotals.approvedCount} payments credited
           </p>
         </Card>
 
-        <Card className="bg-[#F3EDE0] border-[#DFD2B6] text-[#1F241D] p-3.5 sm:p-4 shadow-sm">
+        <Card className="bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#5A4D35]">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               Needs Review
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#E6DCC6] border border-[#D3C4A3] text-[#4A3B1C] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/70 text-slate-500 flex items-center justify-center">
               <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
-          <MoneyDisplay minorUnits={summaryTotals.pendingMinor} size="lg" variant="amber" />
-          <p className="mt-1 text-[10px] text-[#6E5F43] font-medium">
+          <MoneyDisplay minorUnits={summaryTotals.pendingMinor} size="lg" variant="neutral" />
+          <p className="mt-1 text-[11px] text-slate-500 font-medium">
             {summaryTotals.pendingCount} awaiting approval
           </p>
         </Card>
 
-        <Card className="col-span-2 sm:col-span-1 bg-[#E7ECE9] border-[#CBD6CF] text-[#17231C] p-3.5 sm:p-4 shadow-sm">
+        <Card className="col-span-2 sm:col-span-1 bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#425449]">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               Showing View
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#D7E0DB] border border-[#BFCBC4] text-[#26382E] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/70 text-slate-500 flex items-center justify-center">
               <CreditCard className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-extrabold font-mono tabular-nums text-[#17231C]">
+          <div className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900">
             {filteredPayments.length}
           </div>
-          <p className="mt-1 text-[10px] text-[#526559] font-medium capitalize">
+          <p className="mt-1 text-[11px] text-slate-500 font-medium capitalize">
             {filterStatus === 'pending' ? 'Pending review queue' : `${filterStatus} transactions`}
           </p>
         </Card>
       </div>
 
-      {/* Search & Filter Tabs */}
+      {/* Search & Neutral Segmented Filter Tabs */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -252,11 +235,11 @@ export default function PaymentsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by M-Pesa Ref, payer name, phone, or #Account..."
-            className="w-full h-10 pl-9 pr-3 rounded-lg bg-white border border-[#DCE5DF] text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#1F7A3D]"
+            className="w-full h-10 pl-9 pr-3 rounded-lg bg-white border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 bg-[#EAEFEC] p-1 rounded-lg border border-[#CFD8D2] shrink-0">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200/80 shrink-0">
           {(
             [
               { id: 'pending', label: `Needs Review (${summaryTotals.pendingCount})` },
@@ -270,8 +253,8 @@ export default function PaymentsPage() {
               onClick={() => setFilterStatus(tab.id)}
               className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap ${
                 filterStatus === tab.id
-                  ? 'bg-[#144827] text-white shadow-sm'
-                  : 'text-[#3A4D41] hover:text-[#14231A]'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {tab.label}
@@ -281,7 +264,7 @@ export default function PaymentsPage() {
       </div>
 
       {filteredPayments.length === 0 ? (
-        <Card className="bg-white border-[#DCE5DF] shadow-sm text-center py-12 px-4">
+        <Card className="bg-white border-slate-200/90 shadow-2xs text-center py-12 px-4">
           <CreditCard className="w-8 h-8 text-slate-400 mx-auto mb-2" />
           <div className="text-sm font-semibold text-slate-700">
             {filterStatus === 'pending'
@@ -294,7 +277,7 @@ export default function PaymentsPage() {
         </Card>
       ) : (
         <>
-          {/* Mobile Native Card List (< md) — Zero Horizontal Scrolling */}
+          {/* Mobile Native Card List (< md) — Clean White Surface */}
           <div className="grid grid-cols-1 gap-2.5 md:hidden">
             {paginatedPayments.map((item) => {
               const isPending = item.status === 'pending';
@@ -303,29 +286,24 @@ export default function PaymentsPage() {
               return (
                 <Card
                   key={item.id}
-                  className={`p-3.5 transition-all ${
-                    isPending
-                      ? 'bg-[#FDFBF6] border-[#DFD2B6] border-l-4 border-l-[#D97706]'
-                      : 'bg-white border-[#DCE5DF] border-l-4 border-l-[#144827]'
-                  }`}
+                  className="p-3.5 bg-white border-slate-200/90 shadow-2xs"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono text-[11px] font-bold text-[#8DDBA0] bg-[#144827] px-2 py-0.5 rounded">
+                        <span className="font-mono text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded">
                           {item.transaction_ref}
                         </span>
-                        <span className="font-mono text-[11px] font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                          A/C: {item.account_reference || item.bill_ref_number || 'None'}
+                        <span className="font-mono text-[11px] text-slate-500">
+                          A/C: <strong className="font-semibold text-slate-700">{item.account_reference || item.bill_ref_number || 'None'}</strong>
                         </span>
                       </div>
 
-                      <h3 className="text-sm font-bold text-slate-900 mt-1.5 flex items-center gap-1.5 [overflow-wrap:anywhere]">
-                        <ArrowDownLeft className="w-3.5 h-3.5 text-[#1F7A3D] shrink-0" />
+                      <h3 className="text-sm font-semibold text-slate-900 mt-1.5 [overflow-wrap:anywhere]">
                         {item.payer_name || 'Customer'}
                       </h3>
 
-                      <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600 flex-wrap">
+                      <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
                         <span className="font-mono">{fmt_phone(item.payer_msisdn || item.payer_phone)}</span>
                         <span>•</span>
                         <span>{fmt_date(item.occurred_at || item.received_at, true)}</span>
@@ -336,7 +314,7 @@ export default function PaymentsPage() {
                       <MoneyDisplay
                         minorUnits={item.amount_minor}
                         size="md"
-                        variant={isPending ? 'amber' : 'positive'}
+                        variant="neutral"
                       />
                       <div className="mt-1">
                         {hasConflict ? (
@@ -362,7 +340,7 @@ export default function PaymentsPage() {
 
                   {item.match_confidence !== undefined && item.match_confidence > 0 && (
                     <div className="mt-2">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#E8F5EB] text-[#144827] border border-[#BBDCC4]">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                         {item.match_confidence >= 100
                           ? '100% Exact Account Match'
                           : `${Math.round(item.match_confidence)}% Customer Match Suggestion`}
@@ -371,23 +349,21 @@ export default function PaymentsPage() {
                   )}
 
                   {isPending && (
-                    <div className="mt-3 pt-2.5 border-t border-[#E6DEC8] grid grid-cols-2 gap-2">
-                      <Button
-                        variant="success"
-                        size="sm"
-                        className="min-h-10 text-xs font-semibold justify-center"
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
                         onClick={() => setActivePaymentForApproval(item)}
+                        className="min-h-9 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold transition-colors"
                       >
-                        {hasConflict ? 'Reconcile & Approve' : 'Review & Approve'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="min-h-10 text-xs text-[#A21D2B] hover:bg-[#FDECEE] border-[#F4C5CB] font-semibold justify-center"
+                        {hasConflict ? 'Reconcile' : 'Approve'}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setActivePaymentForRejection(item)}
+                        className="min-h-9 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-600 hover:text-rose-700 border border-slate-200 text-xs font-semibold transition-colors"
                       >
                         Reject
-                      </Button>
+                      </button>
                     </div>
                   )}
                 </Card>
@@ -396,11 +372,11 @@ export default function PaymentsPage() {
           </div>
 
           {/* Desktop Table (md and up) */}
-          <Card className="hidden md:block bg-white border-[#DCE5DF] shadow-sm p-0">
+          <Card className="hidden md:block bg-white border-slate-200/90 shadow-2xs p-0">
             <div className="overflow-x-auto rounded-card">
               <table className="w-full min-w-[820px] text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#EAEFEC] border-b border-[#CFD8D2] text-[11px] font-bold text-[#2F4036] uppercase tracking-wide">
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
                     <th className="py-3 px-4">Receipt / Ref</th>
                     <th className="py-3 px-4">Payer</th>
                     <th className="py-3 px-4">Account No</th>
@@ -409,14 +385,14 @@ export default function PaymentsPage() {
                     <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E7EDE8] text-[13px]">
+                <tbody className="divide-y divide-slate-100 text-[13px]">
                   {paginatedPayments.map((item) => (
-                    <tr key={item.id} className="hover:bg-[#F8FAF8] transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900 whitespace-nowrap tabular-nums">
-                        <span className="font-mono font-bold text-[#8DDBA0] bg-[#144827] px-2 py-0.5 rounded text-xs">
+                    <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-semibold text-slate-900 whitespace-nowrap tabular-nums">
+                        <span className="font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded text-xs">
                           {item.transaction_ref}
                         </span>
-                        <div className="mt-1 text-[11px] text-slate-600 font-sans font-normal whitespace-nowrap tabular-nums">
+                        <div className="mt-1 text-[11px] text-slate-500 font-sans font-normal whitespace-nowrap tabular-nums">
                           {fmt_date(item.occurred_at || item.received_at, true)}
                         </div>
                       </td>
@@ -432,19 +408,13 @@ export default function PaymentsPage() {
 
                       <td className="py-3.5 px-4">
                         <div className="flex flex-col items-start gap-1">
-                          <span className="font-mono tabular-nums whitespace-nowrap px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 font-semibold">
+                          <span className="font-mono tabular-nums whitespace-nowrap px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 font-semibold text-xs">
                             {item.account_reference || item.bill_ref_number || 'None'}
                           </span>
                           {item.match_confidence !== undefined && item.match_confidence > 0 && (
-                            item.match_confidence >= 100 ? (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-[#1F7A3D] border border-emerald-200">
-                                Exact reference suggestion
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#EDF3F7] text-[#29465A] border border-[#D1DFE8]">
-                                Phone/Name match suggestion
-                              </span>
-                            )
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                              {item.match_confidence >= 100 ? 'Exact match' : 'Suggested match'}
+                            </span>
                           )}
                         </div>
                       </td>
@@ -453,7 +423,7 @@ export default function PaymentsPage() {
                         <MoneyDisplay
                           minorUnits={item.amount_minor}
                           size="sm"
-                          variant={item.status === 'approved' ? 'positive' : 'amber'}
+                          variant="neutral"
                         />
                       </td>
 
@@ -471,7 +441,7 @@ export default function PaymentsPage() {
                             Approved
                           </Badge>
                         ) : (
-                          <Badge variant="danger" size="sm" dot>
+                          <Badge variant="neutral" size="sm" dot>
                             {item.status}
                           </Badge>
                         )}
@@ -480,22 +450,20 @@ export default function PaymentsPage() {
                       <td className="py-3.5 px-4 text-right">
                         {item.status === 'pending' ? (
                           <div className="inline-flex items-center gap-1.5">
-                            <Button
-                              variant="success"
-                              size="sm"
-                              className="min-h-10 px-3 text-xs font-semibold"
+                            <button
+                              type="button"
                               onClick={() => setActivePaymentForApproval(item)}
+                              className="h-8 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold transition-colors"
                             >
-                              {(item.conflict_flags?.length || 0) > 0 ? 'Reconcile' : 'Review'}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="min-h-10 px-3 text-xs text-[#A21D2B] hover:bg-[#FDECEE] border-[#F4C5CB] font-semibold"
+                              {(item.conflict_flags?.length || 0) > 0 ? 'Reconcile' : 'Approve'}
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => setActivePaymentForRejection(item)}
+                              className="h-8 px-3 rounded-lg bg-white hover:bg-slate-50 text-slate-600 hover:text-rose-700 border border-slate-200 text-xs font-semibold transition-colors"
                             >
                               Reject
-                            </Button>
+                            </button>
                           </div>
                         ) : (
                           <span className="text-[11px] text-slate-500 font-medium capitalize">{item.status}</span>

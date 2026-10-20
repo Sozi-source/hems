@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Plus,
   Users,
-  RefreshCw,
   Smartphone,
   MessageSquareOff,
   BookOpen,
@@ -43,7 +42,6 @@ interface CustomerItem {
 export default function CustomersPage() {
   const { activeBusinessId, isMasterView, businesses } = useBusiness();
   const [customers, setCustomers] = useState<CustomerItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [stkTarget, setStkTarget] = useState<CustomerItem | null>(null);
@@ -55,7 +53,6 @@ export default function CustomersPage() {
   const [showAll, setShowAll] = useState(false);
 
   async function loadCustomers() {
-    setIsLoading(true);
     try {
       const supabase = createClient();
 
@@ -141,8 +138,6 @@ export default function CustomersPage() {
       }
     } catch {
       setCustomers([]);
-    } finally {
-      setIsLoading(false);
     }
   }
 
@@ -209,102 +204,87 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header & Ergonomic Mobile Action Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#1F7A3D]">
-            Customer Directory & Credit
-          </p>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
-            Customers
-          </h1>
-        </div>
+      {/* Clean Enterprise Page Header */}
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900">
+          Customers
+        </h1>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsImportModalOpen(true)}
+            className="h-9 px-3 text-xs"
+          >
+            <BookOpen className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+            Import
+          </Button>
           <Button
             variant="primary"
             size="sm"
-            className="flex-1 sm:flex-none justify-center"
             onClick={() => setIsAddModalOpen(true)}
+            className="h-9 px-3 text-xs"
           >
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            <Plus className="w-3.5 h-3.5 mr-1" />
             Add Customer
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 sm:flex-none justify-center"
-            onClick={() => setIsImportModalOpen(true)}
-          >
-            <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-            Import Contacts
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadCustomers}
-            isLoading={isLoading}
-            aria-label="Refresh customers"
-          >
-            <RefreshCw className="w-3.5 h-3.5 sm:mr-1" />
-            <span className="hidden sm:inline">Refresh</span>
           </Button>
         </div>
       </div>
 
-      {/* Solid-Color KPI Summary Strip (Safaricom Green, Deep Cream, Slate Gray) */}
+      {/* Enterprise KPI Strip: 1 Deep Forest Hero Card + 2 Clean White Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
-        <Card className="col-span-2 sm:col-span-1 bg-[#144827] border-[#216B3B] text-white p-3.5 sm:p-4 shadow-sm">
+        <Card className="col-span-2 sm:col-span-1 bg-[#123520] border-[#1E4D30] text-white p-3.5 sm:p-4 shadow-sm">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#B8E8C4]">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-emerald-100/80">
               Total Owed by Customers
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#1E6337] border border-[#2E824C] text-[#8DDBA0] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-white/10 border border-white/15 text-emerald-200 flex items-center justify-center">
               <Wallet className="w-3.5 h-3.5" />
             </div>
           </div>
           <MoneyDisplay minorUnits={totalDebtMinor} size="lg" variant="inverse" />
-          <p className="mt-1 text-[10px] text-[#8DDBA0]/90 font-medium">
+          <p className="mt-1 text-[11px] text-emerald-100/75 font-medium">
             Across {owingCustomersCount} active credit accounts
           </p>
         </Card>
 
-        <Card className="bg-[#F3EDE0] border-[#DFD2B6] text-[#1F241D] p-3.5 sm:p-4 shadow-sm">
+        <Card className="bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#5A4D35]">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               With Open Debt
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#E6DCC6] border border-[#D3C4A3] text-[#4A3B1C] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/70 text-slate-500 flex items-center justify-center">
               <Users className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-extrabold font-mono tabular-nums text-[#1F241D]">
+          <div className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900">
             {owingCustomersCount}
           </div>
-          <p className="mt-1 text-[10px] text-[#6E5F43] font-medium">
+          <p className="mt-1 text-[11px] text-slate-500 font-medium">
             Ready for M-Pesa prompt
           </p>
         </Card>
 
-        <Card className="bg-[#E7ECE9] border-[#CBD6CF] text-[#17231C] p-3.5 sm:p-4 shadow-sm">
+        <Card className="bg-white border-slate-200/90 text-slate-900 p-3.5 sm:p-4 shadow-2xs">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#425449]">
+            <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               Total Directory
             </span>
-            <div className="w-7 h-7 rounded-lg bg-[#D7E0DB] border border-[#BFCBC4] text-[#26382E] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-slate-100/80 border border-slate-200/70 text-slate-500 flex items-center justify-center">
               <UserCheck className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-extrabold font-mono tabular-nums text-[#17231C]">
+          <div className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900">
             {customers.length}
           </div>
-          <p className="mt-1 text-[10px] text-[#526559] font-medium">
+          <p className="mt-1 text-[11px] text-slate-500 font-medium">
             {settledCustomersCount} fully settled
           </p>
         </Card>
       </div>
 
-      {/* Search & Quick Filter Bar */}
+      {/* Search & Neutral Segmented Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -313,11 +293,11 @@ export default function CustomersPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by customer name, nickname, phone, or #Account..."
-            className="w-full h-10 pl-9 pr-3 rounded-lg bg-white border border-[#DCE5DF] text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#1F7A3D]"
+            className="w-full h-10 pl-9 pr-3 rounded-lg bg-white border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 bg-[#EAEFEC] p-1 rounded-lg border border-[#CFD8D2] shrink-0">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200/80 shrink-0">
           {(
             [
               { id: 'all', label: `All (${customers.length})` },
@@ -331,8 +311,8 @@ export default function CustomersPage() {
               onClick={() => setDebtFilter(tab.id)}
               className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
                 debtFilter === tab.id
-                  ? 'bg-[#144827] text-white shadow-sm'
-                  : 'text-[#3A4D41] hover:text-[#14231A]'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {tab.label}
@@ -348,7 +328,7 @@ export default function CustomersPage() {
       )}
 
       {filteredCustomers.length === 0 ? (
-        <Card className="bg-white border-[#DCE5DF] shadow-sm text-center py-12 px-4">
+        <Card className="bg-white border-slate-200/90 shadow-2xs text-center py-12 px-4">
           <Users className="w-8 h-8 text-slate-400 mx-auto mb-2" />
           <div className="text-sm font-semibold text-slate-700">
             {customers.length === 0 ? 'No customers added yet' : 'No matching customers found'}
@@ -361,7 +341,7 @@ export default function CustomersPage() {
         </Card>
       ) : (
         <>
-          {/* Mobile Native Card List (< md) — Zero Horizontal Scrolling */}
+          {/* Mobile Native Card List (< md) — Clean White Surface */}
           <div className="grid grid-cols-1 gap-2.5 md:hidden">
             {paginatedCustomers.map((cust) => {
               const hasDebt = (cust.outstanding_minor || 0) > 0;
@@ -370,54 +350,50 @@ export default function CustomersPage() {
               return (
                 <Card
                   key={cust.id}
-                  className={`p-3.5 transition-all ${
-                    hasDebt
-                      ? 'bg-[#FDFBF6] border-[#DFD2B6] border-l-4 border-l-[#144827]'
-                      : 'bg-white border-[#DCE5DF]'
-                  }`}
+                  className="p-3.5 bg-white border-slate-200/90 shadow-2xs"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono text-[11px] font-bold text-[#8DDBA0] bg-[#144827] px-2 py-0.5 rounded">
+                        <span className="font-mono text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded">
                           {cust.customer_no}
                         </span>
                         {isMasterView && bizName && (
-                          <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                          <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/80">
                             {bizName}
                           </span>
                         )}
                       </div>
-                      <h3 className="text-sm font-bold text-slate-900 mt-1.5 leading-snug [overflow-wrap:anywhere]">
+                      <h3 className="text-sm font-semibold text-slate-900 mt-1.5 leading-snug [overflow-wrap:anywhere]">
                         {cust.full_name}
                       </h3>
                       {cust.nickname && (
-                        <p className="text-[11px] text-[#5A4D35] font-medium mt-0.5">
-                          Alias: <strong className="font-semibold text-slate-800">{cust.nickname}</strong>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Alias: <strong className="font-medium text-slate-700">{cust.nickname}</strong>
                         </p>
                       )}
                     </div>
 
                     <div className="text-right shrink-0">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                        Current Debt
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block">
+                        Balance
                       </span>
                       <MoneyDisplay
                         minorUnits={cust.outstanding_minor || 0}
                         size="md"
-                        variant={hasDebt ? 'positive' : 'neutral'}
+                        variant="neutral"
                       />
                     </div>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-slate-200/70 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
                       {cust.phone ? (
                         <a
                           href={`tel:${cust.phone}`}
-                          className="inline-flex items-center gap-1.5 text-slate-700 hover:text-[#1F7A3D] font-semibold bg-slate-100 px-2.5 py-1.5 rounded-md border border-slate-200"
+                          className="inline-flex items-center gap-1.5 text-slate-700 hover:text-slate-900 font-medium bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-200"
                         >
-                          <Phone className="w-3 h-3 text-[#1F7A3D]" />
+                          <Phone className="w-3 h-3 text-slate-500" />
                           {fmt_phone(cust.phone)}
                         </a>
                       ) : (
@@ -437,15 +413,14 @@ export default function CustomersPage() {
                     </div>
 
                     {hasDebt ? (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        className="min-h-9 px-3 text-xs font-semibold"
+                      <button
+                        type="button"
                         onClick={() => setStkTarget(cust)}
+                        className="min-h-8 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
                       >
-                        <Smartphone className="w-3.5 h-3.5 mr-1.5" />
+                        <Smartphone className="w-3.5 h-3.5" />
                         Prompt M-Pesa
-                      </Button>
+                      </button>
                     ) : (
                       <Badge variant="neutral" size="sm">
                         Settled
@@ -458,12 +433,12 @@ export default function CustomersPage() {
           </div>
 
           {/* Desktop Table (md and up) */}
-          <Card className="hidden md:block bg-white border-[#DCE5DF] shadow-sm p-0">
+          <Card className="hidden md:block bg-white border-slate-200/90 shadow-2xs p-0">
             <div className="overflow-x-auto rounded-card">
               <table className="w-full min-w-[760px] text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#EAEFEC] border-b border-[#CFD8D2] text-[11px] font-bold text-[#2F4036] uppercase tracking-wide">
-                    <th className="sticky left-0 z-10 bg-[#EAEFEC] py-3 px-4">Account No</th>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                    <th className="sticky left-0 z-10 bg-slate-50 py-3 px-4">Account No</th>
                     {isMasterView && <th className="py-3 px-4">Business</th>}
                     <th className="py-3 px-4">Customer Name & Nickname</th>
                     <th className="py-3 px-4">Phone</th>
@@ -472,11 +447,11 @@ export default function CustomersPage() {
                     <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E7EDE8] text-[13px]">
+                <tbody className="divide-y divide-slate-100 text-[13px]">
                   {paginatedCustomers.map((cust) => (
-                    <tr key={cust.id} className="hover:bg-[#F8FAF8] transition-colors">
+                    <tr key={cust.id} className="hover:bg-slate-50/60 transition-colors">
                       <td className="py-3.5 px-4">
-                        <span className="font-mono font-bold text-[#8DDBA0] bg-[#144827] px-2 py-1 rounded text-xs">
+                        <span className="font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-1 rounded text-xs">
                           {cust.customer_no}
                         </span>
                       </td>
@@ -516,7 +491,7 @@ export default function CustomersPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="min-h-10 px-2 text-[11px] text-slate-700"
+                              className="min-h-8 px-2 text-[11px] text-slate-700"
                               isLoading={unblockingId === cust.id}
                               onClick={() => clearSmsBlock(cust)}
                               title="Owner or admin only"
@@ -526,7 +501,7 @@ export default function CustomersPage() {
                             </Button>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-500">—</span>
+                          <span className="text-xs text-slate-400">—</span>
                         )}
                       </td>
 
@@ -534,24 +509,24 @@ export default function CustomersPage() {
                         <MoneyDisplay
                           minorUnits={cust.outstanding_minor || 0}
                           size="sm"
-                          variant={(cust.outstanding_minor || 0) > 0 ? 'positive' : 'neutral'}
+                          variant="neutral"
                         />
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
                         {(cust.outstanding_minor || 0) > 0 ? (
                           <Button
-                            variant="secondary"
+                            variant="outline"
                             size="sm"
-                            className="h-8 px-2.5 text-xs text-slate-800"
+                            className="h-8 px-2.5 text-xs text-slate-700"
                             onClick={() => setStkTarget(cust)}
                             title="Prompt customer via M-Pesa"
                           >
-                            <Smartphone className="w-3.5 h-3.5 mr-1 text-emerald-700" />
+                            <Smartphone className="w-3.5 h-3.5 mr-1 text-slate-500" />
                             Prompt M-Pesa
                           </Button>
                         ) : (
-                          <span className="text-xs text-slate-500">—</span>
+                          <span className="text-xs text-slate-400">—</span>
                         )}
                       </td>
                     </tr>

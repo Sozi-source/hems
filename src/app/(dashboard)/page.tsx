@@ -47,13 +47,12 @@ export default function DashboardOverviewPage() {
     try {
       const supabase = createClient();
 
-      // 1. Fetch pending payments
+      // 1. Fetch pending payments (all pending for accurate totals; PendingApprovalsCard previews top 5)
       let paymentsQuery = supabase
         .from('payment_transactions')
         .select('id,business_id,provider,transaction_ref,amount_minor,occurred_at,payer_msisdn,payer_name,account_reference,status,unallocated_minor,match_confidence,conflict_flags')
         .eq('status', 'pending')
-        .order('occurred_at', { ascending: false })
-        .limit(5);
+        .order('occurred_at', { ascending: false });
 
       if (!isMasterView && activeBusinessId) {
         paymentsQuery = paymentsQuery.eq('business_id', activeBusinessId);
@@ -194,42 +193,23 @@ export default function DashboardOverviewPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Page Header & Ergonomic Mobile Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#1F7A3D]">
-            Live Financial Ledger
-          </p>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
-            {isMasterView ? 'All Businesses Overview' : activeBusiness?.name || activeBusinessCode}
-          </h1>
-        </div>
+      {/* Clean Single-Row Page Header */}
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 truncate">
+          {isMasterView ? 'Overview' : activeBusiness?.name || activeBusinessCode}
+        </h1>
 
-        <div className="grid grid-cols-2 sm:flex items-center gap-2">
-          <Link href="/payments" className="w-full sm:w-auto">
-            <Button variant="secondary" size="sm" className="w-full sm:w-auto justify-center">
-              <CreditCard className="w-3.5 h-3.5 mr-1.5" />
-              <span>Payments</span>
-              {pendingPayments.length > 0 && (
-                <span className="ml-1.5 inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-amber-500 text-slate-950">
-                  {pendingPayments.length}
-                </span>
-              )}
-            </Button>
-          </Link>
-          <Button
-            variant="primary"
-            size="sm"
-            className="w-full sm:w-auto justify-center"
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
-            <span>New Debt or Bill</span>
-          </Button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsCreateModalOpen(true)}
+          className="inline-flex h-9 px-3.5 items-center justify-center rounded-lg bg-[#123520] hover:bg-[#19472B] text-white text-xs font-semibold transition-colors shrink-0"
+        >
+          <Plus className="w-3.5 h-3.5 mr-1.5" />
+          <span>New Debt or Bill</span>
+        </button>
       </div>
 
-      {/* Summary KPI Cards — Solid Safaricom, Deep Cream, Slate Gray & Charcoal/Amber */}
+      {/* Summary KPI Cards — 1 Hero Forest Card + 3 Uniform Neutral Enterprise Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <MetricCard
           title="Customer Debts"
@@ -242,24 +222,21 @@ export default function DashboardOverviewPage() {
           title="Collected (Month)"
           minorUnits={stats.collectedMonthMinor}
           icon={CheckCircle2}
-          tone="cream"
-          variant="positive"
-          subtitle="Settled SMS & M-Pesa"
+          tone="white"
+          subtitle="Approved receipts"
         />
         <MetricCard
           title="Bills to Pay"
           minorUnits={stats.payablesTotalMinor}
           icon={TrendingDown}
-          tone="gray"
-          variant="negative"
+          tone="white"
           subtitle="Supplier obligations"
         />
         <MetricCard
           title="Pending Review"
           minorUnits={stats.pendingApprovalMinor}
           icon={Clock}
-          tone={pendingPayments.length > 0 ? 'amber' : 'charcoal'}
-          variant={pendingPayments.length > 0 ? 'amber' : 'neutral'}
+          tone="white"
           subtitle={
             pendingPayments.length > 0
               ? `${pendingPayments.length} awaiting approval`
@@ -268,26 +245,23 @@ export default function DashboardOverviewPage() {
         />
       </div>
 
-      {/* Business Breakdown in Master View */}
+      {/* Business Breakdown in Master View — Clean Matching Enterprise Cards */}
       {isMasterView && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
           {/* Haron Fashion */}
-          <Card className="border border-[#DFD2B6] bg-[#F7F3E8] shadow-sm p-4 sm:p-5">
+          <Card className="border border-slate-200/90 bg-white shadow-2xs p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3.5">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#144827] text-[#8DDBA0] flex items-center justify-center font-bold text-xs shadow-sm">
+                <div className="w-7 h-7 rounded-md bg-[#123520] text-white flex items-center justify-center font-bold text-[11px]">
                   HF
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-[#14231A]">Haron Fashion</h4>
-                  <p className="text-[11px] text-[#5E523B] font-medium">Retail & Apparel Ledger</p>
-                </div>
+                <h4 className="text-sm font-bold text-slate-900">Haron Fashion</h4>
               </div>
-              <Badge variant="success" size="sm" dot>Active</Badge>
+              <Badge variant="neutral" size="sm">Active</Badge>
             </div>
-            <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-[#E3D7BE]">
-              <div className="rounded-lg bg-white/80 border border-[#E5DAC3] p-2.5">
-                <span className="text-[10px] font-bold text-[#5E523B] uppercase tracking-wider block">
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
                   Customer Debts
                 </span>
                 <div className="mt-1">
@@ -297,15 +271,14 @@ export default function DashboardOverviewPage() {
                   />
                 </div>
               </div>
-              <div className="rounded-lg bg-[#144827] text-white p-2.5">
-                <span className="text-[10px] font-bold text-[#9FE3B0] uppercase tracking-wider block">
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
                   Collected (Mo)
                 </span>
                 <div className="mt-1">
                   <MoneyDisplay
                     minorUnits={businessCardsData['HARON_FASHION']?.collected || 0}
                     size="md"
-                    variant="inverse"
                   />
                 </div>
               </div>
@@ -313,22 +286,19 @@ export default function DashboardOverviewPage() {
           </Card>
 
           {/* Zenith Plast */}
-          <Card className="border border-[#CBD6CF] bg-[#EAEFEC] shadow-sm p-4 sm:p-5">
+          <Card className="border border-slate-200/90 bg-white shadow-2xs p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3.5">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#1E2923] text-[#8DDBA0] flex items-center justify-center font-bold text-xs shadow-sm">
+                <div className="w-7 h-7 rounded-md bg-slate-800 text-white flex items-center justify-center font-bold text-[11px]">
                   ZP
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-[#14231A]">Zenith Plast Distributors Ltd</h4>
-                  <p className="text-[11px] text-[#4A5D52] font-medium">Wholesale & Distribution Ledger</p>
-                </div>
+                <h4 className="text-sm font-bold text-slate-900">Zenith Plast Distributors Ltd</h4>
               </div>
-              <Badge variant="info" size="sm" dot>Active</Badge>
+              <Badge variant="neutral" size="sm">Active</Badge>
             </div>
-            <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-[#D2DDD6]">
-              <div className="rounded-lg bg-white/85 border border-[#D5DFD9] p-2.5">
-                <span className="text-[10px] font-bold text-[#4A5D52] uppercase tracking-wider block">
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
                   Customer Debts
                 </span>
                 <div className="mt-1">
@@ -338,15 +308,14 @@ export default function DashboardOverviewPage() {
                   />
                 </div>
               </div>
-              <div className="rounded-lg bg-[#1E2923] text-white p-2.5">
-                <span className="text-[10px] font-bold text-[#9FE3B0] uppercase tracking-wider block">
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
                   Collected (Mo)
                 </span>
                 <div className="mt-1">
                   <MoneyDisplay
                     minorUnits={businessCardsData['ZENITH_PLAST']?.collected || 0}
                     size="md"
-                    variant="inverse"
                   />
                 </div>
               </div>
