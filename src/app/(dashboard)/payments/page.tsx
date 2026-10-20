@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useBusiness } from '@/context/business-context';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import {
   Search,
   CheckCircle2,
   Clock,
+  CheckCheck,
 } from 'lucide-react';
 import { ApprovePaymentModal } from '@/components/payments/approve-payment-modal';
 import { RejectPaymentModal } from '@/components/payments/reject-payment-modal';
@@ -49,6 +50,48 @@ export default function PaymentsPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isPasteAlertModalOpen, setIsPasteAlertModalOpen] = useState(false);
   const [isReaderModalOpen, setIsReaderModalOpen] = useState(false);
+  const [isBatchApproving, setIsBatchApproving] = useState(false);
+  const [batchApproveMsg, setBatchApproveMsg] = useState<string | null>(null);
+
+  const pendingHistoricalCount = useMemo(() => {
+    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return payments.filter(
+      (p) => p.status === 'pending' && new Date(p.occurred_at || 0).getTime() < oneWeekAgo
+    ).length;
+  }, [payments]);
+
+  async function handleBatchApproveHistorical() {
+    if (!activeBusinessId && !isMasterView) return;
+    const confirmed = window.confirm(
+      `Batch approve all ${pendingHistoricalCount} historical records older than 1 week?\n\nRecent records (less than 7 days old) will remain pending for manual review.`
+    );
+    if (!confirmed) return;
+
+    setIsBatchApproving(true);
+    setBatchApproveMsg(null);
+    try {
+      const res = await fetch('/api/payments/batch-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: activeBusinessId,
+          cutoffDays: 7,
+          note: 'Historical transaction batch approved',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to batch approve payments');
+      }
+      setBatchApproveMsg(`Approved ${data.approvedCount} historical records. ${data.keptRecentCount} recent records kept pending.`);
+      await loadPayments();
+      setTimeout(() => setBatchApproveMsg(null), 5000);
+    } catch (err: any) {
+      alert(err.message || 'Error executing batch approval');
+    } finally {
+      setIsBatchApproving(false);
+    }
+  }
 
   async function loadPayments() {
     try {
@@ -263,6 +306,34 @@ export default function PaymentsPage() {
           ))}
         </div>
       </div>
+
+      {/* Batch Approval Banner (only visible if historical pending records exist) */}
+      {pendingHistoricalCount > 0 && filterStatus === 'pending' && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 rounded-lg bg-emerald-50/70 border border-emerald-200/90 text-xs gap-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="text-slate-700">
+              Found <strong>{pendingHistoricalCount}</strong> historical payment{pendingHistoricalCount > 1 ? 's' : ''} older than 7 days.
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isBatchApproving}
+            onClick={handleBatchApproveHistorical}
+            className="h-8 px-3 text-xs font-semibold text-emerald-900 bg-white border-emerald-300 hover:bg-emerald-50 shrink-0"
+          >
+            <CheckCheck className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+            {isBatchApproving ? 'Approving...' : 'Batch Approve Historical (>7d)'}
+          </Button>
+        </div>
+      )}
+
+      {batchApproveMsg && (
+        <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium">
+          {batchApproveMsg}
+        </div>
+      )}
 
       {filteredPayments.length === 0 ? (
         <Card className="bg-white border-slate-200/90 shadow-2xs text-center py-12 px-4">
