@@ -41,7 +41,6 @@ interface ObligationHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   obligation: ObligationModalItem | null;
-  onPromptMpesa?: (obligation: ObligationModalItem) => void;
 }
 
 interface JournalEntry {
@@ -58,7 +57,6 @@ export function ObligationHistoryModal({
   isOpen,
   onClose,
   obligation,
-  onPromptMpesa,
 }: ObligationHistoryModalProps) {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -215,17 +213,6 @@ export function ObligationHistoryModal({
 
           {/* Action Row & Close */}
           <div className="flex items-center gap-2 self-end sm:self-start shrink-0">
-            {isReceivable && hasDebt && onPromptMpesa && (
-              <button
-                type="button"
-                onClick={() => onPromptMpesa(obligation)}
-                className="h-8 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors shadow-2xs"
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Prompt M-Pesa</span>
-              </button>
-            )}
-
             <button
               type="button"
               onClick={onClose}

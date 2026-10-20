@@ -40,7 +40,6 @@ interface CustomerHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   customer: CustomerHistoryItem | null;
-  onPromptMpesa?: (customer: CustomerHistoryItem) => void;
 }
 
 interface LedgerEvent {
@@ -59,7 +58,6 @@ export function CustomerHistoryModal({
   isOpen,
   onClose,
   customer,
-  onPromptMpesa,
 }: CustomerHistoryModalProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'debts' | 'payments'>('all');
   const [events, setEvents] = useState<LedgerEvent[]>([]);
@@ -215,8 +213,8 @@ export function CustomerHistoryModal({
     setTimeout(() => setCopiedRef(null), 1800);
   };
 
-  const whatsappUrl = customer.phone
-    ? `https://wa.me/${customer.phone.replace(/\+/g, '')}?text=${encodeURIComponent(shareStatementText())}`
+  const whatsappUrl = customer?.phone
+    ? `https://wa.me/${String(customer.phone).replace(/\D/g, '')}?text=${encodeURIComponent(shareStatementText())}`
     : null;
 
   return (
@@ -233,15 +231,15 @@ export function CustomerHistoryModal({
           {/* Customer Identity */}
           <div className="flex items-start gap-3">
             <div className="w-11 h-11 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-sm shrink-0 border border-slate-200/80">
-              {customer.full_name.slice(0, 2).toUpperCase()}
+              {(customer.full_name || 'Client').slice(0, 2).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                  {customer.full_name}
+                  {customer.full_name || 'Unnamed Client'}
                 </h2>
                 <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                  {customer.customer_no}
+                  {customer.customer_no || ''}
                 </span>
                 {customer.nickname && (
                   <span className="text-xs text-slate-500 font-medium">
@@ -300,17 +298,6 @@ export function CustomerHistoryModal({
               )}
               <span>{copiedStatement ? 'Copied' : 'Statement'}</span>
             </button>
-
-            {hasDebt && onPromptMpesa && (
-              <button
-                type="button"
-                onClick={() => onPromptMpesa(customer)}
-                className="h-8 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors shadow-2xs"
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Prompt M-Pesa</span>
-              </button>
-            )}
 
             <button
               type="button"

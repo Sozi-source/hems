@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Plus,
   Users,
-  Smartphone,
   MessageSquareOff,
   BookOpen,
   Search,
@@ -28,7 +27,6 @@ import {
 } from 'lucide-react';
 import { AddCustomerModal } from '@/components/customers/add-customer-modal';
 import { ImportPhonebookModal } from '@/components/customers/import-phonebook-modal';
-import { StkPromptModal } from '@/components/payments/stk-prompt-modal';
 import {
   CustomerHistoryModal,
   CustomerHistoryItem,
@@ -44,13 +42,13 @@ export interface CustomerItem extends CustomerHistoryItem {
 
 export default function CustomersPage() {
   const { activeBusinessId, isMasterView, businesses } = useBusiness();
+  const bizList = businesses || [];
   const [customers, setCustomers] = useState<CustomerItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [stkTarget, setStkTarget] = useState<CustomerItem | null>(null);
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] =
     useState<CustomerItem | null>(null);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
@@ -294,10 +292,10 @@ export default function CustomersPage() {
         return (b.total_paid_minor || 0) - (a.total_paid_minor || 0);
       }
       if (sortBy === 'name_asc') {
-        return a.full_name.localeCompare(b.full_name);
+        return (a.full_name || '').localeCompare(b.full_name || '');
       }
       if (sortBy === 'account_asc') {
-        return a.customer_no.localeCompare(b.customer_no, undefined, { numeric: true });
+        return (a.customer_no || '').localeCompare(b.customer_no || '', undefined, { numeric: true });
       }
       return 0;
     });
@@ -543,7 +541,7 @@ export default function CustomersPage() {
               const borrowed = cust.total_borrowed_minor || 0;
               const paid = cust.total_paid_minor || 0;
               const hasDebt = bal > 0;
-              const bizName = businesses.find((b) => b.id === cust.business_id)?.name;
+              const bizName = bizList.find((b) => b.id === cust.business_id)?.name;
 
               return (
                 <Card
@@ -569,7 +567,7 @@ export default function CustomersPage() {
                         )}
                       </div>
                       <h3 className="text-sm font-bold text-slate-900 mt-1.5 leading-snug">
-                        {cust.full_name}
+                        {cust.full_name || 'Unnamed Client'}
                       </h3>
                       {cust.phone ? (
                         <span className="text-xs text-slate-500 font-mono mt-0.5 block">
@@ -589,7 +587,7 @@ export default function CustomersPage() {
                       <MoneyDisplay
                         minorUnits={bal}
                         size="md"
-                        variant={hasDebt ? 'neutral' : 'neutral'}
+                        variant="neutral"
                       />
                       {hasDebt ? (
                         <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60 inline-block mt-0.5">
@@ -649,20 +647,9 @@ export default function CustomersPage() {
                       <span>Ledger History</span>
                     </button>
 
-                    {hasDebt ? (
-                      <button
-                        type="button"
-                        onClick={() => setStkTarget(cust)}
-                        className="h-8 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
-                      >
-                        <Smartphone className="w-3.5 h-3.5" />
-                        <span>Prompt M-Pesa</span>
-                      </button>
-                    ) : (
-                      <Badge variant="neutral" size="sm">
-                        Settled
-                      </Badge>
-                    )}
+                    <Badge variant={hasDebt ? 'warning' : 'neutral'} size="sm">
+                      {hasDebt ? 'Owes Balance' : 'Settled'}
+                    </Badge>
                   </div>
                 </Card>
               );
@@ -706,13 +693,13 @@ export default function CustomersPage() {
 
                         {isMasterView && (
                           <td className="py-3.5 px-4 text-slate-600">
-                            {businesses.find((business) => business.id === cust.business_id)?.name || '—'}
+                            {bizList.find((business) => business.id === cust.business_id)?.name || '—'}
                           </td>
                         )}
 
                         <td className="py-3.5 px-4 font-semibold text-slate-900 whitespace-normal">
                           <div className="flex flex-col">
-                            <span className="text-slate-900 font-semibold">{cust.full_name}</span>
+                            <span className="text-slate-900 font-semibold">{cust.full_name || 'Unnamed Client'}</span>
                             {cust.nickname && (
                               <span className="text-[11px] font-normal text-slate-500 mt-0.5">
                                 Alias: <strong className="font-medium text-slate-700">{cust.nickname}</strong>
@@ -760,19 +747,6 @@ export default function CustomersPage() {
                               <History className="w-3.5 h-3.5 mr-1 text-slate-500" />
                               Ledger
                             </Button>
-
-                            {hasDebt && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2.5 text-xs text-slate-700"
-                                onClick={() => setStkTarget(cust)}
-                                title="Prompt customer via M-Pesa"
-                              >
-                                <Smartphone className="w-3.5 h-3.5 mr-1 text-slate-500" />
-                                Prompt
-                              </Button>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -800,10 +774,6 @@ export default function CustomersPage() {
         isOpen={Boolean(selectedCustomerForHistory)}
         customer={selectedCustomerForHistory}
         onClose={() => setSelectedCustomerForHistory(null)}
-        onPromptMpesa={(cust) => {
-          setSelectedCustomerForHistory(null);
-          setStkTarget(cust);
-        }}
       />
 
       <AddCustomerModal
@@ -817,20 +787,6 @@ export default function CustomersPage() {
         onClose={() => setIsImportModalOpen(false)}
         onSuccess={loadCustomers}
       />
-
-      {stkTarget && (
-        <StkPromptModal
-          isOpen={Boolean(stkTarget)}
-          onClose={() => setStkTarget(null)}
-          businessId={stkTarget.business_id}
-          customerId={stkTarget.id}
-          customerName={stkTarget.full_name}
-          customerPhone={stkTarget.phone || ''}
-          amountMinor={stkTarget.outstanding_minor || 0}
-          accountReference={stkTarget.customer_no}
-          onSuccess={loadCustomers}
-        />
-      )}
     </div>
   );
 }

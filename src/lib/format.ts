@@ -61,8 +61,8 @@ export function parse_kes(input: string | number): bigint {
 /**
  * Normalizes MSISDN to standard +254 Kenyan format
  */
-export function normalize_msisdn(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
+export function normalize_msisdn(phone: string | null | undefined): string {
+  const digits = String(phone || '').replace(/\D/g, '');
   if (digits.startsWith('254') && digits.length === 12) {
     return digits;
   }

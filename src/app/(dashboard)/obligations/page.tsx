@@ -12,14 +12,12 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Plus,
   Receipt,
-  Smartphone,
   Search,
   Wallet,
   CheckCircle2,
   TrendingDown,
 } from 'lucide-react';
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
-import { StkPromptModal } from '@/components/payments/stk-prompt-modal';
 import { ObligationHistoryModal } from '@/components/obligations/obligation-history-modal';
 import { PaginationBar } from '@/components/ui/pagination-bar';
 
@@ -50,7 +48,6 @@ export default function ObligationsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [stkTarget, setStkTarget] = useState<ObligationItem | null>(null);
   const [selectedObligationForLedger, setSelectedObligationForLedger] = useState<ObligationItem | null>(null);
 
   async function loadObligations() {
@@ -380,21 +377,12 @@ export default function ObligationsPage() {
                     </div>
                   </div>
 
-                  {isReceivable && ob.balance_minor > 0 && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setStkTarget(ob);
-                        }}
-                        className="w-full sm:w-auto min-h-8 px-3 rounded-lg bg-[#123520] hover:bg-[#1A4A2D] text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        <Smartphone className="w-3.5 h-3.5" />
-                        Prompt Customer via M-Pesa
-                      </button>
-                    </div>
-                  )}
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="text-[11px] text-slate-400">Tap to inspect ledger</span>
+                    <Badge variant={isSettled ? 'success' : 'neutral'} size="sm">
+                      {isSettled ? 'Settled' : 'Active'}
+                    </Badge>
+                  </div>
                 </Card>
               );
             })}
@@ -472,25 +460,9 @@ export default function ObligationsPage() {
                         </td>
 
                         <td className="py-3.5 px-4 text-right">
-                          {isReceivable && ob.balance_minor > 0 ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 px-2.5 text-xs text-slate-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setStkTarget(ob);
-                              }}
-                              title="Prompt customer via M-Pesa"
-                            >
-                              <Smartphone className="w-3.5 h-3.5 mr-1 text-slate-500" />
-                              Prompt M-Pesa
-                            </Button>
-                          ) : (
-                            <span className="text-[11px] text-slate-400 group-hover:text-slate-600 transition-colors">
-                              View Ledger →
-                            </span>
-                          )}
+                          <span className="text-[11px] text-slate-400 group-hover:text-slate-600 transition-colors">
+                            View Ledger →
+                          </span>
                         </td>
                       </tr>
                     );
@@ -518,29 +490,11 @@ export default function ObligationsPage() {
         onSuccess={loadObligations}
       />
 
-      {stkTarget && (
-        <StkPromptModal
-          isOpen={Boolean(stkTarget)}
-          onClose={() => setStkTarget(null)}
-          businessId={stkTarget.business_id}
-          customerId={stkTarget.customer_id || ''}
-          customerName={stkTarget.counterparty_name}
-          customerPhone=""
-          amountMinor={stkTarget.balance_minor}
-          accountReference={stkTarget.reference_no}
-          onSuccess={loadObligations}
-        />
-      )}
-
       {selectedObligationForLedger && (
         <ObligationHistoryModal
           isOpen={Boolean(selectedObligationForLedger)}
           onClose={() => setSelectedObligationForLedger(null)}
           obligation={selectedObligationForLedger}
-          onPromptMpesa={(ob) => {
-            setSelectedObligationForLedger(null);
-            setStkTarget(ob);
-          }}
         />
       )}
     </div>
