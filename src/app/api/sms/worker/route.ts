@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 // Provider statuses that will never succeed for this recipient. Do not retry.
-const PERMANENT_BLOCK_STATUSES = ['userinblacklist', 'blacklisted', 'optedout', 'userisinactive'];
+const PERMANENT_BLOCK_STATUSES = ['blacklisted', 'optedout', 'invalid_number'];
 
 class SmsSendError extends Error {
   constructor(message: string, readonly permanentBlock = false, readonly authFailure = false) {
@@ -33,10 +33,11 @@ async function runWorker(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const username = process.env.AT_USERNAME;
-  const apiKey = process.env.AT_API_KEY;
-  if (!username || !apiKey) {
-    return NextResponse.json({ error: 'SMS provider credentials are not configured.' }, { status: 503 });
+  const endpoint = process.env.MOBIWAVES_API_URL;
+  const apiKey = process.env.MOBIWAVES_API_KEY;
+  const senderId = process.env.MOBIWAVES_SENDER_ID;
+  if (!endpoint || !apiKey || !senderId) {
+    return NextResponse.json({ error: 'Mobiwave API URL, API key, and approved sender ID must be configured.' }, { status: 503 });
   }
 
   try {
@@ -58,38 +59,37 @@ async function runWorker(request: Request) {
         continue;
       }
       try {
-        const form = new URLSearchParams({
-          username,
-          to: `+${sms.to_phone.replace(/\D/g, '')}`,
-          message: sms.body,
-        });
-        if (process.env.AT_SENDER_ID) form.set('from', process.env.AT_SENDER_ID);
-
-        const response = await fetch('https://api.africastalking.com/version1/messaging', {
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
-            apiKey,
+            Authorization: `Bearer ${apiKey}`,
             Accept: 'application/json',
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
           },
-          body: form,
+          body: JSON.stringify({
+            recipient: sms.to_phone.replace(/\D/g, ''),
+            sender_id: senderId,
+            type: 'plain',
+            message: sms.body,
+          }),
           signal: AbortSignal.timeout(20000),
         });
         const result = await response.json().catch(() => ({}));
-        const recipient = result?.SMSMessageData?.Recipients?.[0];
-        const statusCode = Number(recipient?.statusCode);
-        if (response.status === 401) {
-          throw new SmsSendError('HTTP 401: check AT_USERNAME / AT_API_KEY (live vs sandbox)', false, true);
+        const accepted = response.ok && result?.status === 'success';
+        if (response.status === 401 || response.status === 403) {
+          throw new SmsSendError('Mobiwaves rejected the configured credentials.', false, true);
         }
-        if (!response.ok || !recipient || ![100, 101, 102].includes(statusCode)) {
-          const details = String(recipient?.status || result?.SMSMessageData?.Message || `HTTP ${response.status}`).slice(0, 500);
+        if (!accepted) {
+          const details = String(result?.message || result?.error || (result?.status ? `Mobiwaves status: ${result.status}` : `HTTP ${response.status}`)).slice(0, 500);
           throw new SmsSendError(details, PERMANENT_BLOCK_STATUSES.includes(details.toLowerCase()));
         }
 
         const { error: updateError } = await admin.from('sms_outbox').update({
           status: 'sent',
-          provider: 'africas_talking',
-          provider_message_id: recipient.messageId || null,
+          provider: 'mobiwaves',
+          provider_message_id: result?.data?.uid || result?.data?.id || result?.data?.message_id ||
+            result?.data?.messageId || result?.data?.[0]?.uid || result?.data?.[0]?.id ||
+            result?.data?.[0]?.message_id || result?.data?.[0]?.messageId || null,
           sent_at: new Date().toISOString(),
           error: null,
         }).eq('id', sms.id).eq('status', 'sending');
@@ -99,7 +99,7 @@ async function runWorker(request: Request) {
         const detail = error instanceof Error ? error.message : 'SMS send failed';
         if (error instanceof SmsSendError && error.authFailure) {
           authFailed = true;
-          console.error('SMS provider rejected credentials (401). Pausing this batch.');
+          console.error('Mobiwaves rejected credentials. Pausing this batch.');
           await admin.from('sms_outbox').update({ status: 'queued', error: detail.slice(0, 1000) })
             .eq('id', sms.id).eq('status', 'sending');
           continue;

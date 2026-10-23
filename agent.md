@@ -27,7 +27,7 @@ Each business has its **own Paybill**. A Paybill/shortcode belongs to exactly on
 
 ## 3. Stack
 Next.js (App Router, TypeScript, `src/` directory) · Supabase (Postgres, Auth, RLS, Edge Functions, pg_cron) ·
-Deploy: Vercel or Cloudflare (frontend), custom domain later · SMS provider: to be chosen in Phase 3 (Africa's Talking is the default candidate).
+Deploy: Vercel or Cloudflare (frontend), custom domain later · SMS provider: Mobiwaves.
 **Payments: Safaricom Daraja directly** (C2B Paybill + STK Push). Paystack is NOT the primary rail (it cannot see
 payments sent directly to a Paybill). It may be added later for cards/bank only.
 
@@ -110,5 +110,5 @@ modules UI (+ sales/stock/payroll tables) → 5 UI polish & reports → 6 securi
 - Match-scoring engine (tables ready; scoring logic is Phase 2).
 - Sales, stock, payroll runs, intercompany transfers, eTIMS/VAT, reducing-balance loans, bank reconciliation: not yet modelled.
 - pg_cron schedules (`queue_due_reminders` every few minutes, `generate_recurring_obligations` daily) not created yet.
-- Phase 3 worker and delivery-report endpoints are implemented; deployment still needs the migration, Africas Talking credentials, callback URL, and a scheduler.
+- Phase 3 worker and delivery-report endpoints are implemented; deployment still needs the SMS migration, Mobiwaves API settings, callback URL, and a scheduler.
 - Kenya Data Protection Act: consent capture, retention policy, ODPC registration (business task).

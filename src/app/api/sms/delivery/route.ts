@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       delivered_at: delivered ? new Date().toISOString() : null,
       error: delivered ? null : String(data.failureReason || data.failure_reason || providerStatus).slice(0, 1000),
     })
-      .eq('provider', 'africas_talking')
+      .eq('provider', 'mobiwaves')
       .eq('provider_message_id', providerMessageId)
       .in('status', ['sent', 'sending'])
       .select('id')
