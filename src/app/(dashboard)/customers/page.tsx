@@ -31,6 +31,7 @@ import {
   CustomerHistoryModal,
   CustomerHistoryItem,
 } from '@/components/customers/customer-history-modal';
+import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
 import { PaginationBar } from '@/components/ui/pagination-bar';
 
 const PAGE_SIZE = 15;
@@ -51,6 +52,7 @@ export default function CustomersPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] =
     useState<CustomerItem | null>(null);
+  const [customerForNewDebt, setCustomerForNewDebt] = useState<CustomerItem | null>(null);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -639,14 +641,25 @@ export default function CustomersPage() {
                     className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <button
-                      type="button"
-                      onClick={() => setSelectedCustomerForHistory(cust)}
-                      className="h-8 px-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
-                    >
-                      <History className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Ledger History</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setCustomerForNewDebt(cust)}
+                        className="h-8 px-2.5 rounded-lg bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-semibold inline-flex items-center gap-1 transition-colors shadow-2xs"
+                        title="Add goods on credit for this customer"
+                      >
+                        <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Add Debt</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCustomerForHistory(cust)}
+                        className="h-8 px-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                      >
+                        <History className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Ledger</span>
+                      </button>
+                    </div>
 
                     <Badge variant={hasDebt ? 'warning' : 'neutral'} size="sm">
                       {hasDebt ? 'Owes Balance' : 'Settled'}
@@ -739,6 +752,16 @@ export default function CustomersPage() {
                         >
                           <div className="flex items-center justify-end gap-1.5">
                             <Button
+                              variant="primary"
+                              size="sm"
+                              className="h-8 px-2.5 text-xs bg-[#0F172A] hover:bg-slate-800 text-white font-medium"
+                              onClick={() => setCustomerForNewDebt(cust)}
+                              title="Add new goods on debt for this customer"
+                            >
+                              <Plus className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                              Add Debt
+                            </Button>
+                            <Button
                               variant="outline"
                               size="sm"
                               className="h-8 px-2.5 text-xs text-slate-700"
@@ -775,6 +798,18 @@ export default function CustomersPage() {
         isOpen={Boolean(selectedCustomerForHistory)}
         customer={selectedCustomerForHistory}
         onClose={() => setSelectedCustomerForHistory(null)}
+        onUpdated={loadCustomers}
+      />
+
+      {/* Quick Add Debt / Bill Modal for Returning Customers */}
+      <CreateObligationModal
+        isOpen={Boolean(customerForNewDebt)}
+        onClose={() => setCustomerForNewDebt(null)}
+        onSuccess={() => {
+          setCustomerForNewDebt(null);
+          loadCustomers();
+        }}
+        preselectedCustomer={customerForNewDebt}
       />
 
       <AddCustomerModal

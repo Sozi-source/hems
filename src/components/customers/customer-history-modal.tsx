@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import { MoneyDisplay } from '@/components/ui/money-display';
@@ -20,7 +20,9 @@ import {
   X,
   CreditCard,
   CheckCircle2,
+  Plus,
 } from 'lucide-react';
+import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
 
 export interface CustomerHistoryItem {
   id: string;
@@ -40,6 +42,7 @@ interface CustomerHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   customer: CustomerHistoryItem | null;
+  onUpdated?: () => void;
 }
 
 interface LedgerEvent {
@@ -58,6 +61,7 @@ export function CustomerHistoryModal({
   isOpen,
   onClose,
   customer,
+  onUpdated,
 }: CustomerHistoryModalProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'debts' | 'payments'>('all');
   const [events, setEvents] = useState<LedgerEvent[]>([]);
@@ -65,6 +69,7 @@ export function CustomerHistoryModal({
   const [copiedStatement, setCopiedStatement] = useState(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAddDebtOpen, setIsAddDebtOpen] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !customer) {
@@ -272,6 +277,15 @@ export function CustomerHistoryModal({
 
           {/* Action Row & Close Button */}
           <div className="flex items-center gap-2 self-end sm:self-start shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsAddDebtOpen(true)}
+              className="h-8 px-2.5 rounded-lg bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors shadow-2xs"
+              title="Add new goods on debt for this client"
+            >
+              <Plus className="w-3.5 h-3.5 text-emerald-400" />
+              <span>+ Add Debt</span>
+            </button>
             {whatsappUrl && (
               <a
                 href={whatsappUrl}
@@ -574,6 +588,16 @@ export function CustomerHistoryModal({
           </button>
         </div>
       </div>
+
+      <CreateObligationModal
+        isOpen={isAddDebtOpen}
+        onClose={() => setIsAddDebtOpen(false)}
+        onSuccess={() => {
+          setIsAddDebtOpen(false);
+          if (onUpdated) onUpdated();
+        }}
+        preselectedCustomer={customer}
+      />
     </Modal>
   );
 }

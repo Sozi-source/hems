@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       data = Object.fromEntries(form.entries());
     }
 
-    const providerMessageId = String(data.id || data.messageId || '').trim();
+    const providerMessageId = String(data.queue_uid || data.uid || data.id || data.messageId || '').trim();
     const providerStatus = String(data.status || '').trim().toLowerCase();
     if (!providerMessageId || !providerStatus) {
       return NextResponse.json({ error: 'Message id and status are required.' }, { status: 400 });
