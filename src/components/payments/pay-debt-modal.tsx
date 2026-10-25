@@ -64,10 +64,6 @@ export function PayDebtModal({
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [selectedObligationId, setSelectedObligationId] = useState<string>('all');
   const [amount, setAmount] = useState<string>('');
-  const [receiptRef, setReceiptRef] = useState<string>('');
-  const [paidAtDate, setPaidAtDate] = useState<string>('');
-  const [memo, setMemo] = useState<string>('Cash received at counter');
-  const [sendSms, setSendSms] = useState<boolean>(true);
 
   // Data state
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
@@ -85,17 +81,12 @@ export function PayDebtModal({
   useEffect(() => {
     if (!isOpen) {
       setAmount('');
-      setReceiptRef('');
-      setMemo('Cash received at counter');
       setError(null);
       setSuccessMsg(null);
       setCustomerSearch('');
       setSelectedObligationId('all');
       return;
     }
-
-    const todayStr = new Date().toISOString().split('T')[0];
-    setPaidAtDate(todayStr);
 
     const targetBiz =
       businessId ||
@@ -300,9 +291,6 @@ export function PayDebtModal({
         customerId: selectedCustomerId,
         amountMinor: Number(parsedInputMinor),
         obligationId: selectedObligationId !== 'all' ? selectedObligationId : null,
-        receiptRef: receiptRef.trim() || null,
-        paidAt: paidAtDate ? new Date(paidAtDate).toISOString() : new Date().toISOString(),
-        note: memo.trim() || 'Cash payment received at counter',
       };
 
       const res = await fetch('/api/payments/cash', {
@@ -538,59 +526,6 @@ export function PayDebtModal({
             </div>
           )}
         </div>
-
-        {/* Paper Receipt Ref & Date */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-600">
-              Receipt No. (Optional)
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. CSH-001"
-              value={receiptRef}
-              onChange={(e) => setReceiptRef(e.target.value)}
-              className="w-full h-9 px-3 text-xs font-mono bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-600">
-              Payment Date
-            </label>
-            <input
-              type="date"
-              value={paidAtDate}
-              onChange={(e) => setPaidAtDate(e.target.value)}
-              className="w-full h-9 px-3 text-xs font-mono bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
-            />
-          </div>
-        </div>
-
-        {/* Note / Memo */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-600">
-            Note (Optional)
-          </label>
-          <input
-            type="text"
-            placeholder="e.g. Cash received at counter"
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            className="w-full h-9 px-3 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
-          />
-        </div>
-
-        {/* SMS Receipt Toggle */}
-        <label className="flex items-center gap-2 cursor-pointer pt-0.5 text-xs text-slate-600 select-none">
-          <input
-            type="checkbox"
-            checked={sendSms}
-            onChange={(e) => setSendSms(e.target.checked)}
-            className="rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-          />
-          <span>Send SMS payment receipt to customer</span>
-        </label>
 
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
