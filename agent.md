@@ -84,7 +84,7 @@ Customer number (`C0001`) doubles as the **Paybill account number**, which makes
 
 ## 7. Roles
 `owner` (everything, members, channels) · `admin` · `accountant` (approve/reject, manage records) ·
-`cashier` (customers, credit sales; cannot approve) · `viewer` (read). Per business. Unassigned payments and the audit log are owner/admin only.
+`cashier` (customers, credit sales, counter cash payments; cannot approve electronic/pending payments) · `viewer` (read). Per business. Unassigned payments and the audit log are owner/admin only.
 
 ## 8. Daraja notes (verify against current Daraja docs before building Phase 2)
 - C2B: register validation/confirmation URLs per shortcode. Confirmation gives receipt, amount, time, BillRefNumber

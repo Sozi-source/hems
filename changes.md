@@ -1,3 +1,20 @@
+# Pay Debt (Paper Money / Cash Payment) & Counter Debt Settlement
+
+- **added** `supabase/migrations/20261025000017_record_cash_payment.sql` — Added migration defining `record_cash_payment` SQL function, configured cash channels (`CASH-<code>`) across businesses, and updated `on_business_created` to auto-provision cash channels for future business entities. Supports FIFO debt allocation, custom paper receipt references, and instant payment confirmation SMS.
+- **added** `src/app/api/payments/cash/route.ts` — Created authenticated endpoint for processing paper money / cash payments. Validates user permissions (`owner`, `admin`, `accountant`, `cashier`), posts approved cash transactions, reduces customer debt obligations, and triggers immediate SMS confirmation delivery.
+- **added** `src/components/payments/pay-debt-modal.tsx` — Reusable fintech modal for recording paper money cash payments with live remaining debt calculation, quick full/partial settlement chips, paper receipt book reference inputs, cashier notes, and instant customer SMS notification toggles.
+- **changed** `src/app/(dashboard)/customers/page.tsx` — Added emerald `Pay Debt` action button to desktop customer table and mobile cards to allow immediate counter debt settlement.
+- **changed** `src/components/customers/customer-history-modal.tsx` — Added `Pay Debt` button directly in the customer historical ledger/statement modal header with immediate ledger refresh on completion.
+- **changed** `src/app/(dashboard)/obligations/page.tsx` — Added `Pay Cash` button on receivable customer debts across desktop table and mobile cards.
+- **changed** `src/components/obligations/obligation-history-modal.tsx` — Added `Pay Debt` button in obligation modal header to settle specific invoices directly with cash.
+- **changed** `src/app/(dashboard)/payments/page.tsx` — Added `Pay Debt (Cash)` button to page header action bar.
+- **changed** `supabase/tests/001_core_workflow.sql` — Added test assertion verifying cashier can record cash payments, update balances, queue confirmation SMS, and audit transactions.
+- **added** `scripts/test-cash-payment.js` — Standalone test utility verifying end-to-end cash payment ingest, allocation, balance reduction, and confirmation SMS delivery.
+
+## Verification
+- Ran `scripts/test-cash-payment.js`: Successfully verified cash payment ingestion, balance reduction from KES 500 to KES 200, status update to `partially_paid`, and confirmation SMS queueing.
+- Ran `npm run build`: Production build and type checking passed with 0 errors across all 36/36 routes.
+
 # Bank Payment Channels, Single-SMS Optimization & Remittance Statements
 
 - **added** `supabase/migrations/20261025000016_bank_payment_channels_and_templates.sql` — Configured active bank Paybill channels: Equity Bank (`247247`, Acc `650166`) and NCBA Bank (`880100`, Acc `650166`) for Haron Fashion; Absa Bank (`303030`, Acc `1398#`) for Zenith Plast. Optimized SMS templates (`credit_sale_invoice` and `customer_reminder`) to fit strictly within single-SMS character limits (<= 160 characters) to cut provider SMS credit consumption by 50%.

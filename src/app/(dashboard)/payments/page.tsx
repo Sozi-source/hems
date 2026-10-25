@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Clock,
   CheckCheck,
+  Banknote,
 } from 'lucide-react';
 import { ApprovePaymentModal } from '@/components/payments/approve-payment-modal';
 import { RejectPaymentModal } from '@/components/payments/reject-payment-modal';
@@ -26,6 +27,7 @@ import { SimulatePaymentModal } from '@/components/payments/simulate-payment-mod
 import { ImportStatementModal } from '@/components/payments/import-statement-modal';
 import { PasteAlertModal } from '@/components/payments/paste-alert-modal';
 import { SmsReaderSetupModal } from '@/components/payments/sms-reader-setup-modal';
+import { PayDebtModal } from '@/components/payments/pay-debt-modal';
 import { PaginationBar } from '@/components/ui/pagination-bar';
 
 const PAGE_SIZE = 15;
@@ -50,6 +52,7 @@ export default function PaymentsPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isPasteAlertModalOpen, setIsPasteAlertModalOpen] = useState(false);
   const [isReaderModalOpen, setIsReaderModalOpen] = useState(false);
+  const [isPayDebtModalOpen, setIsPayDebtModalOpen] = useState(false);
   const [isBatchApproving, setIsBatchApproving] = useState(false);
   const [batchApproveMsg, setBatchApproveMsg] = useState<string | null>(null);
 
@@ -206,6 +209,17 @@ export default function PaymentsPage() {
               Simulate
             </Button>
           )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsPayDebtModalOpen(true)}
+            className="h-9 px-3 text-xs border-emerald-300 text-emerald-800 bg-emerald-50/60 hover:bg-emerald-100 font-semibold"
+            title="Record paper money / cash payment to pay debt"
+          >
+            <Banknote className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+            Pay Debt (Cash)
+          </Button>
 
           <Button
             variant="primary"
@@ -595,6 +609,12 @@ export default function PaymentsPage() {
       <SmsReaderSetupModal
         isOpen={isReaderModalOpen}
         onClose={() => setIsReaderModalOpen(false)}
+      />
+
+      <PayDebtModal
+        isOpen={isPayDebtModalOpen}
+        onClose={() => setIsPayDebtModalOpen(false)}
+        onSuccess={loadPayments}
       />
     </div>
   );

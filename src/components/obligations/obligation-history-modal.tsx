@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
 import { MoneyDisplay } from '@/components/ui/money-display';
@@ -17,8 +17,10 @@ import {
   Smartphone,
   User,
   Clock,
+  Banknote,
 } from 'lucide-react';
 import { ObligationDirection } from '@/lib/types';
+import { PayDebtModal } from '@/components/payments/pay-debt-modal';
 
 export interface ObligationModalItem {
   id: string;
@@ -41,6 +43,7 @@ interface ObligationHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   obligation: ObligationModalItem | null;
+  onUpdated?: () => void;
 }
 
 interface JournalEntry {
@@ -57,10 +60,85 @@ export function ObligationHistoryModal({
   isOpen,
   onClose,
   obligation,
+  onUpdated,
 }: ObligationHistoryModalProps) {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
+  const [isPayDebtOpen, setIsPayDebtOpen] = useState(false);
+
+  const loadEntries = useCallback(async () => {
+    if (!obligation) return;
+    setLoading(true);
+    try {
+      const supabase = createClient();
+
+      // 1. Fetch obligation journal entries
+      const { data: rawEntries } = await supabase
+        .from('obligation_entries')
+        .select('id, entry_type, signed_minor, entry_date, memo, payment_allocation_id, created_at')
+        .eq('obligation_id', obligation.id)
+        .order('created_at', { ascending: false });
+
+      // 2. Fetch payment transaction info for entries with allocations
+      const allocationIds = (rawEntries || [])
+        .map((r: any) => r.payment_allocation_id)
+        .filter(Boolean);
+
+      const txMap = new Map<string, { ref: string; provider: string }>();
+
+      if (allocationIds.length > 0) {
+        const { data: allocs } = await supabase
+          .from('payment_allocations')
+          .select('id, payment_id')
+          .in('id', allocationIds);
+
+        const paymentIds = (allocs || []).map((a: any) => a.payment_id).filter(Boolean);
+        if (paymentIds.length > 0) {
+          const { data: payments } = await supabase
+            .from('payment_transactions')
+            .select('id, transaction_ref, provider')
+            .in('id', paymentIds);
+
+          const pMap = new Map((payments || []).map((p: any) => [p.id, p]));
+          for (const a of allocs || []) {
+            const p = pMap.get(a.payment_id);
+            if (p) txMap.set(a.id, { ref: p.transaction_ref, provider: p.provider });
+          }
+        }
+      }
+
+      const journal: JournalEntry[] = (rawEntries || []).map((r: any) => {
+        const tx = r.payment_allocation_id ? txMap.get(r.payment_allocation_id) : undefined;
+        return {
+          id: r.id,
+          entryType: r.entry_type,
+          signedMinor: Number(r.signed_minor || 0),
+          entryDate: r.entry_date || r.created_at,
+          memo: r.memo,
+          transactionRef: tx?.ref,
+          provider: tx?.provider,
+        };
+      });
+
+      // If no journal entries exist yet, synthesize the opening charge
+      if (journal.length === 0 && obligation.original_minor > 0) {
+        journal.push({
+          id: `orig-${obligation.id}`,
+          entryType: 'charge',
+          signedMinor: obligation.original_minor,
+          entryDate: obligation.issue_date || new Date().toISOString(),
+          memo: `Initial ${obligation.kind.replace('_', ' ')} issued`,
+        });
+      }
+
+      setEntries(journal);
+    } catch {
+      setEntries([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [obligation]);
 
   useEffect(() => {
     if (!isOpen || !obligation) {
@@ -68,81 +146,8 @@ export function ObligationHistoryModal({
       return;
     }
 
-    async function loadEntries() {
-      if (!obligation) return;
-      setLoading(true);
-      try {
-        const supabase = createClient();
-
-        // 1. Fetch obligation journal entries
-        const { data: rawEntries } = await supabase
-          .from('obligation_entries')
-          .select('id, entry_type, signed_minor, entry_date, memo, payment_allocation_id, created_at')
-          .eq('obligation_id', obligation.id)
-          .order('created_at', { ascending: false });
-
-        // 2. Fetch payment transaction info for entries with allocations
-        const allocationIds = (rawEntries || [])
-          .map((r: any) => r.payment_allocation_id)
-          .filter(Boolean);
-
-        const txMap = new Map<string, { ref: string; provider: string }>();
-
-        if (allocationIds.length > 0) {
-          const { data: allocs } = await supabase
-            .from('payment_allocations')
-            .select('id, payment_id')
-            .in('id', allocationIds);
-
-          const paymentIds = (allocs || []).map((a: any) => a.payment_id).filter(Boolean);
-          if (paymentIds.length > 0) {
-            const { data: payments } = await supabase
-              .from('payment_transactions')
-              .select('id, transaction_ref, provider')
-              .in('id', paymentIds);
-
-            const pMap = new Map((payments || []).map((p: any) => [p.id, p]));
-            for (const a of allocs || []) {
-              const p = pMap.get(a.payment_id);
-              if (p) txMap.set(a.id, { ref: p.transaction_ref, provider: p.provider });
-            }
-          }
-        }
-
-        const journal: JournalEntry[] = (rawEntries || []).map((r: any) => {
-          const tx = r.payment_allocation_id ? txMap.get(r.payment_allocation_id) : undefined;
-          return {
-            id: r.id,
-            entryType: r.entry_type,
-            signedMinor: Number(r.signed_minor || 0),
-            entryDate: r.entry_date || r.created_at,
-            memo: r.memo,
-            transactionRef: tx?.ref,
-            provider: tx?.provider,
-          };
-        });
-
-        // If no journal entries exist yet, synthesize the opening charge
-        if (journal.length === 0 && obligation.original_minor > 0) {
-          journal.push({
-            id: `orig-${obligation.id}`,
-            entryType: 'charge',
-            signedMinor: obligation.original_minor,
-            entryDate: obligation.issue_date || new Date().toISOString(),
-            memo: `Initial ${obligation.kind.replace('_', ' ')} issued`,
-          });
-        }
-
-        setEntries(journal);
-      } catch {
-        setEntries([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     loadEntries();
-  }, [isOpen, obligation]);
+  }, [isOpen, obligation, loadEntries]);
 
   if (!obligation) return null;
 
@@ -213,6 +218,17 @@ export function ObligationHistoryModal({
 
           {/* Action Row & Close */}
           <div className="flex items-center gap-2 self-end sm:self-start shrink-0">
+            {hasDebt && isReceivable && (
+              <button
+                type="button"
+                onClick={() => setIsPayDebtOpen(true)}
+                className="h-8 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors shadow-2xs"
+                title="Pay this invoice with paper cash"
+              >
+                <Banknote className="w-3.5 h-3.5 text-emerald-100" />
+                <span>Pay Debt</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -409,6 +425,17 @@ export function ObligationHistoryModal({
           </button>
         </div>
       </div>
+
+      <PayDebtModal
+        isOpen={isPayDebtOpen}
+        onClose={() => setIsPayDebtOpen(false)}
+        onSuccess={() => {
+          setIsPayDebtOpen(false);
+          loadEntries();
+          if (onUpdated) onUpdated();
+        }}
+        preselectedObligation={obligation}
+      />
     </Modal>
   );
 }

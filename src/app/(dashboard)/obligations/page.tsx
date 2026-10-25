@@ -16,9 +16,11 @@ import {
   Wallet,
   CheckCircle2,
   TrendingDown,
+  Banknote,
 } from 'lucide-react';
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
 import { ObligationHistoryModal } from '@/components/obligations/obligation-history-modal';
+import { PayDebtModal } from '@/components/payments/pay-debt-modal';
 import { PaginationBar } from '@/components/ui/pagination-bar';
 
 const PAGE_SIZE = 15;
@@ -49,6 +51,7 @@ export default function ObligationsPage() {
   const [showAll, setShowAll] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedObligationForLedger, setSelectedObligationForLedger] = useState<ObligationItem | null>(null);
+  const [obligationForPayDebt, setObligationForPayDebt] = useState<ObligationItem | null>(null);
 
   async function loadObligations() {
     try {
@@ -378,8 +381,23 @@ export default function ObligationsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span className="text-[11px] text-slate-400">Tap to inspect ledger</span>
+                  <div
+                    className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {isReceivable && ob.balance_minor > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setObligationForPayDebt(ob)}
+                        className="h-7 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1 transition-colors shadow-2xs"
+                        title="Pay this debt with paper cash"
+                      >
+                        <Banknote className="w-3.5 h-3.5 text-emerald-200" />
+                        <span>Pay Cash</span>
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-slate-400">Tap to inspect ledger</span>
+                    )}
                     <Badge variant={isSettled ? 'success' : 'neutral'} size="sm">
                       {isSettled ? 'Settled' : 'Active'}
                     </Badge>
@@ -460,10 +478,29 @@ export default function ObligationsPage() {
                           )}
                         </td>
 
-                        <td className="py-3.5 px-4 text-right">
-                          <span className="text-[11px] text-slate-400 group-hover:text-slate-600 transition-colors">
-                            View Ledger →
-                          </span>
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {isReceivable && ob.balance_minor > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100 border-emerald-300 font-semibold"
+                                onClick={() => setObligationForPayDebt(ob)}
+                                title="Pay debt with paper cash"
+                              >
+                                <Banknote className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                                Pay Cash
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs text-slate-500 hover:text-slate-800"
+                              onClick={() => setSelectedObligationForLedger(ob)}
+                            >
+                              Ledger →
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -495,9 +532,20 @@ export default function ObligationsPage() {
         <ObligationHistoryModal
           isOpen={Boolean(selectedObligationForLedger)}
           onClose={() => setSelectedObligationForLedger(null)}
+          onUpdated={loadObligations}
           obligation={selectedObligationForLedger}
         />
       )}
+
+      <PayDebtModal
+        isOpen={Boolean(obligationForPayDebt)}
+        onClose={() => setObligationForPayDebt(null)}
+        onSuccess={() => {
+          setObligationForPayDebt(null);
+          loadObligations();
+        }}
+        preselectedObligation={obligationForPayDebt}
+      />
     </div>
   );
 }

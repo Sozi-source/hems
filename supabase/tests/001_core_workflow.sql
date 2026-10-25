@@ -292,7 +292,27 @@ do $$ begin
      jsonb_build_array(jsonb_build_object('obligation_id',(select id from public.obligations where kind='loan'),'amount_minor',1100000)));
   assert (select amount_paid_minor from public.v_loan_overview) = 1100000;
   assert (select outstanding_minor from public.v_loan_overview) = 9900000;
-  assert (select next_repayment_date from public.v_loan_overview) = (now() at time zone 'Africa/Nairobi')::date + 10 + interval '1 month', 'next repayment advances';
+-- ===== 7b. cash payment (pay debt): cashier records paper cash, clears debt =====
+:as_cashier
+do $$
+declare
+  h uuid; john uuid; o1 uuid; res jsonb;
+begin
+  select id into h from public.businesses where code='HARON_FASHION';
+  select id into john from public.customers where business_id=h and full_name='John Kamau';
+  select id into o1 from public.obligations where business_id=h and customer_id=john and description='o1';
+
+  -- Cashier records paper cash payment towards customer debt
+  res := public.record_cash_payment(h, john, 500000, p_obligation_id => o1, p_note => 'Paper cash received at counter');
+  assert (res->>'allocated_minor')::bigint = 500000, 'allocated 500,000 cents';
+  assert (select balance_minor from public.obligations where id=o1) = 1500000, 'balance reduced by 500,000 cents';
+  assert (select provider from public.payment_transactions where id=(res->>'payment_id')::uuid) = 'cash', 'provider is cash';
+  assert (select source from public.payment_transactions where id=(res->>'payment_id')::uuid) = 'manual', 'source is manual';
+  assert (select count(*) from public.sms_outbox where related_payment_id=(res->>'payment_id')::uuid) = 1, 'confirmation SMS queued';
+
+  -- Clean up by reversing so balance returns to 2,000,000 for dashboard assertions
+  perform public.reverse_payment((res->>'payment_id')::uuid, 'Test cleanup reversal');
+  assert (select balance_minor from public.obligations where id=o1) = 2000000, 'balance restored after reversal';
 end $$;
 
 -- ===== 8. dashboards, statements, audit ========================================

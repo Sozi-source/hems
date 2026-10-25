@@ -24,6 +24,7 @@ import {
   TrendingDown,
   TrendingUp,
   X,
+  Banknote,
 } from 'lucide-react';
 import { AddCustomerModal } from '@/components/customers/add-customer-modal';
 import { ImportPhonebookModal } from '@/components/customers/import-phonebook-modal';
@@ -32,6 +33,7 @@ import {
   CustomerHistoryItem,
 } from '@/components/customers/customer-history-modal';
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
+import { PayDebtModal } from '@/components/payments/pay-debt-modal';
 import { PaginationBar } from '@/components/ui/pagination-bar';
 
 const PAGE_SIZE = 15;
@@ -53,6 +55,7 @@ export default function CustomersPage() {
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] =
     useState<CustomerItem | null>(null);
   const [customerForNewDebt, setCustomerForNewDebt] = useState<CustomerItem | null>(null);
+  const [customerForPayDebt, setCustomerForPayDebt] = useState<CustomerItem | null>(null);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -641,7 +644,20 @@ export default function CustomersPage() {
                     className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setCustomerForPayDebt(cust)}
+                        className={`h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors shadow-2xs ${
+                          hasDebt
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            : 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                        }`}
+                        title="Pay debt with paper cash"
+                      >
+                        <Banknote className={`w-3.5 h-3.5 ${hasDebt ? 'text-emerald-200' : 'text-slate-500'}`} />
+                        <span>Pay Debt</span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => setCustomerForNewDebt(cust)}
@@ -751,6 +767,29 @@ export default function CustomersPage() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-end gap-1.5">
+                            {bal > 0 ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2.5 text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100/80 border-emerald-300 font-semibold"
+                                onClick={() => setCustomerForPayDebt(cust)}
+                                title="Pay customer debt with paper cash"
+                              >
+                                <Banknote className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                                Pay Debt
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 px-2 text-xs text-slate-600 hover:text-slate-800"
+                                onClick={() => setCustomerForPayDebt(cust)}
+                                title="Record cash payment or advance"
+                              >
+                                <Banknote className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                                Pay Cash
+                              </Button>
+                            )}
                             <Button
                               variant="primary"
                               size="sm"
@@ -810,6 +849,17 @@ export default function CustomersPage() {
           loadCustomers();
         }}
         preselectedCustomer={customerForNewDebt}
+      />
+
+      {/* Pay Debt Modal (Paper Money / Cash Payment) */}
+      <PayDebtModal
+        isOpen={Boolean(customerForPayDebt)}
+        onClose={() => setCustomerForPayDebt(null)}
+        onSuccess={() => {
+          setCustomerForPayDebt(null);
+          loadCustomers();
+        }}
+        preselectedCustomer={customerForPayDebt}
       />
 
       <AddCustomerModal

@@ -21,8 +21,10 @@ import {
   CreditCard,
   CheckCircle2,
   Plus,
+  Banknote,
 } from 'lucide-react';
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
+import { PayDebtModal } from '@/components/payments/pay-debt-modal';
 import { useBusiness } from '@/context/business-context';
 
 export interface CustomerHistoryItem {
@@ -72,6 +74,79 @@ export function CustomerHistoryModal({
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDebtOpen, setIsAddDebtOpen] = useState(false);
+  const [isPayDebtOpen, setIsPayDebtOpen] = useState(false);
+
+  const loadLedger = useCallback(async () => {
+    if (!customer) return;
+    setIsLoading(true);
+    try {
+      const supabase = createClient();
+
+      // 1. Fetch all obligations for this customer
+      const { data: obligations } = await supabase
+        .from('v_obligation_overview')
+        .select('id, reference_no, original_minor, balance_minor, paid_minor, status, issue_date, due_date, created_at, description')
+        .eq('customer_id', customer.id)
+        .eq('kind', 'customer_debt')
+        .order('created_at', { ascending: false });
+
+      // 2. Fetch all direct payments
+      let paymentsQuery = supabase
+        .from('payment_transactions')
+        .select('id, transaction_ref, amount_minor, occurred_at, provider, status, description, account_reference, payer_name')
+        .eq('business_id', customer.business_id);
+
+      if (customer.phone) {
+        paymentsQuery = paymentsQuery.or(
+          `account_reference.eq.${customer.customer_no},payer_msisdn.eq.${customer.phone}`
+        );
+      } else {
+        paymentsQuery = paymentsQuery.eq('account_reference', customer.customer_no);
+      }
+
+      const { data: directPayments } = await paymentsQuery.order('occurred_at', { ascending: false });
+
+      // 3. Combine into unified ledger timeline
+      const timeline: LedgerEvent[] = [];
+
+      for (const o of obligations || []) {
+        timeline.push({
+          id: `debt-${o.id}`,
+          type: 'debt',
+          date: o.issue_date || o.created_at,
+          reference: o.reference_no,
+          amountMinor: Number(o.original_minor || 0),
+          balanceMinor: Number(o.balance_minor || 0),
+          status: o.status,
+          description: o.description || `Credit Purchase (${o.reference_no})`,
+        });
+      }
+
+      const seenRef = new Set<string>();
+      for (const p of directPayments || []) {
+        if (seenRef.has(p.transaction_ref)) continue;
+        seenRef.add(p.transaction_ref);
+
+        timeline.push({
+          id: `pay-${p.id}`,
+          type: 'payment',
+          date: p.occurred_at,
+          reference: p.transaction_ref,
+          amountMinor: Number(p.amount_minor || 0),
+          status: p.status,
+          provider: p.provider,
+          description: p.description || `Payment via ${p.provider || 'Bank/M-Pesa'}`,
+        });
+      }
+
+      timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setEvents(timeline);
+    } catch {
+      setEvents([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [customer]);
 
   useEffect(() => {
     if (!isOpen || !customer) {
@@ -80,80 +155,8 @@ export function CustomerHistoryModal({
       return;
     }
 
-    async function loadLedger() {
-      if (!customer) return;
-      setIsLoading(true);
-      try {
-        const supabase = createClient();
-
-        // 1. Fetch all obligations for this customer
-        const { data: obligations } = await supabase
-          .from('v_obligation_overview')
-          .select('id, reference_no, original_minor, balance_minor, paid_minor, status, issue_date, due_date, created_at, description')
-          .eq('customer_id', customer.id)
-          .eq('kind', 'customer_debt')
-          .order('created_at', { ascending: false });
-
-        // 2. Fetch all direct payments
-        let paymentsQuery = supabase
-          .from('payment_transactions')
-          .select('id, transaction_ref, amount_minor, occurred_at, provider, status, description, account_reference, payer_name')
-          .eq('business_id', customer.business_id);
-
-        if (customer.phone) {
-          paymentsQuery = paymentsQuery.or(
-            `account_reference.eq.${customer.customer_no},payer_msisdn.eq.${customer.phone}`
-          );
-        } else {
-          paymentsQuery = paymentsQuery.eq('account_reference', customer.customer_no);
-        }
-
-        const { data: directPayments } = await paymentsQuery.order('occurred_at', { ascending: false });
-
-        // 3. Combine into unified ledger timeline
-        const timeline: LedgerEvent[] = [];
-
-        for (const o of obligations || []) {
-          timeline.push({
-            id: `debt-${o.id}`,
-            type: 'debt',
-            date: o.issue_date || o.created_at,
-            reference: o.reference_no,
-            amountMinor: Number(o.original_minor || 0),
-            balanceMinor: Number(o.balance_minor || 0),
-            status: o.status,
-            description: o.description || `Credit Purchase (${o.reference_no})`,
-          });
-        }
-
-        const seenRef = new Set<string>();
-        for (const p of directPayments || []) {
-          if (seenRef.has(p.transaction_ref)) continue;
-          seenRef.add(p.transaction_ref);
-
-          timeline.push({
-            id: `pay-${p.id}`,
-            type: 'payment',
-            date: p.occurred_at,
-            reference: p.transaction_ref,
-            amountMinor: Number(p.amount_minor || 0),
-            status: p.status,
-            provider: p.provider,
-            description: p.description || `Payment via ${p.provider || 'Bank/M-Pesa'}`,
-          });
-        }
-
-        timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setEvents(timeline);
-      } catch {
-        setEvents([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
     loadLedger();
-  }, [isOpen, customer]);
+  }, [isOpen, customer, loadLedger]);
 
   const debtsOnly = useMemo(() => events.filter((e) => e.type === 'debt'), [events]);
   const paymentsOnly = useMemo(() => events.filter((e) => e.type === 'payment'), [events]);
@@ -291,7 +294,20 @@ export function CustomerHistoryModal({
           </div>
 
           {/* Action Row & Close Button */}
-          <div className="flex items-center gap-2 self-end sm:self-start shrink-0">
+          <div className="flex items-center gap-2 self-end sm:self-start shrink-0 flex-wrap sm:flex-nowrap">
+            <button
+              type="button"
+              onClick={() => setIsPayDebtOpen(true)}
+              className={`h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors shadow-2xs ${
+                hasDebt
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  : 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+              }`}
+              title="Pay debt with paper cash"
+            >
+              <Banknote className={`w-3.5 h-3.5 ${hasDebt ? 'text-emerald-100' : 'text-slate-500'}`} />
+              <span>{hasDebt ? 'Pay Debt' : 'Pay Cash'}</span>
+            </button>
             <button
               type="button"
               onClick={() => setIsAddDebtOpen(true)}
@@ -609,6 +625,18 @@ export function CustomerHistoryModal({
         onClose={() => setIsAddDebtOpen(false)}
         onSuccess={() => {
           setIsAddDebtOpen(false);
+          loadLedger();
+          if (onUpdated) onUpdated();
+        }}
+        preselectedCustomer={customer}
+      />
+
+      <PayDebtModal
+        isOpen={isPayDebtOpen}
+        onClose={() => setIsPayDebtOpen(false)}
+        onSuccess={() => {
+          setIsPayDebtOpen(false);
+          loadLedger();
           if (onUpdated) onUpdated();
         }}
         preselectedCustomer={customer}
