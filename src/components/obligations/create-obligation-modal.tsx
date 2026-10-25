@@ -210,39 +210,34 @@ export function CreateObligationModal({
           </div>
         )}
 
-        {/* Preselected Returning Customer Card */}
+        {/* Preselected Customer Summary */}
         {preselectedCustomer ? (
-          <div className="p-3.5 bg-slate-50 border border-slate-200/90 rounded-fintech">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-semibold px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-700">
-                  {preselectedCustomer.customer_no}
-                </span>
-                <span className="font-semibold text-sm text-slate-900">
+          <div className="p-3 rounded-lg bg-slate-50/80 border border-slate-200/80 flex items-center justify-between">
+            <div className="min-w-0 pr-3">
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="font-semibold text-slate-900 text-sm truncate">
                   {preselectedCustomer.full_name}
                 </span>
+                <span className="font-mono text-xs text-slate-500">
+                  ({preselectedCustomer.customer_no})
+                </span>
                 {preselectedCustomer.nickname && (
-                  <span className="text-xs text-slate-500 font-normal">
-                    ({preselectedCustomer.nickname})
+                  <span className="text-xs text-slate-400">
+                    · {preselectedCustomer.nickname}
                   </span>
                 )}
               </div>
-              <Badge
-                variant={(preselectedCustomer.outstanding_minor || 0) > 0 ? 'warning' : 'neutral'}
-                size="sm"
-              >
-                {(preselectedCustomer.outstanding_minor || 0) > 0 ? 'Owes Balance' : 'Settled (0.00)'}
-              </Badge>
+              <div className="text-xs text-slate-500 font-mono mt-0.5">
+                {preselectedCustomer.phone ? fmt_phone(preselectedCustomer.phone) : 'No phone recorded'}
+              </div>
             </div>
-            <div className="mt-2.5 flex items-center justify-between text-xs text-slate-600 border-t border-slate-200/60 pt-2">
-              <span>
-                Phone: <strong className="font-mono text-slate-700">{preselectedCustomer.phone ? fmt_phone(preselectedCustomer.phone) : 'No phone'}</strong>
+
+            <div className="text-right shrink-0">
+              <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-wider">
+                Current Debt
               </span>
-              <span>
-                Current Balance:{' '}
-                <strong className={(preselectedCustomer.outstanding_minor || 0) > 0 ? 'text-amber-700' : 'text-emerald-700'}>
-                  KES {(((preselectedCustomer.outstanding_minor || 0) / 100)).toLocaleString()}
-                </strong>
+              <span className="text-sm font-bold font-mono text-slate-900">
+                KES {(((preselectedCustomer.outstanding_minor || 0) / 100)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>
@@ -399,12 +394,9 @@ export function CreateObligationModal({
 
         {/* SMS notice for customer debt */}
         {kind === 'customer_debt' && (
-          <div className="p-2.5 rounded-fintech bg-blue-50/80 border border-blue-200/70 text-blue-900 text-xs flex items-start gap-2">
-            <span className="text-sm shrink-0">📱</span>
-            <span>
-              <strong>Instant SMS Notification:</strong> An immediate credit-sale SMS will be dispatched to the customer with this bill, updated balance, and Paybill details.
-            </span>
-          </div>
+          <p className="text-[11px] text-slate-400">
+            An SMS confirmation with updated balance and payment details will be sent automatically.
+          </p>
         )}
 
         <div className="sticky bottom-0 z-10 flex items-center justify-end gap-2 border-t border-slate-200 bg-white pt-3 pb-1">

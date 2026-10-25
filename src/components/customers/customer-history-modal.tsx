@@ -355,11 +355,11 @@ export function CustomerHistoryModal({
           </div>
         </div>
 
-        {/* Minimal, Balanced 3-Card Summary Strip */}
+        {/* Minimal 3-Metric Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-          <div className="p-3 sm:p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/40">
+          <div className="p-3 sm:p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/50">
             <span className="text-[11px] font-medium text-slate-500 block">
-              Total Borrowed (Lifetime)
+              Total Borrowed
             </span>
             <div className="mt-0.5">
               <MoneyDisplay minorUnits={totalBorrowed} size="md" variant="neutral" />
@@ -369,48 +369,38 @@ export function CustomerHistoryModal({
             </span>
           </div>
 
-          <div className="p-3 sm:p-3.5 rounded-xl border border-slate-200/80 bg-slate-50/40">
+          <div className="p-3 sm:p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/50">
             <span className="text-[11px] font-medium text-slate-500 block">
-              Total Paid (Verified)
+              Total Paid
             </span>
             <div className="mt-0.5">
               <MoneyDisplay minorUnits={totalPaid} size="md" variant="neutral" />
             </div>
-            <span className="text-[11px] text-emerald-700 font-medium mt-0.5 block">
+            <span className="text-[11px] text-slate-500 mt-0.5 block">
               {paymentsOnly.length} payment receipt{paymentsOnly.length === 1 ? '' : 's'}
             </span>
           </div>
 
-          <div
-            className={`p-3 sm:p-3.5 rounded-xl border transition-colors ${
-              hasDebt
-                ? 'border-amber-200/90 bg-amber-50/30'
-                : 'border-slate-200/80 bg-slate-50/40'
-            }`}
-          >
+          <div className="p-3 sm:p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/50">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-medium text-slate-500 block">
-                Current Balance Owed
+                Balance Owed
               </span>
               <span
                 className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                   hasDebt
                     ? 'bg-amber-100 text-amber-800'
-                    : 'bg-emerald-100 text-emerald-800'
+                    : 'bg-slate-100 text-slate-600'
                 }`}
               >
-                {hasDebt ? 'Owes Balance' : 'Fully Settled'}
+                {hasDebt ? 'Active Debt' : 'Settled'}
               </span>
             </div>
             <div className="mt-0.5">
               <MoneyDisplay minorUnits={balance} size="md" variant="neutral" />
             </div>
-            <span
-              className={`text-[11px] font-medium mt-0.5 block ${
-                hasDebt ? 'text-amber-700' : 'text-slate-400'
-              }`}
-            >
-              {hasDebt ? 'Outstanding debt' : 'Zero debt'}
+            <span className="text-[11px] text-slate-400 mt-0.5 block">
+              {hasDebt ? 'Current outstanding' : 'Zero debt'}
             </span>
           </div>
         </div>

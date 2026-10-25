@@ -3,23 +3,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { MoneyDisplay } from '@/components/ui/money-display';
 import { fmt_phone, parse_kes } from '@/lib/format';
 import { useBusiness } from '@/context/business-context';
 import { createClient } from '@/lib/supabase/client';
 import {
-  Banknote,
   Search,
   CheckCircle2,
-  Calendar,
-  FileText,
-  User,
   AlertCircle,
-  Receipt,
-  ArrowRight,
-  ShieldCheck,
   Building2,
 } from 'lucide-react';
 
@@ -348,19 +338,19 @@ export function PayDebtModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Pay Debt (Cash Payment)"
+      title="Record Cash Payment"
       maxWidth="md"
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
         {error && (
-          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-start gap-2">
+          <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <div>{error}</div>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+          <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <div>{successMsg}</div>
           </div>
@@ -368,8 +358,8 @@ export function PayDebtModal({
 
         {/* Business Selector (if in Master View) */}
         {isMasterView && !preselectedCustomer && !preselectedObligation && (
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-slate-400" />
               <span>Target Business</span>
             </label>
@@ -381,7 +371,7 @@ export function PayDebtModal({
                 setSelectedCustomerObj(null);
                 setOpenDebts([]);
               }}
-              className="w-full h-10 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
             >
               {businesses.map((biz) => (
                 <option key={biz.id} value={biz.id}>
@@ -392,62 +382,56 @@ export function PayDebtModal({
           </div>
         )}
 
-        {/* Customer Identification */}
+        {/* Customer & Debt Overview */}
         {selectedCustomerObj ? (
-          <div className="p-3.5 rounded-xl border border-emerald-200/80 bg-emerald-50/30 flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center shrink-0 border border-emerald-200">
-                {(selectedCustomerObj.full_name || 'C').slice(0, 2).toUpperCase()}
+          <div className="p-3 rounded-lg bg-slate-50/80 border border-slate-200/80 flex items-center justify-between">
+            <div className="min-w-0 pr-3">
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="font-semibold text-slate-900 text-sm truncate">
+                  {selectedCustomerObj.full_name}
+                </span>
+                <span className="font-mono text-xs text-slate-500">
+                  ({selectedCustomerObj.customer_no})
+                </span>
+                {selectedCustomerObj.nickname && (
+                  <span className="text-xs text-slate-400">
+                    · {selectedCustomerObj.nickname}
+                  </span>
+                )}
               </div>
-              <div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-semibold text-slate-900 text-sm">
-                    {selectedCustomerObj.full_name}
-                  </span>
-                  <span className="font-mono text-[11px] font-semibold text-slate-700 bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                    {selectedCustomerObj.customer_no}
-                  </span>
-                  {selectedCustomerObj.nickname && (
-                    <span className="text-[11px] text-slate-500">
-                      ({selectedCustomerObj.nickname})
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-slate-500 font-mono mt-0.5">
-                  {selectedCustomerObj.phone ? fmt_phone(selectedCustomerObj.phone) : 'No phone recorded'}
-                </div>
+              <div className="text-xs text-slate-500 font-mono mt-0.5">
+                {selectedCustomerObj.phone ? fmt_phone(selectedCustomerObj.phone) : 'No phone recorded'}
               </div>
             </div>
 
             <div className="text-right shrink-0">
-              <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-wide">
+              <span className="text-[10px] font-semibold text-slate-400 block uppercase tracking-wider">
                 Current Debt
               </span>
-              <div className="mt-0.5">
-                <MoneyDisplay minorUnits={currentOutstandingMinor} size="sm" variant="negative" />
-              </div>
+              <span className="text-sm font-bold font-mono text-slate-900">
+                KES {(currentOutstandingMinor / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
         ) : (
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-slate-400" />
-              <span>Select Customer Paying Debt</span>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-600">
+              Customer Paying Debt
             </label>
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search by customer name, phone or account number..."
+                placeholder="Search name, phone, or account #..."
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full h-9 pl-8 pr-3 rounded-lg border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900"
               />
             </div>
 
-            {customers.length > 0 && (
+            {customers.length > 0 && customerSearch.trim() && (
               <div className="max-h-36 overflow-y-auto rounded-lg border border-slate-200 divide-y divide-slate-100 bg-white mt-1">
-                {filteredCustomers.slice(0, 10).map((c) => (
+                {filteredCustomers.slice(0, 8).map((c) => (
                   <button
                     key={c.id}
                     type="button"
@@ -466,8 +450,8 @@ export function PayDebtModal({
                     </div>
                     <div className="font-mono text-right font-medium">
                       {c.outstanding_minor && c.outstanding_minor > 0 ? (
-                        <span className="text-rose-600">
-                          Owes KES {(c.outstanding_minor / 100).toLocaleString()}
+                        <span className="text-slate-800">
+                          KES {(c.outstanding_minor / 100).toLocaleString()}
                         </span>
                       ) : (
                         <span className="text-slate-400">Settled</span>
@@ -480,12 +464,11 @@ export function PayDebtModal({
           </div>
         )}
 
-        {/* Debt Target Selection (FIFO vs Specific Invoice) */}
+        {/* Debt Target Selection (if multiple invoices) */}
         {openDebts.length > 1 && (
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-slate-400" />
-              <span>Apply Cash Payment Towards:</span>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-slate-600">
+              Apply Payment Towards
             </label>
             <select
               value={selectedObligationId}
@@ -498,177 +481,125 @@ export function PayDebtModal({
                   setAmount((currentOutstandingMinor / 100).toFixed(2));
                 }
               }}
-              className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
             >
               <option value="all">
-                Auto-apply across all debts (Oldest First / FIFO — Recommended)
+                Auto-apply across all debts (Oldest debt first)
               </option>
               {openDebts.map((d) => (
                 <option key={d.id} value={d.id}>
-                  Invoice {d.reference_no} — Balance: KES {(d.balance_minor / 100).toLocaleString()}
+                  Invoice {d.reference_no} — KES {(d.balance_minor / 100).toLocaleString()}
                 </option>
               ))}
             </select>
           </div>
         )}
 
-        {/* Cash Payment Amount Input */}
+        {/* Cash Amount Input */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
-              <Banknote className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Cash Amount (Paper Money Received)</span>
-            </label>
+          <div className="flex items-center justify-between text-xs">
+            <label className="font-medium text-slate-700">Amount Received</label>
             {currentOutstandingMinor > 0 && (
               <button
                 type="button"
                 onClick={() => setAmount((currentOutstandingMinor / 100).toFixed(2))}
-                className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-800 underline underline-offset-2"
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
               >
-                Pay Full Debt (KES {(currentOutstandingMinor / 100).toLocaleString()})
+                Pay full balance (KES {(currentOutstandingMinor / 100).toLocaleString()})
               </button>
             )}
           </div>
 
           <div className="relative">
-            <span className="absolute left-3 top-2.5 font-mono text-xs font-semibold text-slate-400">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-xs font-semibold text-slate-400">
               KES
             </span>
-            <Input
-              type="text"
+            <input
+              type="number"
+              step="any"
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="pl-12 font-mono text-base font-bold text-slate-900 tracking-tight h-11"
+              className="w-full h-11 pl-12 pr-3 font-mono text-base font-bold text-slate-900 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition-colors"
               required
             />
           </div>
 
-          {/* Quick Amount Suggestion Chips */}
-          {currentOutstandingMinor > 100000 && (
-            <div className="flex items-center gap-1.5 pt-1 flex-wrap">
-              <span className="text-[10px] text-slate-400">Quick:</span>
-              <button
-                type="button"
-                onClick={() => setAmount((currentOutstandingMinor / 100).toFixed(2))}
-                className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-mono font-medium transition-colors"
-              >
-                100% (KES {(currentOutstandingMinor / 100).toLocaleString()})
-              </button>
-              <button
-                type="button"
-                onClick={() => setAmount((Math.round(currentOutstandingMinor / 200)).toFixed(2))}
-                className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-mono font-medium transition-colors"
-              >
-                50% (KES {Math.round(currentOutstandingMinor / 200).toLocaleString()})
-              </button>
-            </div>
-          )}
-
-          {/* Live Remaining Balance Strip */}
           {parsedInputMinor > 0n && (
-            <div
-              className={`p-2.5 rounded-lg border text-xs flex items-center justify-between transition-colors mt-2 ${
-                isFullSettlement
-                  ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900 font-medium'
-                  : 'bg-slate-50 border-slate-200 text-slate-700'
-              }`}
-            >
-              <span className="text-[11px]">
-                {isFullSettlement
-                  ? '✨ Account will be completely cleared'
-                  : 'Remaining debt after payment:'}
-              </span>
-              <span className="font-mono font-bold text-xs">
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
+              <span>Balance after payment:</span>
+              <span className="font-mono font-semibold text-slate-800">
                 {isFullSettlement ? (
-                  <Badge variant="success" size="sm">
-                    PAID IN FULL
-                  </Badge>
+                  <span className="text-emerald-700 font-medium">Fully Settled (KES 0.00)</span>
                 ) : (
-                  `KES ${(remainingBalanceMinor / 100).toLocaleString()}`
+                  `KES ${(remainingBalanceMinor / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                 )}
               </span>
             </div>
           )}
         </div>
 
-        {/* Paper Receipt Ref & Date in 2 columns */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Paper Receipt Ref & Date */}
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-700 flex items-center gap-1">
-              <Receipt className="w-3.5 h-3.5 text-slate-400" />
-              <span>Paper Receipt No. (Optional)</span>
+            <label className="text-xs font-medium text-slate-600">
+              Receipt No. (Optional)
             </label>
-            <Input
+            <input
               type="text"
-              placeholder="e.g. CSH-001 or RCP-542"
+              placeholder="e.g. CSH-001"
               value={receiptRef}
               onChange={(e) => setReceiptRef(e.target.value)}
-              className="text-xs h-9 font-mono"
+              className="w-full h-9 px-3 text-xs font-mono bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
             />
-            <span className="text-[10px] text-slate-400 block">
-              Leave blank for auto-numbering
-            </span>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-slate-700 flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              <span>Date Received</span>
+            <label className="text-xs font-medium text-slate-600">
+              Payment Date
             </label>
-            <Input
+            <input
               type="date"
               value={paidAtDate}
               onChange={(e) => setPaidAtDate(e.target.value)}
-              className="text-xs h-9 font-mono"
+              className="w-full h-9 px-3 text-xs font-mono bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
             />
           </div>
         </div>
 
-        {/* Cashier Memo */}
+        {/* Note / Memo */}
         <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-700">
-            Cashier Note / Memo
+          <label className="text-xs font-medium text-slate-600">
+            Note (Optional)
           </label>
-          <Input
+          <input
             type="text"
-            placeholder="e.g. Received cash at counter by Cashier"
+            placeholder="e.g. Cash received at counter"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
-            className="text-xs h-9"
+            className="w-full h-9 px-3 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900"
           />
         </div>
 
-        {/* Instant SMS Confirmation Strip */}
-        <div className="p-3 rounded-lg border border-slate-200/90 bg-slate-50/60 flex items-start gap-2.5">
+        {/* SMS Receipt Toggle */}
+        <label className="flex items-center gap-2 cursor-pointer pt-0.5 text-xs text-slate-600 select-none">
           <input
             type="checkbox"
-            id="sendCashSms"
             checked={sendSms}
             onChange={(e) => setSendSms(e.target.checked)}
-            className="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            className="rounded border-slate-300 text-slate-900 focus:ring-slate-900"
           />
-          <label htmlFor="sendCashSms" className="text-xs text-slate-700 cursor-pointer select-none">
-            <span className="font-semibold text-slate-900 block">
-              Send instant payment confirmation SMS
-            </span>
-            <span className="text-[11px] text-slate-500">
-              {selectedCustomerObj?.phone
-                ? `Customer (${fmt_phone(selectedCustomerObj.phone)}) will receive an instant payment SMS with their updated debt balance.`
-                : 'Customer has no phone number on file.'}
-            </span>
-          </label>
-        </div>
+          <span>Send SMS payment receipt to customer</span>
+        </label>
 
-        {/* Form Action Buttons */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        {/* Footer Actions */}
+        <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={onClose}
             disabled={isLoading}
-            className="h-9 px-3 text-xs"
           >
             Cancel
           </Button>
@@ -677,22 +608,10 @@ export function PayDebtModal({
             type="submit"
             variant="primary"
             size="sm"
-            disabled={isLoading || parsedInputMinor <= 0n}
-            className="h-9 px-4 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs"
+            disabled={isLoading || parsedInputMinor <= 0n || (!selectedCustomerObj && !selectedCustomerId)}
+            className="bg-[#0F172A] hover:bg-slate-800 text-white font-medium px-4"
           >
-            {isLoading ? (
-              'Processing Cash...'
-            ) : (
-              <span className="inline-flex items-center gap-1.5">
-                <Banknote className="w-3.5 h-3.5 text-emerald-200" />
-                <span>
-                  Confirm Cash Payment{' '}
-                  {parsedInputMinor > 0n
-                    ? `(KES ${(Number(parsedInputMinor) / 100).toLocaleString()})`
-                    : ''}
-                </span>
-              </span>
-            )}
+            {isLoading ? 'Processing...' : 'Record Payment'}
           </Button>
         </div>
       </form>
