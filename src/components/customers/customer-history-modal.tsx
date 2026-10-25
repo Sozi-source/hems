@@ -23,6 +23,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
+import { useBusiness } from '@/context/business-context';
 
 export interface CustomerHistoryItem {
   id: string;
@@ -63,6 +64,7 @@ export function CustomerHistoryModal({
   customer,
   onUpdated,
 }: CustomerHistoryModalProps) {
+  const { businesses } = useBusiness();
   const [activeTab, setActiveTab] = useState<'all' | 'debts' | 'payments'>('all');
   const [events, setEvents] = useState<LedgerEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -185,8 +187,17 @@ export function CustomerHistoryModal({
   const hasDebt = balance > 0;
 
   const shareStatementText = () => {
+    const biz = businesses.find((b) => b.id === customer.business_id);
+    const isZenith =
+      customer.business_id === 'e76624b0-7cbc-4a7f-a375-6e7ccd6b13d5' ||
+      biz?.code === 'ZENITH_PLAST' ||
+      biz?.code === 'DEV_ZENITH_PLAST' ||
+      biz?.name.toLowerCase().includes('zenith');
+
+    const businessTitle = isZenith ? 'ZENITH PLAST DISTRIBUTORS LTD' : 'HARON FASHION';
+
     const lines = [
-      `*CUSTOMER STATEMENT - HARON FASHION*`,
+      `*CUSTOMER STATEMENT - ${businessTitle}*`,
       `Client: ${customer.full_name} (${customer.customer_no})`,
       `Date: ${new Date().toLocaleDateString('en-GB')}`,
       `---------------------------------`,
@@ -197,7 +208,11 @@ export function CustomerHistoryModal({
     ];
 
     if (hasDebt) {
-      lines.push(`Kindly remit via Paybill 247247 or Equity Bank A/C 650166.`);
+      if (isZenith) {
+        lines.push(`Kindly remit via Absa Bank Paybill 303030, Account 1398# (Ref: ${customer.customer_no}).`);
+      } else {
+        lines.push(`Kindly remit via Equity Paybill 247247 Acc 650166 or NCBA Paybill 880100 Acc 650166 (Ref: ${customer.customer_no}).`);
+      }
       lines.push(`Thank you for your business!`);
     } else {
       lines.push(`Your account is fully settled. Thank you!`);

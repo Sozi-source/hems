@@ -1,3 +1,13 @@
+# Bank Payment Channels, Single-SMS Optimization & Remittance Statements
+
+- **added** `supabase/migrations/20261025000016_bank_payment_channels_and_templates.sql` — Configured active bank Paybill channels: Equity Bank (`247247`, Acc `650166`) and NCBA Bank (`880100`, Acc `650166`) for Haron Fashion; Absa Bank (`303030`, Acc `1398#`) for Zenith Plast. Optimized SMS templates (`credit_sale_invoice` and `customer_reminder`) to fit strictly within single-SMS character limits (<= 160 characters) to cut provider SMS credit consumption by 50%.
+- **changed** `src/components/customers/customer-history-modal.tsx` — Made customer statement generation dynamic by business; statements and WhatsApp remittance prompts now output the exact bank accounts and paybills (Equity 247247 / NCBA 880100 for Haron Fashion vs Absa 303030 for Zenith Plast).
+- **added** `scripts/sync-channels.js` — Synchronization utility to upsert and verify live payment channels in Supabase.
+
+## Verification
+- Applied updates to database via live Supabase client and verified all templates are <= 160 chars and payment channels are active.
+- Run `npm run build`: Production build and type checking passed with 0 errors across all 35/35 routes.
+
 # Instant Credit Sale SMS & Returning Customer Fast Add Debt
 
 - **added** `supabase/migrations/20261025000015_instant_debt_sms.sql` — Added `credit_sale` to `sms_outbox` kind constraint, added `credit_sale_invoice` default template, updated `on_business_created` and `create_obligation()` to automatically queue an instant SMS when goods are picked on credit (`customer_debt`).
