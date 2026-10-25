@@ -428,7 +428,7 @@ export function CustomerHistoryModal({
                   : 'hover:text-slate-900'
               }`}
             >
-              All Activity ({events.length})
+              Full Ledger ({events.length})
             </button>
             <button
               type="button"

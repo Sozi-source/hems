@@ -17,7 +17,6 @@ import {
   Phone,
   Wallet,
   UserCheck,
-  History,
   ArrowUpDown,
   Filter,
   CheckCircle2,
@@ -644,20 +643,18 @@ export default function CustomersPage() {
                     className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setCustomerForPayDebt(cust)}
-                        className={`h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors shadow-2xs ${
-                          hasDebt
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                            : 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                        }`}
-                        title="Pay debt with paper cash"
-                      >
-                        <Banknote className={`w-3.5 h-3.5 ${hasDebt ? 'text-emerald-200' : 'text-slate-500'}`} />
-                        <span>Pay Debt</span>
-                      </button>
+                    <div className="flex items-center gap-1.5">
+                      {hasDebt && (
+                        <button
+                          type="button"
+                          onClick={() => setCustomerForPayDebt(cust)}
+                          className="h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors shadow-2xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                          title="Pay debt with paper cash"
+                        >
+                          <Banknote className="w-3.5 h-3.5 text-emerald-200" />
+                          <span>Pay Debt</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setCustomerForNewDebt(cust)}
@@ -667,19 +664,20 @@ export default function CustomersPage() {
                         <Plus className="w-3.5 h-3.5 text-emerald-400" />
                         <span>Add Debt</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCustomerForHistory(cust)}
-                        className="h-8 px-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
-                      >
-                        <History className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Ledger</span>
-                      </button>
                     </div>
 
-                    <Badge variant={hasDebt ? 'warning' : 'neutral'} size="sm">
-                      {hasDebt ? 'Owes Balance' : 'Settled'}
-                    </Badge>
+                    <div
+                      className="flex items-center gap-1.5 cursor-pointer"
+                      onClick={() => setSelectedCustomerForHistory(cust)}
+                      title="Tap to view client details & statement ledger"
+                    >
+                      <Badge variant={hasDebt ? 'warning' : 'neutral'} size="sm">
+                        {hasDebt ? 'Owes Balance' : 'Settled'}
+                      </Badge>
+                      <span className="text-[11px] text-slate-400 hover:text-slate-600 font-medium">
+                        Details →
+                      </span>
+                    </div>
                   </div>
                 </Card>
               );
@@ -712,8 +710,9 @@ export default function CustomersPage() {
                     return (
                       <tr
                         key={cust.id}
-                        className="hover:bg-slate-50/70 transition-colors cursor-pointer"
+                        className="hover:bg-slate-50/70 transition-colors cursor-pointer group"
                         onClick={() => setSelectedCustomerForHistory(cust)}
+                        title="Click row to view customer details & ledger"
                       >
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className="font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-1 rounded text-xs">
@@ -729,7 +728,7 @@ export default function CustomersPage() {
 
                         <td className="py-3.5 px-4 font-semibold text-slate-900 whitespace-normal">
                           <div className="flex flex-col">
-                            <span className="text-slate-900 font-semibold">{cust.full_name || 'Unnamed Client'}</span>
+                            <span className="text-slate-900 group-hover:text-emerald-800 transition-colors font-semibold">{cust.full_name || 'Unnamed Client'}</span>
                             {cust.nickname && (
                               <span className="text-[11px] font-normal text-slate-500 mt-0.5">
                                 Alias: <strong className="font-medium text-slate-700">{cust.nickname}</strong>
@@ -767,7 +766,7 @@ export default function CustomersPage() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-end gap-1.5">
-                            {bal > 0 ? (
+                            {bal > 0 && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -777,17 +776,6 @@ export default function CustomersPage() {
                               >
                                 <Banknote className="w-3.5 h-3.5 mr-1 text-emerald-600" />
                                 Pay Debt
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2 text-xs text-slate-600 hover:text-slate-800"
-                                onClick={() => setCustomerForPayDebt(cust)}
-                                title="Record cash payment or advance"
-                              >
-                                <Banknote className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                                Pay Cash
                               </Button>
                             )}
                             <Button
@@ -801,14 +789,13 @@ export default function CustomersPage() {
                               Add Debt
                             </Button>
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
-                              className="h-8 px-2.5 text-xs text-slate-700"
+                              className="h-8 px-2 text-xs text-slate-500 hover:text-slate-800 font-medium"
                               onClick={() => setSelectedCustomerForHistory(cust)}
-                              title="View complete customer ledger and statement"
+                              title="View complete customer details & ledger"
                             >
-                              <History className="w-3.5 h-3.5 mr-1 text-slate-500" />
-                              Ledger
+                              Details →
                             </Button>
                           </div>
                         </td>

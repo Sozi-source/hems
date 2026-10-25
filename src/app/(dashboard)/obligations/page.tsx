@@ -497,8 +497,9 @@ export default function ObligationsPage() {
                               size="sm"
                               className="h-7 px-2 text-xs text-slate-500 hover:text-slate-800"
                               onClick={() => setSelectedObligationForLedger(ob)}
+                              title="View obligation details & ledger"
                             >
-                              Ledger →
+                              Details →
                             </Button>
                           </div>
                         </td>
