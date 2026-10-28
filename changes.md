@@ -1,3 +1,35 @@
+# Suppliers Directory, Zero-Placeholder Form Purge & Phonebook Integration
+
+- **added** `src/app/api/suppliers/route.ts` — Created authenticated API endpoint for managing supplier records (`GET`, `POST`, `PATCH`), supporting business isolation, multi-tenant master view, and supplier contact queries.
+- **added** `src/app/(dashboard)/suppliers/page.tsx` — Built comprehensive Suppliers Directory with KPI summary cards (Outstanding Supplier Payables, Total Registered, Payment Terms Standard), real-time search, one-click WhatsApp/Call triggers, and status badges.
+- **added** `src/components/suppliers/add-supplier-modal.tsx` — Created Add Supplier modal featuring Phonebook Integration (Web Contacts Picker API + Quick Paste) for instant vendor contact population with clean, zero-placeholder form styling.
+- **changed** `src/components/layout/sidebar.tsx` & `src/components/layout/mobile-nav.tsx` — Added "Suppliers" navigation link with vendor truck icon across desktop sidebar and mobile navigation bar.
+- **changed** `src/components/obligations/create-obligation-modal.tsx` — Integrated dynamic supplier selector when recording supplier debts (`supplier_debt`), automatically populating payment terms and associating the bill with the chosen vendor.
+- **changed** Forms & Inputs Across Codebase — Completely purged all `placeholder="..."` attributes across all forms, dialogs, auth inputs (`login`, `signup`, `forgot-password`, `reset-password`), payment modals (`pay-debt-modal`, `approve-payment-modal`, `reject-payment-modal`, `simulate-payment-modal`, `stk-prompt-modal`, `paste-alert-modal`), phonebook modal, and search toolbars to eliminate text congestion and visual clutter. Verified zero placeholder occurrences remain across the entire codebase.
+
+## Verification
+- Ran `npm run build`: Production build and type checking passed with 0 errors across all 38/38 routes.
+- Verified 0 remaining placeholder attributes across `src/` using recursive pattern scan.
+- Ran `node scripts/test-template-lengths.js`: Verified all customer SMS templates are $\le 160$ chars (max 158 chars), strictly guaranteeing 1 SMS credit billing.
+
+# Phonebook Contact Ingest & Appended Business Phone Numbers in Messages
+
+- **added** `supabase/migrations/20261029000018_append_business_phone_numbers_to_sms.sql` — Upserted all customer SMS templates (`credit_sale_invoice`, `customer_reminder`, `payment_confirmation`, `payment_confirmation_paid_in_full`) across Haron Fashion (`HARON_FASHION`, `DEV_HARON_FASHION`) to append `Haron fashio-0725499796`, and across Zenith Plast (`ZENITH_PLAST`, `DEV_ZENITH_PLAST`) to append `Zenith- 0711377496`. Updated `create_obligation()` fallback template to automatically append the designated contact number.
+- **added** `scripts/sync-sms-templates.js` — Synchronization utility applying the updated SMS templates and appended contact numbers directly to the live Supabase database.
+- **changed** `src/lib/customers/phonebook-parser.ts` — Added `parseSingleContactString()` with robust Kenyan phone number detection (matching spaced formats like `+254 722 000 111`, `0712-345-678`, etc.), name extraction, and alias/nickname extraction from quotes and parentheses.
+- **changed** `src/components/customers/add-customer-modal.tsx` — Integrated phonebook picker via Web Contact Picker API (`navigator.contacts.select`) for mobile devices and PWA. Added quick-paste and auto-fill helper for pasted contact strings (e.g. `Mama Brian - 0712345678`), visual confirmation tags upon load, and direct link to batch import.
+- **changed** `src/components/customers/import-phonebook-modal.tsx` — Added native `Device Phonebook` tab enabling multi-contact picking directly from phone contacts into the import table, alongside existing file upload (.vcf/.csv) and paste options.
+- **changed** `src/components/customers/customer-history-modal.tsx` — Updated WhatsApp statement and remittance sharing to append `Haron fashio-0725499796` for Haron Fashion and `Zenith- 0711377496` for Zenith Plast.
+- **changed** `src/app/(dashboard)/settings/page.tsx` — Added interactive "Customer SMS Templates & Sign-Off Numbers" card displaying active templates, appended contact numbers, live character counts (≤160 chars single-SMS indicators), and inline template editor.
+- **changed** `src/app/(dashboard)/customers/page.tsx` — Updated header action bar to feature "Import Phonebook" with icon and wired seamless navigation from Add Customer to Import.
+- **changed** `supabase/tests/001_core_workflow.sql` — Updated payment confirmation SMS test assertion to expect the appended `Haron fashio-0725499796` tag.
+- **added** `scripts/verify-features.js` — Automated verification script testing contact string parsing, phone normalization, and live database SMS templates.
+
+## Verification
+- Ran `node scripts/test-template-lengths.js`: Stress tested every customer SMS template across multiple edge-case scenarios (long names like `Bartholomew`, debts over `KSh 1,500,000`, balances over `KSh 5,000,000`). Confirmed maximum rendered character count is at most 158 chars ($\le 160$ chars), strictly guaranteeing 1 SMS credit billing and never deducting 2 SMS credits.
+- Ran `node scripts/verify-features.js`: Successfully verified contact parser edge cases and verified that all 16 template records in Supabase have the exact requested appended phone strings.
+- Ran `npm run build`: Production build and type checking passed with 0 errors across all 36/36 routes.
+
 # Pay Debt (Paper Money / Cash Payment) & Counter Debt Settlement
 
 - **added** `supabase/migrations/20261025000017_record_cash_payment.sql` — Added migration defining `record_cash_payment` SQL function, configured cash channels (`CASH-<code>`) across businesses, and updated `on_business_created` to auto-provision cash channels for future business entities. Supports FIFO debt allocation, custom paper receipt references, and instant payment confirmation SMS.

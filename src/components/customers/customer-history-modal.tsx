@@ -210,15 +210,19 @@ export function CustomerHistoryModal({
       `---------------------------------`,
     ];
 
+    const contactTag = isZenith ? 'Zenith- 0711377496' : 'Haron fashio-0725499796';
+
     if (hasDebt) {
       if (isZenith) {
         lines.push(`Kindly remit via Absa Bank Paybill 303030, Account 1398# (Ref: ${customer.customer_no}).`);
       } else {
         lines.push(`Kindly remit via Equity Paybill 247247 Acc 650166 or NCBA Paybill 880100 Acc 650166 (Ref: ${customer.customer_no}).`);
       }
+      lines.push(contactTag);
       lines.push(`Thank you for your business!`);
     } else {
       lines.push(`Your account is fully settled. Thank you!`);
+      lines.push(contactTag);
     }
 
     return lines.join('\n');
@@ -452,7 +456,6 @@ export function CustomerHistoryModal({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search reference, note..."
                 className="w-full pl-8 pr-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300"
               />
               {searchQuery && (

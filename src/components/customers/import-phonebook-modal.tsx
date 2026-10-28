@@ -10,6 +10,8 @@ import {
   parseVCard,
   parseContactsCsv,
   parsePastedContacts,
+  cleanPhone,
+  extractNicknameFromName,
   ParsedContact,
 } from '@/lib/customers/phonebook-parser';
 import {
@@ -37,7 +39,7 @@ export function ImportPhonebookModal({
 }: ImportPhonebookModalProps) {
   const { businesses, activeBusinessId, isMasterView } = useBusiness();
   const [targetBusinessId, setTargetBusinessId] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload');
+  const [activeTab, setActiveTab] = useState<'device' | 'upload' | 'paste'>('device');
   const [fileName, setFileName] = useState('');
   const [pasteText, setPasteText] = useState('');
   const [contacts, setContacts] = useState<ParsedContact[]>([]);
@@ -50,6 +52,11 @@ export function ImportPhonebookModal({
     skippedCount: number;
   } | null>(null);
 
+  const isContactPickerSupported =
+    typeof window !== 'undefined' &&
+    'contacts' in navigator &&
+    'ContactsManager' in window;
+
   React.useEffect(() => {
     if (isOpen) {
       setError(null);
@@ -58,13 +65,63 @@ export function ImportPhonebookModal({
       setContacts([]);
       setSelectedIndices(new Set());
       setImportSummary(null);
+      setActiveTab(isContactPickerSupported ? 'device' : 'upload');
       if (!isMasterView && activeBusinessId) {
         setTargetBusinessId(activeBusinessId);
       } else if (businesses.length > 0) {
         setTargetBusinessId(businesses[0].id);
       }
     }
-  }, [isOpen, activeBusinessId, isMasterView, businesses]);
+  }, [isOpen, activeBusinessId, isMasterView, businesses, isContactPickerSupported]);
+
+  const handlePickDeviceContacts = async () => {
+    setError(null);
+    setImportSummary(null);
+
+    if (!isContactPickerSupported) {
+      setError('Contact Picker API is not available on this browser/device. Please use Upload File or Paste List.');
+      return;
+    }
+
+    try {
+      const props = ['name', 'tel'];
+      const selected = await (navigator as any).contacts.select(props, { multiple: true });
+      if (!selected || selected.length === 0) return;
+
+      const parsedList: ParsedContact[] = [];
+      for (const item of selected) {
+        const rawName = (item.name && item.name[0]) || '';
+        const phones = item.tel || [];
+        const { fullName, nickname } = extractNicknameFromName(rawName);
+
+        for (const rawPhone of phones) {
+          const cleaned = cleanPhone(rawPhone);
+          if (cleaned) {
+            parsedList.push({
+              fullName,
+              nickname,
+              phone: cleaned,
+              source: 'paste',
+              rawRecord: `${rawName}: ${rawPhone}`,
+            });
+          }
+        }
+      }
+
+      if (parsedList.length === 0) {
+        setError('No valid Kenyan phone numbers found in the selected contacts.');
+        setContacts([]);
+        setSelectedIndices(new Set());
+      } else {
+        setContacts(parsedList);
+        setSelectedIndices(new Set(parsedList.map((_, i) => i)));
+      }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        setError(`Failed to select phonebook contacts: ${err.message || 'Unknown error'}`);
+      }
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
@@ -242,6 +299,18 @@ export function ImportPhonebookModal({
           <div className="flex border-b border-slate-200 text-xs font-medium">
             <button
               type="button"
+              onClick={() => setActiveTab('device')}
+              className={`pb-2.5 px-3 flex items-center gap-1.5 border-b-2 transition-colors ${
+                activeTab === 'device'
+                  ? 'border-slate-900 text-slate-900 font-bold'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Smartphone className="w-4 h-4 text-emerald-600" />
+              Device Phonebook
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('upload')}
               className={`pb-2.5 px-3 flex items-center gap-1.5 border-b-2 transition-colors ${
                 activeTab === 'upload'
@@ -264,6 +333,65 @@ export function ImportPhonebookModal({
               <ClipboardPaste className="w-4 h-4" />
               Paste Contacts List
             </button>
+          </div>
+        )}
+
+        {/* Option 0: Native Device Contacts Picker */}
+        {!importSummary && contacts.length === 0 && activeTab === 'device' && (
+          <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-3">
+            <div className="border border-dashed border-slate-300 hover:border-slate-400 rounded-xl p-6 text-center transition-colors bg-slate-50/50 hover:bg-slate-50">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto mb-3">
+                <Smartphone className="w-6 h-6" />
+              </div>
+              <h4 className="font-semibold text-xs text-slate-900 mb-1">
+                Select Customers Directly from Your Phone
+              </h4>
+              <p className="text-[11px] text-slate-500 max-w-sm mx-auto mb-4">
+                Opens your phone's address book so you can select one or multiple contacts with their phone numbers and nicknames.
+              </p>
+
+              {isContactPickerSupported ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handlePickDeviceContacts}
+                  className="mx-auto"
+                >
+                  <Smartphone className="w-3.5 h-3.5 mr-1.5" />
+                  Open Phone Contacts Picker
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2.5 rounded-lg max-w-sm mx-auto">
+                    Device Contact Picker is natively supported on mobile Android (Chrome/Edge/PWA).
+                    On desktop or iPhone, please use <strong>Upload Phonebook File</strong> or <strong>Paste Contacts</strong>.
+                  </div>
+                  <div className="flex justify-center gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveTab('paste')}
+                      className="text-xs"
+                    >
+                      <ClipboardPaste className="w-3.5 h-3.5 mr-1" />
+                      Paste Contacts
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActiveTab('upload')}
+                      className="text-xs"
+                    >
+                      <UploadCloud className="w-3.5 h-3.5 mr-1" />
+                      Upload .vcf / .csv
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -303,7 +431,6 @@ export function ImportPhonebookModal({
               rows={5}
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
-              placeholder="Mama Brian - 0712345678&#10;Kipkorir Mulot (Festus) - 254113761329&#10;Norah Tangus: 0722000000"
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 placeholder:text-slate-400"
             />
             <div className="flex justify-end">
@@ -378,9 +505,8 @@ export function ImportPhonebookModal({
                         <input
                           type="text"
                           value={c.nickname || ''}
-                          placeholder="— Add nickname —"
                           onChange={(e) => handleContactChange(idx, 'nickname', e.target.value)}
-                          className="w-full bg-transparent px-1.5 py-0.5 rounded border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-white text-xs text-slate-600 placeholder:text-slate-400 placeholder:italic"
+                          className="w-full bg-transparent px-1.5 py-0.5 rounded border border-transparent hover:border-slate-200 focus:border-slate-400 focus:bg-white text-xs text-slate-600"
                         />
                       </td>
                       <td className="px-3 py-1.5 font-mono text-slate-600 whitespace-nowrap tabular-nums">

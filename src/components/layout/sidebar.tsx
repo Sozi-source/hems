@@ -13,6 +13,7 @@ import {
   Settings,
   Shield,
   UserCheck,
+  Truck,
 } from 'lucide-react';
 import { BusinessSwitcher } from './business-switcher';
 import { cn } from '@/lib/utils';
@@ -52,6 +53,11 @@ export function Sidebar() {
       label: 'Customers',
       href: '/customers',
       icon: Users,
+    },
+    {
+      label: 'Suppliers',
+      href: '/suppliers',
+      icon: Truck,
     },
     {
       label: 'Reminders',

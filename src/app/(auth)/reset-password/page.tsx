@@ -28,8 +28,8 @@ export default function ResetPasswordPage() {
   return <AuthShell eyebrow="Secure account recovery" title="Choose a new password" description="Create a new password for your HEMS account." footer={<AuthLink href="/login">Return to sign in</AuthLink>}>
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && <AuthError>{error}</AuthError>}
-      <AuthInput id="password" label="New password" type="password" placeholder="At least 8 characters" autoComplete="new-password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} required />
-      <AuthInput id="confirm-password" label="Confirm new password" type="password" placeholder="Re-enter your password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+      <AuthInput id="password" label="New password" type="password" autoComplete="new-password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} required />
+      <AuthInput id="confirm-password" label="Confirm new password" type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
       <AuthSubmit loading={loading}>Update password <span aria-hidden="true">→</span></AuthSubmit>
     </form>
   </AuthShell>;

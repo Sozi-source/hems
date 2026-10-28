@@ -157,7 +157,6 @@ export function StkPromptModal({
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="0712345678"
                 className="h-9 text-xs font-mono"
                 required
               />

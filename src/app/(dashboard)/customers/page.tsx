@@ -24,6 +24,7 @@ import {
   TrendingUp,
   X,
   Banknote,
+  Smartphone,
 } from 'lucide-react';
 import { AddCustomerModal } from '@/components/customers/add-customer-modal';
 import { ImportPhonebookModal } from '@/components/customers/import-phonebook-modal';
@@ -330,8 +331,8 @@ export default function CustomersPage() {
             onClick={() => setIsImportModalOpen(true)}
             className="h-9 px-3 text-xs"
           >
-            <BookOpen className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
-            Import
+            <Smartphone className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+            <span className="hidden sm:inline">Import</span> Phonebook
           </Button>
           <Button
             variant="primary"
@@ -425,7 +426,6 @@ export default function CustomersPage() {
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by client name, nickname, phone, or customer code..."
               className="w-full h-10 pl-9 pr-8 rounded-lg bg-white border border-slate-200 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
             />
             {searchQuery && (
@@ -853,6 +853,7 @@ export default function CustomersPage() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={loadCustomers}
+        onOpenImport={() => setIsImportModalOpen(true)}
       />
 
       <ImportPhonebookModal

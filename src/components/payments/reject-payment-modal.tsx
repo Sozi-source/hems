@@ -96,7 +96,6 @@ export function RejectPaymentModal({
           <Input
             label="Reason for Rejection *"
             type="text"
-            placeholder="e.g. Erroneous payment, reversed by sender"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             required

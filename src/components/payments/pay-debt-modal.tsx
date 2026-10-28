@@ -410,7 +410,6 @@ export function PayDebtModal({
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Search name, phone, or account #..."
                 value={customerSearch}
                 onChange={(e) => setCustomerSearch(e.target.value)}
                 className="w-full h-9 pl-8 pr-3 rounded-lg border border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900"
@@ -505,7 +504,6 @@ export function PayDebtModal({
             <input
               type="number"
               step="any"
-              placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="w-full h-11 pl-12 pr-3 font-mono text-base font-bold text-slate-900 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 focus:border-slate-900 transition-colors"

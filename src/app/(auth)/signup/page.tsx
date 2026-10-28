@@ -62,10 +62,10 @@ export default function SignupPage() {
       <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-[#d9d2d5] p-4 sm:p-5">
         {error && <AuthError>{error}</AuthError>}
         {sent && <AuthNotice>Check your email to confirm. An administrator must assign your business access.</AuthNotice>}
-        <AuthInput id="full-name" label="Full name" placeholder="Your name" autoComplete="name" value={name} onChange={e => setName(e.target.value)} required />
-        <AuthInput id="email" label="Work email" type="email" placeholder="you@company.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
-        <AuthInput id="password" label="Create password" type="password" placeholder="At least 8 characters" autoComplete="new-password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} required />
-        <AuthInput id="confirm-password" label="Confirm password" type="password" placeholder="Re-enter your password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+        <AuthInput id="full-name" label="Full name" autoComplete="name" value={name} onChange={e => setName(e.target.value)} required />
+        <AuthInput id="email" label="Work email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
+        <AuthInput id="password" label="Create password" type="password" autoComplete="new-password" minLength={8} value={password} onChange={e => setPassword(e.target.value)} required />
+        <AuthInput id="confirm-password" label="Confirm password" type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
         <AuthSubmit loading={loading}>Create account</AuthSubmit>
       </form>
     </AuthShell>

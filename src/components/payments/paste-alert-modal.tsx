@@ -210,7 +210,6 @@ export function PasteAlertModal({
                 rows={3}
                 value={rawText}
                 onChange={(e) => handleTextChange(e.target.value)}
-                placeholder="Paste alert text here (e.g. UJFMDAEN6H Confirmed. KSH5.00 received from 254711390861 WILFRED OSOZI...)"
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 transition-colors placeholder:text-slate-400"
               />
             </div>
@@ -229,7 +228,6 @@ export function PasteAlertModal({
                   <Input
                     value={customRef}
                     onChange={(e) => setCustomRef(e.target.value.toUpperCase())}
-                    placeholder="e.g. UJFMDAEN6H"
                     className="bg-white font-mono uppercase text-xs h-9"
                     required
                   />
@@ -242,7 +240,6 @@ export function PasteAlertModal({
                   <Input
                     value={customAmount}
                     onChange={(e) => setCustomAmount(e.target.value)}
-                    placeholder="e.g. 1500.00"
                     className="bg-white font-semibold text-xs h-9 text-slate-900"
                     required
                   />
@@ -255,7 +252,6 @@ export function PasteAlertModal({
                   <Input
                     value={customAccountRef}
                     onChange={(e) => setCustomAccountRef(e.target.value)}
-                    placeholder="e.g. CD0001 or Haron Fashion"
                     className="bg-white text-xs h-9"
                   />
                 </div>
@@ -267,7 +263,6 @@ export function PasteAlertModal({
                   <Input
                     value={customPayerName}
                     onChange={(e) => setCustomPayerName(e.target.value)}
-                    placeholder="e.g. Wilfred Osozi"
                     className="bg-white text-xs h-9"
                   />
                 </div>

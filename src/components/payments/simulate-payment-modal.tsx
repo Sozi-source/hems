@@ -249,7 +249,6 @@ export function SimulatePaymentModal({
             <Input
               label="Account / BillRef"
               type="text"
-              placeholder="e.g. CD0001"
               value={accountRef}
               onChange={(e) => setAccountRef(e.target.value)}
               className="bg-white h-9 text-xs"

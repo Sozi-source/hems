@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && <AuthError>{error}</AuthError>}
       {sent && <AuthNotice>If an account exists for that email, a password reset link is on its way. Check your inbox.</AuthNotice>}
-      <AuthInput id="email" label="Work email" type="email" placeholder="you@company.com" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
+      <AuthInput id="email" label="Work email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
       <AuthSubmit loading={loading}>Send reset link <span aria-hidden="true">→</span></AuthSubmit>
     </form>
   </AuthShell>;

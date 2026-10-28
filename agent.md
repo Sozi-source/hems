@@ -8,11 +8,11 @@
 **HEMS — Haron Enterprise Management System.** One app that runs several separate businesses with completely
 separate records, plus a Master view that combines figures.
 
-| Code | Business |
-|---|---|
-| `HARON_FASHION` | Haron Fashion (fashion) |
-| `ZENITH_PLAST` | Zenith Plast Distributors Ltd (household plastics distribution) |
-| future | Added as a new row in `businesses`. **No code changes may be required.** |
+| Code | Business | Contact Number & SMS Tag |
+|---|---|---|
+| `HARON_FASHION` | Haron Fashion (fashion) | `0725499796` (`Haron fashio-0725499796`) |
+| `ZENITH_PLAST` | Zenith Plast Distributors Ltd (household plastics distribution) | `0711377496` (`Zenith- 0711377496`) |
+| future | Added as a new row in `businesses`. **No code changes may be required.** | |
 
 Each business has its **own Paybill**. A Paybill/shortcode belongs to exactly one business
 (`payment_channels`, unique on `(provider, shortcode)`), so payments through Daraja are attributed deterministically.

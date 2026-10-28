@@ -113,7 +113,7 @@ begin
   assert (select balance_minor from public.obligations where description='o1') = 2000000, 'debt reduced';
   assert (select status from public.obligations where description='o1') = 'partially_paid';
   assert (select s.body from public.sms_outbox s join public.payment_transactions p on p.id=s.related_payment_id where p.transaction_ref='ABC123XYZ')
-       = 'Dear John, we have received your payment of KSh 10,000. Thank you. Your remaining balance is KSh 20,000.', 'confirmation SMS text';
+       = 'Dear John, payment of KSh 10,000 received. Thank you. Your remaining balance is KSh 20,000. Haron fashio-0725499796', 'confirmation SMS text';
   -- approving twice is impossible
   begin
     perform public.approve_payment((select id from public.payment_transactions where transaction_ref='ABC123XYZ'),

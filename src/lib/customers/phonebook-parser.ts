@@ -18,7 +18,7 @@ export interface PhonebookParseResult {
  * Normalizes phone numbers specifically for Kenyan contact books.
  * Accepts formats: +254 712 345 678, 0712345678, 254712345678, 712345678, 0112345678
  */
-function cleanPhone(raw: string): string | null {
+export function cleanPhone(raw: string): string | null {
   if (!raw) return null;
   // Remove spaces, hyphens, brackets, non-digit chars except plus
   const digits = raw.replace(/\D/g, '');
@@ -36,7 +36,7 @@ function cleanPhone(raw: string): string | null {
  * e.g. "Norah Chelangat (Mama Ivy)" -> { fullName: "Norah Chelangat", nickname: "Mama Ivy" }
  * e.g. "John 'Fundi' Kamau" -> { fullName: "John Kamau", nickname: "Fundi" }
  */
-function extractNicknameFromName(rawName: string, explicitNickname?: string): { fullName: string; nickname?: string } {
+export function extractNicknameFromName(rawName: string, explicitNickname?: string): { fullName: string; nickname?: string } {
   let name = rawName.replace(/\s+/g, ' ').trim();
   let nick = explicitNickname?.trim() || undefined;
 
@@ -68,6 +68,42 @@ function extractNicknameFromName(rawName: string, explicitNickname?: string): { 
   return {
     fullName: name || 'Customer',
     nickname: nick && nick !== name ? nick : undefined,
+  };
+}
+
+/**
+ * Parses a single contact string or clipboard snippet into name, nickname, and phone.
+ * Examples:
+ *   "Mama Brian - 0712345678"
+ *   "Haron fashio-0725499796"
+ *   "Kipkorir (Festus) 254711377496"
+ */
+export function parseSingleContactString(text: string): { fullName: string; nickname?: string; phone?: string } {
+  const trimmed = text.trim();
+  if (!trimmed) return { fullName: '' };
+
+  const phoneMatch = trimmed.match(/(?:\+?254|0)[\s.-]?[17](?:[\s.-]?\d){8}\b|\b[17](?:[\s.-]?\d){8}\b/);
+  let phone: string | undefined;
+  let namePart = trimmed;
+
+  if (phoneMatch) {
+    const cleaned = cleanPhone(phoneMatch[0]);
+    if (cleaned) {
+      phone = cleaned.startsWith('254') ? '0' + cleaned.slice(3) : cleaned;
+    }
+    namePart = trimmed
+      .replace(phoneMatch[0], '')
+      .trim()
+      .replace(/^[\s\-–:,|]+|[\s\-–:,|]+$/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  const { fullName, nickname } = extractNicknameFromName(namePart || (phone ? '' : trimmed));
+  return {
+    fullName,
+    nickname,
+    phone,
   };
 }
 
@@ -239,14 +275,14 @@ export function parsePastedContacts(text: string): PhonebookParseResult {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
   for (const line of lines) {
-    // Look for a Kenyan phone number in the line
-    const phoneMatch = line.match(/\b(0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})\b/);
+    // Look for a Kenyan phone number in the line (supporting spaces or dashes)
+    const phoneMatch = line.match(/(?:\+?254|0)[\s.-]?[17](?:[\s.-]?\d){8}\b|\b[17](?:[\s.-]?\d){8}\b/);
     if (!phoneMatch) {
       skippedCount++;
       continue;
     }
 
-    const phone = cleanPhone(phoneMatch[1]);
+    const phone = cleanPhone(phoneMatch[0]);
     if (!phone) {
       skippedCount++;
       continue;
@@ -255,7 +291,8 @@ export function parsePastedContacts(text: string): PhonebookParseResult {
     // The name is whatever surrounds the phone, stripped of separators (-, :, ,)
     const namePart = line
       .replace(phoneMatch[0], '')
-      .replace(/^[-–:,|]+|[-–:,|]+$/g, '')
+      .trim()
+      .replace(/^[\s\-–:,|]+|[\s\-–:,|]+$/g, '')
       .replace(/\s+/g, ' ')
       .trim();
 

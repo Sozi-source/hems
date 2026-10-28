@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ArrowDownLeft, Receipt, Users, Ellipsis, BellRing, History, Settings, UserCheck } from 'lucide-react';
+import { LayoutDashboard, ArrowDownLeft, Receipt, Users, Ellipsis, BellRing, History, Settings, UserCheck, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const primaryItems = [
@@ -14,6 +14,7 @@ const primaryItems = [
 ];
 
 const moreItems = [
+  { label: 'Suppliers', href: '/suppliers', icon: Truck },
   { label: 'Reminders', href: '/reminders', icon: BellRing },
   { label: 'User Monitoring', href: '/admin/users', icon: UserCheck },
   { label: 'Activity Log', href: '/audit', icon: History },

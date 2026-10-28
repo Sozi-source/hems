@@ -282,7 +282,6 @@ export function ApprovePaymentModal({
                 onChange={(e) => setConflictResolutionNote(e.target.value)}
                 rows={3}
                 maxLength={1000}
-                placeholder="State the independent statement source or M-Pesa portal verification performed..."
                 className="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 transition-colors"
               />
             </div>
@@ -374,7 +373,6 @@ export function ApprovePaymentModal({
               type="text"
               value={approvalNote}
               onChange={(e) => setApprovalNote(e.target.value)}
-              placeholder="e.g. Cleared to general customer ledger"
               required
             />
           )}
