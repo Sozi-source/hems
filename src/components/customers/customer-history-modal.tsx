@@ -493,7 +493,6 @@ export function CustomerHistoryModal({
                           )}
                         </div>
                       </div>
-                    </div>
 
                     {/* Right: Amounts */}
                     <div className="text-right shrink-0">
