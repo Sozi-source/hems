@@ -2,6 +2,61 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { normalize_msisdn } from '@/lib/format';
 
+function validOffsets(value: unknown): value is number[] | null {
+  return value === null || (Array.isArray(value) && value.length > 0 && value.length <= 12 &&
+    value.every((n) => Number.isInteger(n) && n >= 0 && n <= 365) && new Set(value).size === value.length);
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { customerId } = body;
+    const fullName = typeof body.fullName === 'string' ? body.fullName.trim().replace(/\s+/g, ' ') : '';
+    if (typeof customerId !== 'string' || fullName.length < 2 || fullName.length > 120) {
+      return NextResponse.json({ error: 'Enter a customer name between 2 and 120 characters.' }, { status: 400 });
+    }
+    const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+    const normalizedPhone = phone ? normalize_msisdn(phone) : null;
+    if (phone && !normalizedPhone?.match(/^254[17]\d{8}$/)) return NextResponse.json({ error: 'Enter a valid Kenyan phone number.' }, { status: 400 });
+    if (!validOffsets(body.reminderOffsets)) return NextResponse.json({ error: 'Reminder days must be unique whole numbers from 0 to 365, or blank to use business defaults.' }, { status: 400 });
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Please sign in.' }, { status: 401 });
+    const payload: Record<string, unknown> = { full_name: fullName, phone: normalizedPhone, reminder_offsets: body.reminderOffsets };
+    if (typeof body.nickname === 'string') payload.nickname = body.nickname.trim().replace(/\s+/g, ' ') || null;
+    const { data: customer, error } = await supabase.from('customers').update(payload).eq('id', customerId).select('id, business_id').single();
+    if (error) return NextResponse.json({ error: error.code === '42501' ? 'You do not have permission to update this customer.' : error.message }, { status: error.code === '42501' ? 403 : 400 });
+    if (body.reminderOffsets !== undefined) {
+      const { data: debts } = await supabase.from('obligations').select('id').eq('customer_id', customerId).eq('kind', 'customer_debt').in('status', ['open', 'partially_paid']);
+      if (debts?.length) {
+        let effectiveOffsets = body.reminderOffsets;
+        if (!effectiveOffsets) {
+          const { data: settings } = await supabase.from('business_settings').select('default_reminder_offsets').eq('business_id', customer.business_id).maybeSingle();
+          effectiveOffsets = settings?.default_reminder_offsets || [3, 7, 14, 30];
+        }
+        const query = supabase.from('reminder_schedules').update({ offsets_days: effectiveOffsets }).in('obligation_id', debts.map((d) => d.id)).eq('status', 'active');
+        const { error: scheduleError } = await query;
+        if (scheduleError) return NextResponse.json({ error: 'Customer saved, but active reminder schedules could not be updated.' }, { status: 400 });
+      }
+    }
+    return NextResponse.json({ success: true, customer });
+  } catch { return NextResponse.json({ error: 'Server error updating customer.' }, { status: 500 }); }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { customerId } = await request.json();
+    if (typeof customerId !== 'string') return NextResponse.json({ error: 'Customer is required.' }, { status: 400 });
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Please sign in.' }, { status: 401 });
+    // Archive instead of hard delete so debt history and payment references remain intact.
+    const { error } = await supabase.from('customers').update({ is_active: false }).eq('id', customerId);
+    if (error) return NextResponse.json({ error: error.code === '42501' ? 'You do not have permission to archive this customer.' : error.message }, { status: error.code === '42501' ? 403 : 400 });
+    return NextResponse.json({ success: true });
+  } catch { return NextResponse.json({ error: 'Server error archiving customer.' }, { status: 500 }); }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();

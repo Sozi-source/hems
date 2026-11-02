@@ -35,12 +35,14 @@ import {
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
 import { PayDebtModal } from '@/components/payments/pay-debt-modal';
 import { PaginationBar } from '@/components/ui/pagination-bar';
+import { EditCustomerModal } from '@/components/customers/edit-customer-modal';
 
 const PAGE_SIZE = 15;
 
 export interface CustomerItem extends CustomerHistoryItem {
   sms_blocked_at?: string | null;
   sms_block_reason?: string | null;
+  reminder_offsets?: number[] | null;
 }
 
 export default function CustomersPage() {
@@ -58,6 +60,7 @@ export default function CustomersPage() {
   const [customerForPayDebt, setCustomerForPayDebt] = useState<CustomerItem | null>(null);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [customerToEdit, setCustomerToEdit] = useState<CustomerItem | null>(null);
 
   // Diverse Filtering and Searching State
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,7 +80,7 @@ export default function CustomersPage() {
       // 1. Fetch raw customer profiles
       let custQuery = supabase
         .from('customers')
-        .select('id, business_id, customer_no, full_name, phone, notes, sms_blocked_at, sms_block_reason, nickname, is_active')
+        .select('id, business_id, customer_no, full_name, phone, notes, sms_blocked_at, sms_block_reason, nickname, reminder_offsets, is_active')
         .eq('is_active', true)
         .order('customer_no');
 
@@ -188,6 +191,7 @@ export default function CustomersPage() {
           open_debts: openDebts,
           sms_blocked_at: c.sms_blocked_at ?? null,
           sms_block_reason: c.sms_block_reason ?? null,
+          reminder_offsets: c.reminder_offsets ?? null,
           notes: c.notes ?? null,
         };
       });
@@ -644,6 +648,7 @@ export default function CustomersPage() {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="flex items-center gap-1.5">
+                      <button type="button" onClick={() => setCustomerToEdit(cust)} className="h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700">Edit</button>
                       {hasDebt && (
                         <button
                           type="button"
@@ -766,6 +771,7 @@ export default function CustomersPage() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-end gap-1.5">
+                            <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs" onClick={() => setCustomerToEdit(cust)}>Edit</Button>
                             {bal > 0 && (
                               <Button
                                 variant="outline"
@@ -855,6 +861,7 @@ export default function CustomersPage() {
         onSuccess={loadCustomers}
         onOpenImport={() => setIsImportModalOpen(true)}
       />
+      <EditCustomerModal customer={customerToEdit} onClose={() => setCustomerToEdit(null)} onSaved={loadCustomers} onArchived={loadCustomers} />
 
       <ImportPhonebookModal
         isOpen={isImportModalOpen}
