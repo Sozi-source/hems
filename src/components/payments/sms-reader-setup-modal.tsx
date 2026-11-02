@@ -25,7 +25,7 @@ interface IngestLogItem {
 }
 
 export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProps) {
-  const { activeBusinessId, businesses } = useBusiness();
+  const { activeBusinessId } = useBusiness();
   const [copied, setCopied] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
   const [isLocalhost, setIsLocalhost] = useState(false);
@@ -64,18 +64,8 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hems-gamma.vercel.app';
   const activeBaseUrl = domainMode === 'production' ? productionDomain : origin;
-  const devBusinesses = businesses.filter((b) => b.code.startsWith('DEV_'));
-  const activeIsDev = devBusinesses.some((b) => b.id === activeBusinessId);
-  // Developer accounts (which also have support access to live businesses) must ALWAYS
-  // tag their phone's SMS with a DEV_ sandbox business so test syncs never pollute live data.
-  const scopedBusinessId =
-    devBusinesses.length > 0
-      ? activeIsDev
-        ? activeBusinessId
-        : devBusinesses[0].id
-      : activeBusinessId;
-  const webhookUrl = scopedBusinessId
-    ? `${activeBaseUrl}/api/payments/sms-forwarder?businessId=${scopedBusinessId}`
+  const webhookUrl = activeBusinessId
+    ? `${activeBaseUrl}/api/payments/sms-forwarder?businessId=${activeBusinessId}`
     : `${activeBaseUrl}/api/payments/sms-forwarder`;
 
   const copyUrl = () => {

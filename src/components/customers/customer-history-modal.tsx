@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Plus,
   Banknote,
+  Pencil,
 } from 'lucide-react';
 import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
 import { PayDebtModal } from '@/components/payments/pay-debt-modal';
@@ -46,6 +47,7 @@ interface CustomerHistoryModalProps {
   onClose: () => void;
   customer: CustomerHistoryItem | null;
   onUpdated?: () => void;
+  onEdit?: (customer: CustomerHistoryItem) => void;
 }
 
 interface LedgerEvent {
@@ -65,6 +67,7 @@ export function CustomerHistoryModal({
   onClose,
   customer,
   onUpdated,
+  onEdit,
 }: CustomerHistoryModalProps) {
   const { businesses } = useBusiness();
   const [activeTab, setActiveTab] = useState<'all' | 'debts' | 'payments'>('all');
@@ -194,7 +197,6 @@ export function CustomerHistoryModal({
     const isZenith =
       customer.business_id === 'e76624b0-7cbc-4a7f-a375-6e7ccd6b13d5' ||
       biz?.code === 'ZENITH_PLAST' ||
-      biz?.code === 'DEV_ZENITH_PLAST' ||
       biz?.name.toLowerCase().includes('zenith');
 
     const businessTitle = isZenith ? 'ZENITH PLAST DISTRIBUTORS LTD' : 'HARON FASHION';
@@ -297,8 +299,9 @@ export function CustomerHistoryModal({
             </div>
           </div>
 
-          {/* Action Row & Close Button */}
+          {/* Customer actions stay with the customer record */}
           <div className="flex items-center gap-2 self-end sm:self-start shrink-0 flex-wrap sm:flex-nowrap">
+            {onEdit && <button type="button" onClick={() => onEdit(customer)} className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium inline-flex items-center gap-1.5 transition-colors"><Pencil className="w-3.5 h-3.5" />Edit</button>}
             <button
               type="button"
               onClick={() => setIsPayDebtOpen(true)}

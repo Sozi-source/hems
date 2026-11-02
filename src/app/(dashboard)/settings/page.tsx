@@ -227,7 +227,7 @@ export default function SettingsPage() {
 
           <div className="space-y-3">
             {businesses.map((b) => {
-              const isHaron = b.code === 'HARON_FASHION' || b.code === 'DEV_HARON_FASHION';
+              const isHaron = b.code === 'HARON_FASHION';
               const contactPhone = isHaron ? '0725499796' : '0711377496';
               const contactTag = isHaron ? 'Haron fashio-0725499796' : 'Zenith- 0711377496';
               return (
@@ -353,7 +353,7 @@ export default function SettingsPage() {
         <div className="space-y-6">
           {businesses.map((biz) => {
             const bizTemplates = templates.filter((t) => t.business_id === biz.id);
-            const isHaron = biz.code === 'HARON_FASHION' || biz.code === 'DEV_HARON_FASHION';
+            const isHaron = biz.code === 'HARON_FASHION';
             const contactTag = isHaron ? 'Haron fashio-0725499796' : 'Zenith- 0711377496';
 
             return (

@@ -9,10 +9,8 @@ import {
   Receipt,
   Users,
   BellRing,
-  History,
   Settings,
   Shield,
-  UserCheck,
   Truck,
 } from 'lucide-react';
 import { BusinessSwitcher } from './business-switcher';
@@ -63,16 +61,6 @@ export function Sidebar() {
       label: 'Reminders',
       href: '/reminders',
       icon: BellRing,
-    },
-    {
-      label: 'User Monitoring',
-      href: '/admin/users',
-      icon: UserCheck,
-    },
-    {
-      label: 'Activity Log',
-      href: '/audit',
-      icon: History,
     },
     {
       label: 'Settings',

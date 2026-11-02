@@ -60,6 +60,7 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
           const { data } = await supabase
             .from('businesses')
             .select('id, code, name, legal_name')
+            .eq('is_active', true)
             .order('name');
 
           if (data && data.length > 0) {

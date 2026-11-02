@@ -14,8 +14,8 @@ async function syncTemplates() {
     process.exit(1);
   }
 
-  const haronCodes = ['HARON_FASHION', 'DEV_HARON_FASHION'];
-  const zenithCodes = ['ZENITH_PLAST', 'DEV_ZENITH_PLAST'];
+  const haronCodes = ['HARON_FASHION'];
+  const zenithCodes = ['ZENITH_PLAST'];
 
   const haronBizs = businesses.filter(b => haronCodes.includes(b.code));
   const zenithBizs = businesses.filter(b => zenithCodes.includes(b.code));

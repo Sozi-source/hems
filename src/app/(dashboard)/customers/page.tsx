@@ -23,7 +23,6 @@ import {
   TrendingDown,
   TrendingUp,
   X,
-  Banknote,
   Smartphone,
 } from 'lucide-react';
 import { AddCustomerModal } from '@/components/customers/add-customer-modal';
@@ -32,8 +31,6 @@ import {
   CustomerHistoryModal,
   CustomerHistoryItem,
 } from '@/components/customers/customer-history-modal';
-import { CreateObligationModal } from '@/components/obligations/create-obligation-modal';
-import { PayDebtModal } from '@/components/payments/pay-debt-modal';
 import { PaginationBar } from '@/components/ui/pagination-bar';
 import { EditCustomerModal } from '@/components/customers/edit-customer-modal';
 
@@ -56,8 +53,6 @@ export default function CustomersPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedCustomerForHistory, setSelectedCustomerForHistory] =
     useState<CustomerItem | null>(null);
-  const [customerForNewDebt, setCustomerForNewDebt] = useState<CustomerItem | null>(null);
-  const [customerForPayDebt, setCustomerForPayDebt] = useState<CustomerItem | null>(null);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<CustomerItem | null>(null);
@@ -642,46 +637,18 @@ export default function CustomersPage() {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
+                  {/* Keep one clear action in the customer list */}
                   <div
                     className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <button type="button" onClick={() => setCustomerToEdit(cust)} className="h-8 px-2.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700">Edit</button>
-                      {hasDebt && (
-                        <button
-                          type="button"
-                          onClick={() => setCustomerForPayDebt(cust)}
-                          className="h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors shadow-2xs bg-emerald-600 hover:bg-emerald-700 text-white"
-                          title="Pay debt with paper cash"
-                        >
-                          <Banknote className="w-3.5 h-3.5 text-emerald-200" />
-                          <span>Pay Debt</span>
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setCustomerForNewDebt(cust)}
-                        className="h-8 px-2.5 rounded-lg bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-semibold inline-flex items-center gap-1 transition-colors shadow-2xs"
-                        title="Add goods on credit for this customer"
-                      >
-                        <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Add Debt</span>
-                      </button>
-                    </div>
-
                     <div
-                      className="flex items-center gap-1.5 cursor-pointer"
-                      onClick={() => setSelectedCustomerForHistory(cust)}
-                      title="Tap to view client details & statement ledger"
+                      className="flex items-center gap-2"
                     >
                       <Badge variant={hasDebt ? 'warning' : 'neutral'} size="sm">
                         {hasDebt ? 'Owes Balance' : 'Settled'}
                       </Badge>
-                      <span className="text-[11px] text-slate-400 hover:text-slate-600 font-medium">
-                        Details →
-                      </span>
+                      <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => setSelectedCustomerForHistory(cust)}>Details</Button>
                     </div>
                   </div>
                 </Card>
@@ -710,7 +677,6 @@ export default function CustomersPage() {
                     const bal = cust.outstanding_minor || 0;
                     const borrowed = cust.total_borrowed_minor || 0;
                     const paid = cust.total_paid_minor || 0;
-                    const hasDebt = bal > 0;
 
                     return (
                       <tr
@@ -770,34 +736,11 @@ export default function CustomersPage() {
                           className="py-3.5 px-4 text-right whitespace-nowrap"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button variant="outline" size="sm" className="h-8 px-2.5 text-xs" onClick={() => setCustomerToEdit(cust)}>Edit</Button>
-                            {bal > 0 && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-2.5 text-xs text-emerald-700 hover:text-emerald-800 bg-emerald-50/70 hover:bg-emerald-100/80 border-emerald-300 font-semibold"
-                                onClick={() => setCustomerForPayDebt(cust)}
-                                title="Pay customer debt with paper cash"
-                              >
-                                <Banknote className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                                Pay Debt
-                              </Button>
-                            )}
+                          <div className="flex items-center justify-end">
                             <Button
-                              variant="primary"
+                              variant="outline"
                               size="sm"
-                              className="h-8 px-2.5 text-xs bg-[#0F172A] hover:bg-slate-800 text-white font-medium"
-                              onClick={() => setCustomerForNewDebt(cust)}
-                              title="Add new goods on debt for this customer"
-                            >
-                              <Plus className="w-3.5 h-3.5 mr-1 text-emerald-400" />
-                              Add Debt
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2 text-xs text-slate-500 hover:text-slate-800 font-medium"
+                              className="h-8 px-3 text-xs font-medium"
                               onClick={() => setSelectedCustomerForHistory(cust)}
                               title="View complete customer details & ledger"
                             >
@@ -831,28 +774,10 @@ export default function CustomersPage() {
         customer={selectedCustomerForHistory}
         onClose={() => setSelectedCustomerForHistory(null)}
         onUpdated={loadCustomers}
-      />
-
-      {/* Quick Add Debt / Bill Modal for Returning Customers */}
-      <CreateObligationModal
-        isOpen={Boolean(customerForNewDebt)}
-        onClose={() => setCustomerForNewDebt(null)}
-        onSuccess={() => {
-          setCustomerForNewDebt(null);
-          loadCustomers();
+        onEdit={(customer) => {
+          setSelectedCustomerForHistory(null);
+          setCustomerToEdit(customer as CustomerItem);
         }}
-        preselectedCustomer={customerForNewDebt}
-      />
-
-      {/* Pay Debt Modal (Paper Money / Cash Payment) */}
-      <PayDebtModal
-        isOpen={Boolean(customerForPayDebt)}
-        onClose={() => setCustomerForPayDebt(null)}
-        onSuccess={() => {
-          setCustomerForPayDebt(null);
-          loadCustomers();
-        }}
-        preselectedCustomer={customerForPayDebt}
       />
 
       <AddCustomerModal

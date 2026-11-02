@@ -208,19 +208,13 @@ export async function POST(request: Request) {
     const { data: allBusinesses } = await admin
       .from('businesses')
       .select('id, code, name, legal_name, created_at')
+      .eq('is_active', true)
       .order('created_at', { ascending: true });
 
-    const prodBusinesses = (allBusinesses || []).filter((b) => !b.code.startsWith('DEV_'));
-    const devBusinesses = (allBusinesses || []).filter((b) => b.code.startsWith('DEV_'));
+    const prodBusinesses = allBusinesses || [];
     const prodBusinessIds = prodBusinesses.map((b) => b.id);
-
-    // If no explicit businessId is provided, check if the SMS is from the developer's own test number/identity
-    if (
-      !targetBusinessId &&
-      devBusinesses.length > 0 &&
-      (/WILFRED\s+OSOZI/i.test(rawText) || /711390861/.test(rawText))
-    ) {
-      targetBusinessId = devBusinesses[0].id;
+    if (explicitBusinessId && !prodBusinessIds.includes(explicitBusinessId)) {
+      return NextResponse.json({ error: 'The requested business is inactive or unavailable.' }, { status: 400 });
     }
 
     // -------------------------------------------------------------------------

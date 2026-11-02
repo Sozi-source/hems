@@ -142,14 +142,14 @@ const key = env.match(/SUPABASE_SERVICE_ROLE_KEY=([^\r\n]+)/)?.[1]?.trim();
 const supabase = createClient(url, key);
 
 async function verifyTemplates() {
-  const { data: businesses } = await supabase.from('businesses').select('id, code, name');
+  const { data: businesses } = await supabase.from('businesses').select('id, code, name').eq('is_active', true);
   const { data: tpls } = await supabase.from('sms_templates').select('business_id, key, name, body');
 
   let allTemplatesOk = true;
 
   for (const b of businesses) {
-    const isHaron = b.code === 'HARON_FASHION' || b.code === 'DEV_HARON_FASHION';
-    const isZenith = b.code === 'ZENITH_PLAST' || b.code === 'DEV_ZENITH_PLAST';
+    const isHaron = b.code === 'HARON_FASHION';
+    const isZenith = b.code === 'ZENITH_PLAST';
     const expectedTag = isHaron ? 'Haron fashio-0725499796' : (isZenith ? 'Zenith- 0711377496' : null);
 
     if (!expectedTag) continue;

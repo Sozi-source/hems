@@ -29,6 +29,7 @@ export async function GET() {
     const { data: businesses, error } = await supabase
       .from('businesses')
       .select('id, code, name, legal_name')
+      .eq('is_active', true)
       .order('name');
 
     if (error) {
