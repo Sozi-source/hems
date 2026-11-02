@@ -9,17 +9,12 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Phone,
   MessageCircle,
-  Smartphone,
   Calendar,
   Receipt,
-  ArrowUpRight,
-  ArrowDownLeft,
   Copy,
   Check,
   Search,
   X,
-  CreditCard,
-  CheckCircle2,
   Plus,
   Banknote,
   Pencil,
@@ -73,7 +68,6 @@ export function CustomerHistoryModal({
   const [activeTab, setActiveTab] = useState<'all' | 'debts' | 'payments'>('all');
   const [events, setEvents] = useState<LedgerEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [copiedStatement, setCopiedStatement] = useState(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDebtOpen, setIsAddDebtOpen] = useState(false);
@@ -230,12 +224,6 @@ export function CustomerHistoryModal({
     return lines.join('\n');
   };
 
-  const copyStatement = () => {
-    navigator.clipboard.writeText(shareStatementText());
-    setCopiedStatement(true);
-    setTimeout(() => setCopiedStatement(false), 2000);
-  };
-
   const copyRef = (ref: string) => {
     navigator.clipboard.writeText(ref);
     setCopiedRef(ref);
@@ -250,18 +238,13 @@ export function CustomerHistoryModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      maxWidth="3xl"
+      maxWidth="2xl"
       hideHeader
-      className="p-4 sm:p-6 sm:max-w-3xl"
+      className="p-4 sm:p-5 sm:max-w-2xl"
     >
-      <div className="space-y-4 sm:space-y-5">
-        {/* Clean, Non-Crowded Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3.5 pb-4 border-b border-slate-100">
-          {/* Customer Identity */}
-          <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-sm shrink-0 border border-slate-200/80">
-              {(customer.full_name || 'Client').slice(0, 2).toUpperCase()}
-            </div>
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
+          <div className="min-w-0">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
@@ -290,131 +273,77 @@ export function CustomerHistoryModal({
                   <span className="text-slate-400">No phone recorded</span>
                 )}
 
-                {customer.notes && (
-                  <span className="text-slate-400 truncate max-w-xs text-[11px]">
-                    {customer.notes}
-                  </span>
-                )}
               </div>
             </div>
           </div>
 
-          {/* Customer actions stay with the customer record */}
-          <div className="flex items-center gap-2 self-end sm:self-start shrink-0 flex-wrap sm:flex-nowrap">
-            {onEdit && <button type="button" onClick={() => onEdit(customer)} className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium inline-flex items-center gap-1.5 transition-colors"><Pencil className="w-3.5 h-3.5" />Edit</button>}
-            <button
-              type="button"
-              onClick={() => setIsPayDebtOpen(true)}
-              className={`h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors shadow-2xs ${
-                hasDebt
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  : 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-              }`}
-              title="Pay debt with paper cash"
-            >
-              <Banknote className={`w-3.5 h-3.5 ${hasDebt ? 'text-emerald-100' : 'text-slate-500'}`} />
-              <span>{hasDebt ? 'Pay Debt' : 'Pay Cash'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsAddDebtOpen(true)}
-              className="h-8 px-2.5 rounded-lg bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors shadow-2xs"
-              title="Add new goods on debt for this client"
-            >
-              <Plus className="w-3.5 h-3.5 text-emerald-400" />
-              <span>+ Add Debt</span>
-            </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => onEdit(customer)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </button>
+            )}
             {whatsappUrl && (
               <a
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-8 px-2.5 rounded-lg border border-slate-200 hover:border-emerald-300 bg-white hover:bg-emerald-50/50 text-slate-700 hover:text-emerald-800 text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
-                title="Send statement via WhatsApp"
+                aria-label="Send statement on WhatsApp"
+                title="Send statement on WhatsApp"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-emerald-700 hover:bg-emerald-50"
               >
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="hidden xs:inline">WhatsApp</span>
+                <MessageCircle className="h-4 w-4" />
               </a>
             )}
-
-            <button
-              type="button"
-              onClick={copyStatement}
-              className="h-8 px-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
-              title="Copy summary statement"
-            >
-              {copiedStatement ? (
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-              ) : (
-                <Copy className="w-3.5 h-3.5 text-slate-400" />
-              )}
-              <span>{copiedStatement ? 'Copied' : 'Statement'}</span>
-            </button>
-
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ml-1"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
               aria-label="Close dialog"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Minimal 3-Metric Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-          <div className="p-3 sm:p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/50">
-            <span className="text-[11px] font-medium text-slate-500 block">
-              Total Borrowed
-            </span>
-            <div className="mt-0.5">
-              <MoneyDisplay minorUnits={totalBorrowed} size="md" variant="neutral" />
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-500">Balance owed</span>
+              <Badge variant={hasDebt ? 'warning' : 'success'} size="sm">
+                {hasDebt ? 'Owes balance' : 'Settled'}
+              </Badge>
             </div>
-            <span className="text-[11px] text-slate-400 mt-0.5 block">
-              {debtsOnly.length} credit obligation{debtsOnly.length === 1 ? '' : 's'}
-            </span>
+            <div className="mt-1">
+              <MoneyDisplay minorUnits={balance} size="lg" variant="neutral" />
+            </div>
+            <p className="mt-1 text-[11px] text-slate-500">Borrowed KSh {(totalBorrowed / 100).toLocaleString()} / Paid KSh {(totalPaid / 100).toLocaleString()}</p>
           </div>
-
-          <div className="p-3 sm:p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/50">
-            <span className="text-[11px] font-medium text-slate-500 block">
-              Total Paid
-            </span>
-            <div className="mt-0.5">
-              <MoneyDisplay minorUnits={totalPaid} size="md" variant="neutral" />
-            </div>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">
-              {paymentsOnly.length} payment receipt{paymentsOnly.length === 1 ? '' : 's'}
-            </span>
-          </div>
-
-          <div className="p-3 sm:p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/50">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-medium text-slate-500 block">
-                Balance Owed
-              </span>
-              <span
-                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                  hasDebt
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {hasDebt ? 'Active Debt' : 'Settled'}
-              </span>
-            </div>
-            <div className="mt-0.5">
-              <MoneyDisplay minorUnits={balance} size="md" variant="neutral" />
-            </div>
-            <span className="text-[11px] text-slate-400 mt-0.5 block">
-              {hasDebt ? 'Current outstanding' : 'Zero debt'}
-            </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPayDebtOpen(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              <Banknote className="h-3.5 w-3.5" />
+              {hasDebt ? 'Record payment' : 'Record cash'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAddDebtOpen(true)}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#0F172A] px-3 text-xs font-semibold text-white hover:bg-slate-800"
+            >
+              <Plus className="h-3.5 w-3.5 text-emerald-400" /> Add debt
+            </button>
           </div>
         </div>
 
-        {/* Minimal Tabs & Search Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
-          {/* Segmented Filter Pills */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h3 className="shrink-0 text-sm font-semibold text-slate-800">Activity</h3>
           <div className="inline-flex p-1 rounded-lg bg-slate-100/90 text-xs font-medium text-slate-600 gap-1 self-start">
             <button
               type="button"
@@ -425,7 +354,7 @@ export function CustomerHistoryModal({
                   : 'hover:text-slate-900'
               }`}
             >
-              Full Ledger ({events.length})
+              All ({events.length})
             </button>
             <button
               type="button"
@@ -459,7 +388,9 @@ export function CustomerHistoryModal({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300"
+                placeholder="Search history"
+                aria-label="Search customer history"
+                className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300"
               />
               {searchQuery && (
                 <button
@@ -507,22 +438,7 @@ export function CustomerHistoryModal({
                 >
                   <div className="flex items-start justify-between gap-3">
                     {/* Left: Icon & Details */}
-                    <div className="flex items-start gap-2.5 min-w-0">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                          isDebt
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
-                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                        }`}
-                      >
-                        {isDebt ? (
-                          <ArrowUpRight className="w-4 h-4" />
-                        ) : (
-                          <ArrowDownLeft className="w-4 h-4" />
-                        )}
-                      </div>
-
-                      <div className="min-w-0">
+                    <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-slate-900 text-xs">
                             {isDebt ? 'Goods on Credit' : 'Payment Received'}
@@ -601,19 +517,6 @@ export function CustomerHistoryModal({
           </div>
         )}
 
-        {/* Minimal Footer */}
-        <div className="flex justify-between items-center pt-3 border-t border-slate-100 text-xs">
-          <span className="text-slate-400 text-[11px]">
-            Master Ref: <strong className="font-mono text-slate-600">{customer.customer_no}</strong>
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-medium transition-colors"
-          >
-            Close
-          </button>
-        </div>
       </div>
 
       <CreateObligationModal
