@@ -10,7 +10,6 @@ import {
   Users,
   UserPlus,
   ShieldCheck,
-  Shield,
   KeyRound,
   CheckCircle2,
   AlertCircle,
@@ -18,7 +17,18 @@ import {
   UserCheck,
   UserX,
   Trash2,
+  SlidersHorizontal,
 } from 'lucide-react';
+
+export interface EmployeePermissions {
+  cash_payments: boolean;
+  credit_sales: boolean;
+  manage_customers: boolean;
+  view_balances: boolean;
+  approve_payments: boolean;
+  manage_expenses: boolean;
+  system_settings: boolean;
+}
 
 interface TeamMember {
   business_id: string;
@@ -28,35 +38,120 @@ interface TeamMember {
   created_at: string;
   email: string | null;
   full_name: string | null;
+  permissions?: EmployeePermissions | null;
 }
 
 const ROLE_DETAILS = {
   cashier: {
-    label: 'Cashier (Counter & Frontline)',
+    label: 'Cashier',
     badgeVariant: 'success' as const,
-    description: 'Can add customers, record goods on credit (customer debts), record counter cash debt payments, and view customer balances.',
+    description: 'Credit sales, customers & cash',
   },
   accountant: {
     label: 'Accountant',
     badgeVariant: 'warning' as const,
-    description: 'Can approve/reject incoming electronic payments, record expenses, manage debts & supplier payables, and view ledger statements.',
+    description: 'Payment approvals, debts & expenses',
   },
   admin: {
-    label: 'Administrator',
+    label: 'Admin',
     badgeVariant: 'info' as const,
-    description: 'Can configure M-Pesa Paybill channels, edit SMS templates, review audit logs, and manage business records.',
+    description: 'Settings, channels & audit logs',
   },
   owner: {
-    label: 'Business Owner',
+    label: 'Owner',
     badgeVariant: 'purple' as const,
-    description: 'Full system ownership: can allocate and revoke employee rights, modify Paybills, and oversee company audit logs.',
+    description: 'Full business control & access',
   },
   viewer: {
     label: 'Viewer',
     badgeVariant: 'neutral' as const,
-    description: 'Read-only access to customer balances, obligations, and transaction figures.',
+    description: 'Read-only access to records',
   },
 };
+
+const DEFAULT_PERMISSIONS: Record<'cashier' | 'accountant' | 'admin' | 'viewer', EmployeePermissions> = {
+  cashier: {
+    cash_payments: true,
+    credit_sales: true,
+    manage_customers: true,
+    view_balances: true,
+    approve_payments: false,
+    manage_expenses: false,
+    system_settings: false,
+  },
+  accountant: {
+    cash_payments: true,
+    credit_sales: true,
+    manage_customers: true,
+    view_balances: true,
+    approve_payments: true,
+    manage_expenses: true,
+    system_settings: false,
+  },
+  admin: {
+    cash_payments: true,
+    credit_sales: true,
+    manage_customers: true,
+    view_balances: true,
+    approve_payments: true,
+    manage_expenses: true,
+    system_settings: true,
+  },
+  viewer: {
+    cash_payments: false,
+    credit_sales: false,
+    manage_customers: false,
+    view_balances: true,
+    approve_payments: false,
+    manage_expenses: false,
+    system_settings: false,
+  },
+};
+
+const PERMISSION_ITEMS: { key: keyof EmployeePermissions; label: string; desc: string }[] = [
+  {
+    key: 'cash_payments',
+    label: 'Counter Cash Payments',
+    desc: 'Record cash debt payments received at counter',
+  },
+  {
+    key: 'credit_sales',
+    label: 'Credit Sales & Debts',
+    desc: 'Record goods on credit and create customer debts',
+  },
+  {
+    key: 'manage_customers',
+    label: 'Add & Manage Customers',
+    desc: 'Add new customers and update contact details',
+  },
+  {
+    key: 'view_balances',
+    label: 'View Balances & Statements',
+    desc: 'Look up customer debt balances and payment history',
+  },
+  {
+    key: 'approve_payments',
+    label: 'Approve Electronic Payments',
+    desc: 'Approve or reject incoming Paybill / bank payments',
+  },
+  {
+    key: 'manage_expenses',
+    label: 'Supplier Payables & Expenses',
+    desc: 'Record expenses and manage supplier debt payables',
+  },
+  {
+    key: 'system_settings',
+    label: 'Settings & Audit Trail',
+    desc: 'Configure payment channels, SMS templates, and audit logs',
+  },
+];
+
+function computeEffectiveRole(perms: EmployeePermissions, baseRole: 'cashier' | 'accountant' | 'admin' | 'viewer'): 'cashier' | 'accountant' | 'admin' | 'viewer' {
+  if (perms.system_settings) return 'admin';
+  if (perms.approve_payments || perms.manage_expenses) return 'accountant';
+  if (perms.cash_payments || perms.credit_sales || perms.manage_customers) return 'cashier';
+  return 'viewer';
+}
 
 export default function TeamPage() {
   const { activeBusinessId, activeBusiness, isMasterView, businesses } = useBusiness();
@@ -71,13 +166,53 @@ export default function TeamPage() {
   const [addName, setAddName] = useState('');
   const [addEmail, setAddEmail] = useState('');
   const [addRole, setAddRole] = useState<'cashier' | 'accountant' | 'admin' | 'viewer'>('cashier');
+  const [addPermissions, setAddPermissions] = useState<EmployeePermissions>(DEFAULT_PERMISSIONS.cashier);
   const [addPassword, setAddPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Edit Role Modal State
+  // Permissions Modal State
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [editRole, setEditRole] = useState<'owner' | 'admin' | 'accountant' | 'cashier' | 'viewer'>('cashier');
+  const [editPermissions, setEditPermissions] = useState<EmployeePermissions>(DEFAULT_PERMISSIONS.cashier);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  function openPermissionsModal(m: TeamMember) {
+    setEditingMember(m);
+    const baseRole = (m.role === 'owner' ? 'admin' : m.role) as 'cashier' | 'accountant' | 'admin' | 'viewer';
+    setEditRole(m.role);
+    const perms = m.permissions
+      ? { ...DEFAULT_PERMISSIONS[baseRole], ...m.permissions }
+      : DEFAULT_PERMISSIONS[baseRole];
+    setEditPermissions(perms);
+  }
+
+  function selectEditRole(newRole: 'cashier' | 'accountant' | 'admin' | 'viewer') {
+    setEditRole(newRole);
+    setEditPermissions(DEFAULT_PERMISSIONS[newRole]);
+  }
+
+  function toggleEditPermission(key: keyof EmployeePermissions) {
+    setEditPermissions((prev) => {
+      const updated = { ...prev, [key]: !prev[key] };
+      const effective = computeEffectiveRole(updated, editRole as any);
+      setEditRole(effective);
+      return updated;
+    });
+  }
+
+  function selectAddRole(newRole: 'cashier' | 'accountant' | 'admin' | 'viewer') {
+    setAddRole(newRole);
+    setAddPermissions(DEFAULT_PERMISSIONS[newRole]);
+  }
+
+  function toggleAddPermission(key: keyof EmployeePermissions) {
+    setAddPermissions((prev) => {
+      const updated = { ...prev, [key]: !prev[key] };
+      const effective = computeEffectiveRole(updated, addRole);
+      setAddRole(effective);
+      return updated;
+    });
+  }
 
   async function loadTeam() {
     setIsLoading(true);
@@ -107,7 +242,7 @@ export default function TeamPage() {
   async function handleAddMember(e: React.FormEvent) {
     e.preventDefault();
     if (!activeBusinessId && isMasterView) {
-      setError('Please select a specific business from the switcher to add team members.');
+      setError('Please select a specific business to add team members.');
       return;
     }
     const targetBizId = activeBusinessId || businesses[0]?.id;
@@ -125,18 +260,20 @@ export default function TeamPage() {
           email: addEmail.trim(),
           role: addRole,
           password: addPassword.trim() || undefined,
+          permissions: addPermissions,
         }),
       });
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.error || 'Could not allocate rights.');
+        throw new Error(json.error || 'Could not add employee.');
       }
-      setNotice(`Employee rights allocated: ${addName || addEmail} added as ${addRole.toUpperCase()}.`);
+      setNotice(`${addName || addEmail} added as ${ROLE_DETAILS[addRole]?.label || addRole}.`);
       setIsAddOpen(false);
       setAddName('');
       setAddEmail('');
       setAddPassword('');
       setAddRole('cashier');
+      setAddPermissions(DEFAULT_PERMISSIONS.cashier);
       loadTeam();
     } catch (err: any) {
       setError(err.message);
@@ -159,13 +296,14 @@ export default function TeamPage() {
           businessId: editingMember.business_id,
           userId: editingMember.user_id,
           role: editRole,
+          permissions: editPermissions,
         }),
       });
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.error || 'Failed to update role.');
+        throw new Error(json.error || 'Failed to update permissions.');
       }
-      setNotice(`Updated rights for ${editingMember.full_name || editingMember.email} to ${editRole.toUpperCase()}.`);
+      setNotice(`Updated permissions for ${editingMember.full_name || editingMember.email}.`);
       setEditingMember(null);
       loadTeam();
     } catch (err: any) {
@@ -190,7 +328,7 @@ export default function TeamPage() {
       });
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.error || 'Failed to toggle employee status.');
+        throw new Error(json.error || 'Failed to update employee status.');
       }
       setNotice(`${member.full_name || member.email} is now ${newStatus ? 'Active' : 'Suspended'}.`);
       loadTeam();
@@ -200,7 +338,7 @@ export default function TeamPage() {
   }
 
   async function handleRemoveMember(member: TeamMember) {
-    if (!confirm(`Are you sure you want to remove ${member.full_name || member.email} from this business?`)) {
+    if (!confirm(`Are you sure you want to remove ${member.full_name || member.email}?`)) {
       return;
     }
     setError(null);
@@ -212,7 +350,7 @@ export default function TeamPage() {
       if (!res.ok) {
         throw new Error(json.error || 'Failed to remove member.');
       }
-      setNotice(`Removed ${member.full_name || member.email} from the business.`);
+      setNotice(`Removed ${member.full_name || member.email}.`);
       loadTeam();
     } catch (err: any) {
       setError(err.message);
@@ -230,10 +368,10 @@ export default function TeamPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#14231A]">
-            Team & Employee Rights
+            Team & Rights
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Allocate access rights to employees so they can safely manage customers, credit debts, and cash payments.
+            Manage team members and role permissions.
           </p>
         </div>
 
@@ -244,11 +382,15 @@ export default function TeamPage() {
           </Button>
           <Button
             size="sm"
-            onClick={() => setIsAddOpen(true)}
+            onClick={() => {
+              setAddRole('cashier');
+              setAddPermissions(DEFAULT_PERMISSIONS.cashier);
+              setIsAddOpen(true);
+            }}
             className="bg-[#AEF359] hover:bg-[#9fe648] text-slate-950 font-semibold border border-[#9fe648] shadow-2xs"
           >
             <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-            Allocate Employee Rights
+            Add Employee
           </Button>
         </div>
       </div>
@@ -272,19 +414,17 @@ export default function TeamPage() {
         <Card className="bg-white border-slate-200 shadow-sm p-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500">Active Staff</span>
-            <Users className="w-4 h-4 text-slate-500" />
+            <Users className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="text-2xl font-bold text-slate-900 mt-2">{activeCount}</div>
-          <div className="text-[11px] text-slate-400 mt-1">Across active businesses</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1.5">{activeCount}</div>
         </Card>
 
         <Card className="bg-white border-slate-200 shadow-sm p-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Cashiers (Add Customers & Debts)</span>
+            <span className="text-xs font-medium text-slate-500">Cashiers</span>
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-bold text-emerald-700 mt-2">{cashierCount}</div>
-          <div className="text-[11px] text-slate-400 mt-1">Frontline counter operators</div>
+          <div className="text-2xl font-bold text-emerald-700 mt-1.5">{cashierCount}</div>
         </Card>
 
         <Card className="bg-white border-slate-200 shadow-sm p-4">
@@ -292,46 +432,16 @@ export default function TeamPage() {
             <span className="text-xs font-medium text-slate-500">Accountants & Admins</span>
             <KeyRound className="w-4 h-4 text-amber-600" />
           </div>
-          <div className="text-2xl font-bold text-amber-700 mt-2">{accountantCount}</div>
-          <div className="text-[11px] text-slate-400 mt-1">Payment review & management</div>
+          <div className="text-2xl font-bold text-amber-700 mt-1.5">{accountantCount}</div>
         </Card>
       </div>
-
-      {/* Permissions Breakdown Guide Card */}
-      <Card className="bg-slate-50/70 border-slate-200 p-4">
-        <div className="text-xs font-bold text-slate-800 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-          <Shield className="w-3.5 h-3.5 text-slate-600" />
-          Employee Rights Breakdown
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-600">
-          <div className="bg-white p-3 rounded-lg border border-slate-200">
-            <div className="font-semibold text-emerald-800 flex items-center gap-1.5 mb-1">
-              <Badge variant="success" size="sm">Cashier</Badge>
-              <span>Frontline Staff</span>
-            </div>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Allocates rights to add new customers, record goods taken on credit (customer debts), record counter cash repayments, and search customer records. Cannot approve electronic bank/Paybill payments or modify app configuration.
-            </p>
-          </div>
-
-          <div className="bg-white p-3 rounded-lg border border-slate-200">
-            <div className="font-semibold text-amber-800 flex items-center gap-1.5 mb-1">
-              <Badge variant="warning" size="sm">Accountant</Badge>
-              <span>Financial Manager</span>
-            </div>
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Full cashier capabilities plus approving/rejecting pending Paybill/bank payments, creating supplier debts, expenses, and managing credit terms.
-            </p>
-          </div>
-        </div>
-      </Card>
 
       {/* Members Table */}
       <Card className="bg-white border-slate-200 shadow-sm p-0 overflow-hidden">
         <CardHeader className="p-4 border-b border-slate-100 flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-slate-700" />
-            <CardTitle className="text-sm font-bold text-slate-800">Assigned Team Members</CardTitle>
+            <CardTitle className="text-sm font-bold text-slate-800">Team Members</CardTitle>
           </div>
           <Badge variant="neutral" size="sm">{members.length} Total</Badge>
         </CardHeader>
@@ -339,20 +449,20 @@ export default function TeamPage() {
         {members.length === 0 ? (
           <div className="text-center py-12 px-4">
             <Users className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-            <div className="text-sm font-medium text-slate-600">No employees assigned yet</div>
+            <div className="text-sm font-medium text-slate-600">No employees added yet</div>
             <div className="text-xs text-slate-400 mt-1">
-              Click &quot;Allocate Employee Rights&quot; above to add your frontline staff.
+              Click &quot;Add Employee&quot; to invite a team member.
             </div>
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left border-collapse">
+            <table className="w-full min-w-[650px] text-left border-collapse">
               <thead>
                 <tr className="bg-[#F1F5F2] border-b border-[#DCE5DF] text-[11px] font-semibold text-slate-600 uppercase tracking-wide">
                   <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Assigned Rights / Role</th>
+                  <th className="py-3 px-4">Role</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Granted Date</th>
+                  <th className="py-3 px-4">Date Added</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -394,13 +504,11 @@ export default function TeamPage() {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => {
-                              setEditingMember(m);
-                              setEditRole(m.role);
-                            }}
-                            className="px-2.5 py-1 text-[11px] font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                            onClick={() => openPermissionsModal(m)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
                           >
-                            Change Rights
+                            <SlidersHorizontal className="w-3 h-3 text-slate-500" />
+                            Permissions
                           </button>
 
                           <button
@@ -438,91 +546,135 @@ export default function TeamPage() {
       <Modal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
-        title="Allocate Rights to Employee"
-        description="Empower your employee to add customers, record credit sales, and settle payments."
-        maxWidth="lg"
+        title="Add Employee"
+        maxWidth="md"
       >
-        <form onSubmit={handleAddMember} className="space-y-4 pt-2">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Full Name
-            </label>
-            <input
-              type="text"
-              required
-              value={addName}
-              onChange={(e) => setAddName(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 focus:outline-none"
-            />
+        <form onSubmit={handleAddMember} className="space-y-3.5 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Full Name
+              </label>
+              <input
+                type="text"
+                required
+                value={addName}
+                onChange={(e) => setAddName(e.target.value)}
+                className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                required
+                value={addEmail}
+                onChange={(e) => setAddEmail(e.target.value)}
+                className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 focus:outline-none"
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Work Email (Login ID)
-            </label>
-            <input
-              type="email"
-              required
-              value={addEmail}
-              onChange={(e) => setAddEmail(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Login Password (Optional: Leave blank to auto-generate temporary password)
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              Password <span className="text-slate-400 font-normal">(optional)</span>
             </label>
             <input
               type="password"
               minLength={8}
               value={addPassword}
               onChange={(e) => setAddPassword(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 focus:outline-none"
+              className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 focus:outline-none"
             />
           </div>
 
+          {/* Role Pill Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-2">
-              Select Allocated Rights
+            <label className="block text-xs font-medium text-slate-700 mb-1.5">
+              Role
             </label>
-            <div className="space-y-2">
+            <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 rounded-lg">
               {(['cashier', 'accountant', 'admin', 'viewer'] as const).map((rKey) => {
-                const meta = ROLE_DETAILS[rKey];
                 const isSelected = addRole === rKey;
                 return (
-                  <label
+                  <button
+                    type="button"
                     key={rKey}
-                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    onClick={() => selectAddRole(rKey)}
+                    className={`py-1.5 text-xs font-semibold rounded-md transition-all capitalize ${
                       isSelected
-                        ? 'border-slate-900 bg-slate-50/80 shadow-xs ring-1 ring-slate-900'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                        : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="allocatedRole"
-                      value={rKey}
-                      checked={isSelected}
-                      onChange={() => setAddRole(rKey)}
-                      className="mt-0.5 text-slate-900"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs text-slate-900">{meta.label}</span>
-                        <Badge variant={meta.badgeVariant} size="sm">{rKey.toUpperCase()}</Badge>
-                      </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                        {meta.description}
-                      </p>
-                    </div>
-                  </label>
+                    {rKey}
+                  </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+          {/* Granular Rights Toggles */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-medium text-slate-700">
+                Granted Rights
+              </label>
+              <Badge variant={ROLE_DETAILS[addRole]?.badgeVariant || 'neutral'} size="sm">
+                {ROLE_DETAILS[addRole]?.label || addRole}
+              </Badge>
+            </div>
+
+            <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-0.5">
+              {PERMISSION_ITEMS.map((item) => {
+                const isGranted = Boolean(addPermissions[item.key]);
+                return (
+                  <div
+                    key={item.key}
+                    onClick={() => toggleAddPermission(item.key)}
+                    className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-all ${
+                      isGranted
+                        ? 'bg-emerald-50/50 border-emerald-200'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="pr-2 select-none">
+                      <div className="text-xs font-semibold text-slate-800">
+                        {item.label}
+                      </div>
+                      <div className="text-[11px] text-slate-500 leading-snug">
+                        {item.desc}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isGranted}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleAddPermission(item.key);
+                      }}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        isGranted ? 'bg-emerald-600' : 'bg-slate-300'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out ${
+                          isGranted ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
             <Button type="button" variant="outline" size="sm" onClick={() => setIsAddOpen(false)}>
               Cancel
             </Button>
@@ -532,62 +684,104 @@ export default function TeamPage() {
               isLoading={isSubmitting}
               className="bg-[#AEF359] hover:bg-[#9fe648] text-slate-950 font-semibold border border-[#9fe648]"
             >
-              Confirm Rights Allocation
+              Add Employee
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Edit Role Modal */}
+      {/* Employee Permissions Modal */}
       <Modal
         isOpen={Boolean(editingMember)}
         onClose={() => setEditingMember(null)}
-        title={`Change Rights: ${editingMember?.full_name || editingMember?.email}`}
-        description="Adjust access permissions for this staff member."
+        title={`Permissions: ${editingMember?.full_name || editingMember?.email}`}
         maxWidth="md"
       >
-        <form onSubmit={handleUpdateRole} className="space-y-4 pt-2">
+        <form onSubmit={handleUpdateRole} className="space-y-4 pt-1">
+          {/* Employee Type / Role Pill Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-2">
-              Select New Role
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              Employee Role
             </label>
-            <div className="space-y-2">
+            <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-100 rounded-lg">
               {(['cashier', 'accountant', 'admin', 'viewer'] as const).map((rKey) => {
-                const meta = ROLE_DETAILS[rKey];
                 const isSelected = editRole === rKey;
                 return (
-                  <label
+                  <button
+                    type="button"
                     key={rKey}
-                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                    onClick={() => selectEditRole(rKey)}
+                    className={`py-1.5 text-xs font-semibold rounded-md transition-all capitalize ${
                       isSelected
-                        ? 'border-slate-900 bg-slate-50/80 shadow-xs ring-1 ring-slate-900'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                        : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="editRole"
-                      value={rKey}
-                      checked={isSelected}
-                      onChange={() => setEditRole(rKey)}
-                      className="mt-0.5 text-slate-900"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs text-slate-900">{meta.label}</span>
-                        <Badge variant={meta.badgeVariant} size="sm">{rKey.toUpperCase()}</Badge>
-                      </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                        {meta.description}
-                      </p>
-                    </div>
-                  </label>
+                    {rKey}
+                  </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+          {/* Granular Rights Toggles */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-slate-700">
+                Granted Rights
+              </label>
+              <Badge variant={ROLE_DETAILS[editRole]?.badgeVariant || 'neutral'} size="sm">
+                {ROLE_DETAILS[editRole]?.label || editRole}
+              </Badge>
+            </div>
+
+            <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-0.5">
+              {PERMISSION_ITEMS.map((item) => {
+                const isGranted = Boolean(editPermissions[item.key]);
+                return (
+                  <div
+                    key={item.key}
+                    onClick={() => toggleEditPermission(item.key)}
+                    className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition-all ${
+                      isGranted
+                        ? 'bg-emerald-50/50 border-emerald-200'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="pr-3 select-none">
+                      <div className="text-xs font-semibold text-slate-800">
+                        {item.label}
+                      </div>
+                      <div className="text-[11px] text-slate-500 leading-snug">
+                        {item.desc}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isGranted}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleEditPermission(item.key);
+                      }}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        isGranted ? 'bg-emerald-600' : 'bg-slate-300'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition duration-200 ease-in-out ${
+                          isGranted ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
             <Button type="button" variant="outline" size="sm" onClick={() => setEditingMember(null)}>
               Cancel
             </Button>
@@ -597,7 +791,7 @@ export default function TeamPage() {
               isLoading={isUpdating}
               className="bg-[#AEF359] hover:bg-[#9fe648] text-slate-950 font-semibold border border-[#9fe648]"
             >
-              Save New Rights
+              Save Permissions
             </Button>
           </div>
         </form>

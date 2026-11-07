@@ -12,6 +12,7 @@ interface TeamMemberResponse {
   created_at: string;
   email: string | null;
   full_name: string | null;
+  permissions?: Record<string, boolean> | null;
 }
 
 // GET /api/team?businessId=...
@@ -86,6 +87,7 @@ export async function GET(request: Request) {
         created_at: m.created_at,
         email: authU?.email || null,
         full_name: prof?.full_name || authU?.user_metadata?.full_name || authU?.email || 'Employee',
+        permissions: authU?.user_metadata?.permissions || null,
       };
     });
 
@@ -115,7 +117,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { businessId, email, fullName, role, password } = body;
+    const { businessId, email, fullName, role, password, permissions } = body;
 
     if (!businessId || !email || !role) {
       return NextResponse.json({ error: 'businessId, email, and role are required.' }, { status: 400 });
@@ -155,7 +157,7 @@ export async function POST(request: Request) {
         email: cleanEmail,
         password: userPassword,
         email_confirm: true,
-        user_metadata: { full_name: cleanName },
+        user_metadata: { full_name: cleanName, permissions: permissions || undefined },
       });
 
       if (createAuthErr || !createdAuth.user) {
@@ -167,6 +169,14 @@ export async function POST(request: Request) {
       await admin.from('profiles').upsert({
         id: targetUser.id,
         full_name: cleanName,
+      });
+    } else if (permissions) {
+      await admin.auth.admin.updateUserById(targetUser.id, {
+        user_metadata: {
+          ...(targetUser.user_metadata || {}),
+          full_name: cleanName,
+          permissions,
+        },
       });
     }
 
@@ -203,6 +213,7 @@ export async function POST(request: Request) {
         full_name: cleanName,
         allocated_role: role,
         allocated_by: currentUser.id,
+        permissions: permissions || null,
       },
     });
 
@@ -212,6 +223,7 @@ export async function POST(request: Request) {
         ...member,
         email: cleanEmail,
         full_name: cleanName,
+        permissions: permissions || null,
       },
     });
   } catch (error) {
@@ -234,7 +246,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { businessId, userId, role, isActive } = body;
+    const { businessId, userId, role, isActive, permissions } = body;
 
     if (!businessId || !userId) {
       return NextResponse.json({ error: 'businessId and userId are required.' }, { status: 400 });
@@ -269,6 +281,19 @@ export async function PATCH(request: Request) {
       }
     }
 
+    // Update user metadata with permissions if provided
+    if (permissions) {
+      const { data: userData } = await admin.auth.admin.getUserById(userId);
+      if (userData?.user) {
+        await admin.auth.admin.updateUserById(userId, {
+          user_metadata: {
+            ...(userData.user.user_metadata || {}),
+            permissions,
+          },
+        });
+      }
+    }
+
     const updatePayload: Record<string, any> = {};
     if (role) {
       const validRoles = ['owner', 'admin', 'accountant', 'cashier', 'viewer'];
@@ -288,16 +313,20 @@ export async function PATCH(request: Request) {
       .eq('user_id', userId)
       .single();
 
-    const { data: updatedMember, error: updateErr } = await admin
-      .from('business_members')
-      .update(updatePayload)
-      .eq('business_id', businessId)
-      .eq('user_id', userId)
-      .select('*')
-      .single();
+    let updatedMember = oldMember;
+    if (Object.keys(updatePayload).length > 0) {
+      const { data: upResult, error: updateErr } = await admin
+        .from('business_members')
+        .update(updatePayload)
+        .eq('business_id', businessId)
+        .eq('user_id', userId)
+        .select('*')
+        .single();
 
-    if (updateErr) {
-      return NextResponse.json({ error: updateErr.message }, { status: 400 });
+      if (updateErr) {
+        return NextResponse.json({ error: updateErr.message }, { status: 400 });
+      }
+      updatedMember = upResult;
     }
 
     // Explicit audit log entry
@@ -309,10 +338,19 @@ export async function PATCH(request: Request) {
       table_name: 'business_members',
       record_id: `${businessId}:${userId}`,
       old_data: oldMember,
-      new_data: updatedMember,
+      new_data: {
+        ...updatedMember,
+        permissions: permissions || undefined,
+      },
     });
 
-    return NextResponse.json({ success: true, member: updatedMember });
+    return NextResponse.json({
+      success: true,
+      member: {
+        ...updatedMember,
+        permissions: permissions || undefined,
+      },
+    });
   } catch (error) {
     console.error('Failed to update employee permissions:', error);
     return NextResponse.json({ error: 'Failed to update employee permissions' }, { status: 500 });
