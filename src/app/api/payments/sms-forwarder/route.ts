@@ -5,6 +5,13 @@ import { matchPayment } from '@/lib/daraja/matcher';
 import { parsePaymentAlert } from '@/lib/reconciliation/sms-parser';
 
 /**
+ * Default cutoff for historical SMS replays. Messages the device received before this instant are
+ * acknowledged without processing. Oct 19 2026 is the start of the last live SMS2Webhook session,
+ * so everything after it (including payments missed while the device was stuck) is still ingested.
+ */
+const DEFAULT_IGNORE_BEFORE = '2026-10-19T00:00:00+03:00';
+
+/**
  * Records ignored, non-conforming, or unparsed SMS into payment_ingest_log
  * so developers and business owners have complete visibility into what came from the device.
  */
@@ -136,6 +143,22 @@ export async function POST(request: Request) {
         testReceived: true,
         message: 'SMS forwarder test connection successful! Ready for live incoming SMS.',
       }, { status: 200 });
+    }
+
+    // Historical backlog cutoff: when SMS2Webhook replays the device's entire inbox (oldest first),
+    // tens of thousands of old messages queue ahead of new ones. Acknowledge anything received
+    // before the cutoff instantly (200, no DB work) so the device drains its backlog quickly and
+    // returns to forwarding live SMS. Configure via SMS_FORWARDER_IGNORE_BEFORE (ISO date).
+    if (deviceOccurredAt) {
+      const cutoffRaw = process.env.SMS_FORWARDER_IGNORE_BEFORE?.trim() || DEFAULT_IGNORE_BEFORE;
+      const cutoffMs = new Date(cutoffRaw).getTime();
+      if (!Number.isNaN(cutoffMs) && new Date(deviceOccurredAt).getTime() < cutoffMs) {
+        return NextResponse.json({
+          status: 'ignored_historical',
+          occurredAt: deviceOccurredAt,
+          cutoff: new Date(cutoffMs).toISOString(),
+        }, { status: 200 });
+      }
     }
 
     const admin = createAdminClient();
