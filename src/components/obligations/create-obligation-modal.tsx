@@ -5,9 +5,9 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useBusiness } from '@/context/business-context';
-import { parse_kes, fmt_kes, fmt_phone } from '@/lib/format';
+import { parse_kes, fmt_kes, fmt_phone, fmt_date } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
-import { AlertCircle, Plus, Search } from 'lucide-react';
+import { AlertCircle, Plus, Search, CalendarClock, Clock, Calendar } from 'lucide-react';
 
 interface PreselectedCustomer {
   id: string;
@@ -42,6 +42,46 @@ interface SupplierOption {
   payment_terms_days: number;
 }
 
+interface CustomerDebtSummary {
+  count: number;
+  totalBalanceMinor: number;
+  earliestDueDate: string | null;
+  latestDueDate: string | null;
+  isOverdue: boolean;
+  daysDiff: number;
+}
+
+function getPresetDate(daysToAdd: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + daysToAdd);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getEndOfMonthDate(): string {
+  const d = new Date();
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  const year = lastDay.getFullYear();
+  const month = String(lastDay.getMonth() + 1).padStart(2, '0');
+  const day = String(lastDay.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDaysDiffFromToday(dateStr: string): number | null {
+  if (!dateStr) return null;
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const today = new Date(`${todayStr}T00:00:00Z`);
+    const target = new Date(`${dateStr}T00:00:00Z`);
+    if (isNaN(target.getTime())) return null;
+    return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  } catch {
+    return null;
+  }
+}
+
 export function CreateObligationModal({
   isOpen,
   onClose,
@@ -59,10 +99,16 @@ export function CreateObligationModal({
   const [payeeName, setPayeeName] = useState('');
   const [amount, setAmount] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [selectedPreset, setSelectedPreset] = useState<string>('14');
+  const [customerDebtSummary, setCustomerDebtSummary] = useState<CustomerDebtSummary | null>(null);
+  const [syncExistingDebts, setSyncExistingDebts] = useState<boolean>(false);
   const [reference, setReference] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const effectiveCustomerId = preselectedCustomer?.id || customerId;
+  const targetBiz = businessId || activeBusinessId;
 
   useEffect(() => {
     if (isOpen) {
@@ -72,10 +118,11 @@ export function CreateObligationModal({
       setDescription('');
       setPayeeName('');
       setCustomerSearch('');
+      setSyncExistingDebts(false);
 
-      const d = new Date();
-      d.setDate(d.getDate() + 14);
-      setDueDate(d.toISOString().split('T')[0]);
+      // Default to +14 days
+      setDueDate(getPresetDate(14));
+      setSelectedPreset('14');
 
       if (preselectedCustomer) {
         setKind('customer_debt');
@@ -98,8 +145,8 @@ export function CreateObligationModal({
   // Load customers for the chosen business if no customer pre-selected
   useEffect(() => {
     async function loadBizCustomers() {
-      const targetBiz = businessId || activeBusinessId;
-      if (!targetBiz || preselectedCustomer) {
+      const currentBiz = businessId || activeBusinessId;
+      if (!currentBiz || preselectedCustomer) {
         return;
       }
 
@@ -108,7 +155,7 @@ export function CreateObligationModal({
         const { data } = await supabase
           .from('customers')
           .select('id, customer_no, full_name, nickname, phone')
-          .eq('business_id', targetBiz)
+          .eq('business_id', currentBiz)
           .eq('is_active', true)
           .order('full_name');
 
@@ -128,18 +175,86 @@ export function CreateObligationModal({
     }
   }, [isOpen, businessId, activeBusinessId, kind, preselectedCustomer, customerId]);
 
+  // Load existing active debt summary for the selected customer
+  useEffect(() => {
+    async function loadDebtSummary() {
+      if (!isOpen || kind !== 'customer_debt' || !targetBiz || !effectiveCustomerId) {
+        setCustomerDebtSummary(null);
+        return;
+      }
+
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from('obligations')
+          .select('id, balance_minor, due_date, issue_date, status')
+          .eq('business_id', targetBiz)
+          .eq('customer_id', effectiveCustomerId)
+          .in('status', ['open', 'partially_paid'])
+          .gt('balance_minor', 0)
+          .in('kind', ['customer_debt', 'loan']);
+
+        if (!data || data.length === 0) {
+          setCustomerDebtSummary(null);
+          return;
+        }
+
+        let totalBal = 0;
+        const validDueDates: string[] = [];
+        data.forEach((d) => {
+          totalBal += Number(d.balance_minor || 0);
+          const anchor = d.due_date || d.issue_date;
+          if (anchor) validDueDates.push(anchor);
+        });
+
+        validDueDates.sort();
+        const earliest = validDueDates[0] || null;
+        const latest = validDueDates[validDueDates.length - 1] || null;
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todayDate = new Date(`${todayStr}T00:00:00Z`);
+        let isOverdue = false;
+        let daysDiff = 0;
+
+        if (earliest) {
+          const earliestDate = new Date(`${earliest}T00:00:00Z`);
+          const diff = Math.round((todayDate.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diff > 0) {
+            isOverdue = true;
+            daysDiff = diff;
+          } else {
+            daysDiff = diff;
+          }
+        }
+
+        setCustomerDebtSummary({
+          count: data.length,
+          totalBalanceMinor: totalBal,
+          earliestDueDate: earliest,
+          latestDueDate: latest,
+          isOverdue,
+          daysDiff,
+        });
+      } catch {
+        setCustomerDebtSummary(null);
+      }
+    }
+
+    loadDebtSummary();
+  }, [isOpen, kind, targetBiz, effectiveCustomerId]);
+
   // Load suppliers for chosen business when kind === 'supplier_debt'
   useEffect(() => {
     async function loadBizSuppliers() {
-      const targetBiz = businessId || activeBusinessId;
-      if (!targetBiz) return;
+      const currentBiz = businessId || activeBusinessId;
+      if (!currentBiz) return;
 
       try {
         const supabase = createClient();
         const { data } = await supabase
           .from('suppliers')
           .select('id, supplier_no, name, phone, payment_terms_days')
-          .eq('business_id', targetBiz)
+          .eq('business_id', currentBiz)
           .eq('is_active', true)
           .order('name');
 
@@ -149,9 +264,8 @@ export function CreateObligationModal({
             setSupplierId(data[0].id);
             setPayeeName(data[0].name);
             if (data[0].payment_terms_days > 0) {
-              const d = new Date();
-              d.setDate(d.getDate() + data[0].payment_terms_days);
-              setDueDate(d.toISOString().split('T')[0]);
+              setDueDate(getPresetDate(data[0].payment_terms_days));
+              setSelectedPreset(String(data[0].payment_terms_days));
             }
           }
         }
@@ -182,7 +296,6 @@ export function CreateObligationModal({
     e.preventDefault();
     setError(null);
 
-    const targetBiz = businessId || activeBusinessId;
     if (!targetBiz) {
       setError('Please select a business');
       return;
@@ -194,7 +307,6 @@ export function CreateObligationModal({
       return;
     }
 
-    const effectiveCustomerId = preselectedCustomer?.id || customerId;
     if (kind === 'customer_debt' && !effectiveCustomerId) {
       setError('Please select a customer (or add one first)');
       return;
@@ -215,6 +327,7 @@ export function CreateObligationModal({
       const supabase = createClient();
       const today = new Date().toISOString().split('T')[0];
 
+      // 1. Create the new obligation
       const { error: rpcError } = await supabase.rpc('create_obligation', {
         p_business: targetBiz,
         p_kind: kind,
@@ -234,7 +347,31 @@ export function CreateObligationModal({
         throw new Error(rpcError.message || 'Failed to create record');
       }
 
-      // If customer debt, automatically trigger SMS queue worker in background
+      // 2. If requested, synchronize all existing open debts to this adjusted due date
+      if (
+        kind === 'customer_debt' &&
+        syncExistingDebts &&
+        customerDebtSummary &&
+        customerDebtSummary.count > 0 &&
+        dueDate
+      ) {
+        try {
+          await fetch('/api/obligations/due-date', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              businessId: targetBiz,
+              customerId: effectiveCustomerId,
+              dueDate,
+              syncAllCustomerDebts: true,
+            }),
+          });
+        } catch (syncErr) {
+          console.error('Failed to sync existing open debts to adjusted due date:', syncErr);
+        }
+      }
+
+      // 3. Trigger SMS queue worker in background to deliver instant credit sale SMS
       if (kind === 'customer_debt') {
         fetch('/api/sms/dispatch', { method: 'POST' }).catch(() => {});
       }
@@ -247,6 +384,8 @@ export function CreateObligationModal({
       setIsLoading(false);
     }
   };
+
+  const diffDays = getDaysDiffFromToday(dueDate);
 
   return (
     <Modal
@@ -319,27 +458,40 @@ export function CreateObligationModal({
 
         {/* Dynamic party selector based on kind */}
         {preselectedCustomer ? (
-          <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Billing Customer
-              </span>
-              <span className="text-xs font-bold text-slate-900">
-                {preselectedCustomer.full_name} ({preselectedCustomer.customer_no})
-              </span>
-              {preselectedCustomer.phone && (
-                <span className="text-[11px] text-slate-500 font-mono block">
-                  {fmt_phone(preselectedCustomer.phone)}
+          <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Billing Customer
                 </span>
+                <span className="text-xs font-bold text-slate-900">
+                  {preselectedCustomer.full_name} ({preselectedCustomer.customer_no})
+                </span>
+                {preselectedCustomer.phone && (
+                  <span className="text-[11px] text-slate-500 font-mono block">
+                    {fmt_phone(preselectedCustomer.phone)}
+                  </span>
+                )}
+              </div>
+              {preselectedCustomer.outstanding_minor !== undefined && (
+                <div className="text-right">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Current Debt
+                  </span>
+                  <span className="text-xs font-bold text-amber-700 font-mono">
+                    {fmt_kes(preselectedCustomer.outstanding_minor)}
+                  </span>
+                </div>
               )}
             </div>
-            {preselectedCustomer.outstanding_minor !== undefined && (
-              <div className="text-right">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Current Debt
+
+            {customerDebtSummary && customerDebtSummary.count > 0 && (
+              <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between text-[11px]">
+                <span className="text-slate-500">
+                  {customerDebtSummary.count} active debt{customerDebtSummary.count === 1 ? '' : 's'} ({fmt_kes(customerDebtSummary.totalBalanceMinor)})
                 </span>
-                <span className="text-xs font-bold text-amber-700 font-mono">
-                  {fmt_kes(preselectedCustomer.outstanding_minor)}
+                <span className={`font-semibold ${customerDebtSummary.isOverdue ? 'text-rose-600' : 'text-slate-700'}`}>
+                  Due: {fmt_date(customerDebtSummary.earliestDueDate)} {customerDebtSummary.isOverdue ? `(${customerDebtSummary.daysDiff}d overdue)` : `(in ${-customerDebtSummary.daysDiff}d)`}
                 </span>
               </div>
             )}
@@ -384,6 +536,20 @@ export function CreateObligationModal({
                         ))
                       )}
                     </select>
+
+                    {customerDebtSummary && customerDebtSummary.count > 0 && (
+                      <div className="p-2.5 rounded-lg bg-amber-50/90 border border-amber-200/80 flex items-center justify-between text-xs text-amber-900">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                          <span>
+                            Has <strong>{customerDebtSummary.count}</strong> open debt{customerDebtSummary.count === 1 ? '' : 's'} (<strong>{fmt_kes(customerDebtSummary.totalBalanceMinor)}</strong>)
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-semibold text-amber-800">
+                          Due: {fmt_date(customerDebtSummary.earliestDueDate)} {customerDebtSummary.isOverdue ? `(${customerDebtSummary.daysDiff}d overdue)` : `(in ${-customerDebtSummary.daysDiff}d)`}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -411,9 +577,8 @@ export function CreateObligationModal({
                       if (s) {
                         setPayeeName(s.name);
                         if (s.payment_terms_days > 0) {
-                          const d = new Date();
-                          d.setDate(d.getDate() + s.payment_terms_days);
-                          setDueDate(d.toISOString().split('T')[0]);
+                          setDueDate(getPresetDate(s.payment_terms_days));
+                          setSelectedPreset(String(s.payment_terms_days));
                         }
                       }
                     }}
@@ -449,22 +614,130 @@ export function CreateObligationModal({
           required
         />
 
-        {/* Due Date & Reference */}
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Due Date"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            required
-          />
+        {/* Flexible Adjusted Due Date Controls */}
+        <div className="space-y-2 rounded-xl border border-slate-200/90 bg-slate-50/50 p-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <CalendarClock className="w-3.5 h-3.5 text-slate-500" />
+              Adjusted Payment Due Date *
+            </label>
+            {diffDays !== null && (
+              <span
+                className={`text-[11px] font-medium px-2 py-0.5 rounded ${
+                  diffDays < 0
+                    ? 'bg-rose-100 text-rose-700'
+                    : diffDays === 0
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-emerald-100 text-emerald-800'
+                }`}
+              >
+                {diffDays < 0
+                  ? `${Math.abs(diffDays)}d overdue`
+                  : diffDays === 0
+                  ? 'Due today'
+                  : `In ${diffDays} day${diffDays === 1 ? '' : 's'}`}
+              </span>
+            )}
+          </div>
 
-          <Input
-            label="Invoice / Ref (Optional)"
-            type="text"
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
-          />
+          {/* Quick preset pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {customerDebtSummary?.earliestDueDate && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDueDate(customerDebtSummary.earliestDueDate!);
+                  setSelectedPreset('existing');
+                }}
+                className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-colors ${
+                  selectedPreset === 'existing'
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                Align Existing ({fmt_date(customerDebtSummary.earliestDueDate)})
+              </button>
+            )}
+
+            {[
+              { id: '7', label: '+7 Days', days: 7 },
+              { id: '14', label: '+14 Days', days: 14 },
+              { id: '21', label: '+21 Days', days: 21 },
+              { id: '30', label: '+30 Days', days: 30 },
+            ].map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setDueDate(getPresetDate(p.days));
+                  setSelectedPreset(p.id);
+                }}
+                className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-colors ${
+                  selectedPreset === p.id
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => {
+                setDueDate(getEndOfMonthDate());
+                setSelectedPreset('month_end');
+              }}
+              className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-colors ${
+                selectedPreset === 'month_end'
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              End of Month
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <Input
+              label="Selected Due Date"
+              type="date"
+              value={dueDate}
+              onChange={(e) => {
+                setDueDate(e.target.value);
+                setSelectedPreset('custom');
+              }}
+              required
+            />
+
+            <Input
+              label="Invoice / Ref (Optional)"
+              type="text"
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+            />
+          </div>
+
+          {/* Synchronize existing customer open debts option */}
+          {kind === 'customer_debt' && customerDebtSummary && customerDebtSummary.count > 0 && (
+            <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200/90 bg-white hover:bg-slate-50 cursor-pointer transition-colors mt-2">
+              <input
+                type="checkbox"
+                checked={syncExistingDebts}
+                onChange={(e) => setSyncExistingDebts(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/20"
+              />
+              <div className="flex-1">
+                <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                  <CalendarClock className="w-3.5 h-3.5 text-emerald-600" />
+                  Synchronize all {customerDebtSummary.count} open debts to this adjusted due date
+                </span>
+                <span className="text-[11px] text-slate-500 block mt-0.5">
+                  Aligns previous debts to {fmt_date(dueDate)} so the customer has a single common due date for their total balance ({fmt_kes(customerDebtSummary.totalBalanceMinor)} + new debt).
+                </span>
+              </div>
+            </label>
+          )}
         </div>
 
         <Input

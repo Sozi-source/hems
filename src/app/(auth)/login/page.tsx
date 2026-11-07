@@ -49,7 +49,6 @@ export default function LoginPage() {
           label="Email address"
           type="email"
           autoComplete="email"
-          placeholder="you@company.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -65,7 +64,6 @@ export default function LoginPage() {
             label=""
             type="password"
             autoComplete="current-password"
-            placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

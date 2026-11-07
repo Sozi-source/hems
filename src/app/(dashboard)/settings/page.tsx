@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useBusiness } from '@/context/business-context';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,9 @@ import {
   MessageSquare,
   Phone,
   CheckCircle2,
+  Users,
+  ShieldCheck,
+  History,
 } from 'lucide-react';
 
 interface PaymentChannelRecord {
@@ -213,6 +217,56 @@ export default function SettingsPage() {
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Team & Rights Management Card */}
+        <Card className="bg-white border-slate-200/90 shadow-sm col-span-1 md:col-span-2">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-emerald-700" />
+              <CardTitle className="text-slate-800">Team Rights & Employee Activity</CardTitle>
+            </div>
+            <span className="text-[11px] text-slate-500">
+              Allocate staff access and verify user audit logs
+            </span>
+          </CardHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 pt-1">
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col justify-between">
+              <div>
+                <div className="font-semibold text-xs text-slate-900 mb-1 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Allocate Employee Rights</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed mb-3">
+                  Assign Cashier, Accountant, Admin, or Viewer rights to employees. Cashiers can add customers, record credit sales, and settle cash debts.
+                </p>
+              </div>
+              <Link
+                href="/team"
+                className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-[#AEF359] hover:bg-[#9fe648] text-slate-950 font-semibold text-xs border border-[#9fe648] transition-colors w-fit"
+              >
+                Manage Team Rights &rarr;
+              </Link>
+            </div>
+
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex flex-col justify-between">
+              <div>
+                <div className="font-semibold text-xs text-slate-900 mb-1 flex items-center gap-2">
+                  <History className="w-4 h-4 text-slate-700" />
+                  <span>Activity Audit Trail</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed mb-3">
+                  Inspect the immutable log of all employee activities: verify who added a customer, recorded a debt, settled cash, or altered permissions.
+                </p>
+              </div>
+              <Link
+                href="/audit"
+                className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors w-fit"
+              >
+                View Audit Trail &rarr;
+              </Link>
+            </div>
+          </div>
+        </Card>
+
         {/* Businesses List */}
         <Card className="bg-white border-slate-200/90 shadow-sm">
           <CardHeader>

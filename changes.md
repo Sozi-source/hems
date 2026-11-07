@@ -1,3 +1,41 @@
+# Flexible Adjusted Due Dates, Merged Customer SMS Reminders, Daily Overdue Reminders (8:00 AM), Employee Rights & Audit Trail
+
+- **added** `src/app/api/obligations/due-date/route.ts` — Created authenticated endpoint (`PATCH`) allowing owners, admins, accountants, and cashiers to adjust debt due dates. Supports updating an individual obligation or batch synchronizing all active open debts for a client to a single common due date. Fully audited via `audit_log`.
+- **changed** `src/components/obligations/create-obligation-modal.tsx` — Added comprehensive flexible due date controls when issuing goods on credit / recording debt:
+  - **Client Debt & Timeline Inspection**: Automatically queries the client's active open debts, displaying total balance, open bill count, and current due date status (e.g. overdue or days remaining).
+  - **Quick Adjustment Presets**: One-click pills for `Keep Existing Due Date`, `+7 Days`, `+14 Days` (default), `+21 Days`, `+30 Days`, and `End of Month`.
+  - **Dynamic Relative Days Feedback**: Shows real-time countdown or overdue indicators (`Due in X days`, `Due today`, `Backdated / overdue`).
+  - **Common Due Date Synchronization**: Interactive toggle to synchronize all existing open debts for the customer to the adjusted due date, creating a unified payment deadline across the customer's entire balance.
+- **changed** `src/components/obligations/obligation-history-modal.tsx` — Added inline "Adjust Due Date" action on active debts with quick presets (`+7d`, `+14d`, `+21d`, `+30d`, `End of Month`), custom date picker, and instant save, allowing owners to extend or adjust deadlines directly from the ledger.
+- **changed** `src/lib/sms/reminder-engine.ts` — Implemented customer-level debt merging for SMS reminders:
+  - Groups active open debt obligations by customer (`(business_id, customer_id)`).
+  - Merges multi-debt balances into one aggregate outstanding balance (`fmt_kes(totalBalanceMinor, { showCents: false })`).
+  - Implements a common due date:
+    - **Overdue Priority**: If any debt is overdue, selects the earliest unpaid due date (oldest overdue debt in FIFO accounting) as the common due date anchor, calculating `days_overdue = today - min(due_date)`.
+    - **Advance Notice**: If no debts are overdue, selects the nearest upcoming due date as the common due date anchor, calculating `days_remaining = min(due_date) - today` (notifying when $\le 3$ days remaining).
+  - Enforces daily deduplication key `reminder:merged:${biz.id}:${cust.id}:${todayStr}:${mode}`, guaranteeing **exactly 1 SMS per customer per calendar day**.
+  - Schedules delivery at **8:00 AM** local business time (`Africa/Nairobi`).
+  - Strictly guarantees single-SMS length ($\le 160$ characters, safely under the 163-character threshold to avoid double SMS carrier charges).
+- **changed** `supabase/migrations/20261107000020_daily_overdue_reminders_and_audit.sql` — Updated PostgreSQL function `queue_due_reminders()` to mirror the customer-level debt aggregation, common due date calculation, 8:00 AM scheduling, and daily deduplication key.
+- **changed** `business_settings.reminder_send_hour` — Configured owner's preferred daily reminder dispatch hour to **8:00 AM** (`reminder_send_hour = 8`) across all businesses (`HARON_FASHION`, `ZENITH_PLAST`, and dev tenants).
+- **added** `src/app/api/team/route.ts` — Created authenticated endpoint for owner employee rights allocation (`GET`, `POST`, `PATCH`, `DELETE`). Enables owners to add/invite staff members, assign roles (`cashier`, `accountant`, `admin`, `viewer`), suspend/activate access, and safely guard against sole owner lockout.
+- **added** `src/app/(dashboard)/team/page.tsx` — Built comprehensive Team & Rights Management screen with KPI metrics, role description breakdowns (Cashier frontline counter rights for adding customers & debts vs Accountant payment approvals), employee management table, and zero-placeholder rights allocation modal.
+- **added** `src/app/api/audit/route.ts` — Created authenticated audit trail endpoint (`GET`) with strict owner/admin security, multi-entity filtering (Customers, Debts, Payments, Team, Settings), actor breakdown, search, and human-readable activity descriptions.
+- **added** `src/app/(dashboard)/audit/page.tsx` — Built Activity Audit Trail viewer with summary metrics, filter toolbar (by Employee, Entity, and Action), real-time activity log feed, and structured old vs new data inspect diff modal.
+- **changed** `src/context/business-context.tsx` — Enriched context to dynamically detect and expose the logged-in user's role (`currentRole`, `isOwner`, `isAdmin`, `isCashier`).
+- **changed** `src/components/layout/sidebar.tsx` & `src/components/layout/mobile-nav.tsx` — Added "Team & Rights" (`/team`) and "Audit Trail" (`/audit`) navigation links, and updated user profile strip to display the user's actual role in the active business.
+- **changed** `src/app/(dashboard)/reminders/page.tsx` — Added "Check & Dispatch Reminders" trigger button, status counters (Sent, Queued, Failed), and live character count indicators confirming single-SMS compliance.
+- **changed** `src/app/(dashboard)/settings/page.tsx` — Added "Team Rights & Employee Activity" quick-access card linking directly to Team management and the Activity Audit Trail.
+- **changed** Forms & Inputs — Removed remaining `placeholder="..."` attributes in `login/page.tsx`, `customer-history-modal.tsx`, and `edit-customer-modal.tsx` to maintain 100% zero-placeholder compliance across the codebase.
+- **added** `scripts/preview-merged-reminders.js`, `scripts/sync-overdue-templates.js` & `scripts/verify-new-features.js` — Synchronization, preview, and verification utilities for merged customer reminders, single-SMS character length constraints, and audit trail functionality.
+
+## Verification
+- Ran `npm run build`: Production build and type checking passed with 0 errors across all 39/39 routes (including `/api/obligations/due-date`).
+- Verified zero placeholder attributes across `src/` using recursive pattern scan.
+- Ran `node scripts/preview-merged-reminders.js`: Verified customer debt merging across 61 active debts and 43 customers with common due date anchor. Max length across all messages: **138 chars** ($\le 160$ chars single-SMS limit).
+- Ran `node scripts/test-template-lengths.js`: Verified all customer SMS templates are $\le 160$ chars (max 158 chars across all stress tests).
+- Ran `node scripts/verify-new-features.js`: Successfully verified live SMS templates, outbox message lengths, member roles, and active audit log table in Supabase.
+
 # Suppliers Directory, Zero-Placeholder Form Purge & Phonebook Integration
 
 - **added** `src/app/api/suppliers/route.ts` — Created authenticated API endpoint for managing supplier records (`GET`, `POST`, `PATCH`), supporting business isolation, multi-tenant master view, and supplier contact queries.

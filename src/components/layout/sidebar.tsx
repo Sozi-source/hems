@@ -12,12 +12,16 @@ import {
   Settings,
   Shield,
   Truck,
+  UserCheck,
+  History,
 } from 'lucide-react';
 import { BusinessSwitcher } from './business-switcher';
 import { cn } from '@/lib/utils';
+import { useBusiness } from '@/context/business-context';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { currentRole, isOwner } = useBusiness();
   const [pendingPaymentsCount, setPendingPaymentsCount] = React.useState<number>(0);
 
   React.useEffect(() => {
@@ -63,11 +67,25 @@ export function Sidebar() {
       icon: BellRing,
     },
     {
+      label: 'Team & Rights',
+      href: '/team',
+      icon: UserCheck,
+    },
+    {
+      label: 'Audit Trail',
+      href: '/audit',
+      icon: History,
+    },
+    {
       label: 'Settings',
       href: '/settings',
       icon: Settings,
     },
   ];
+
+  const roleLabel = currentRole
+    ? `${currentRole.charAt(0).toUpperCase() + currentRole.slice(1)} Account`
+    : 'User Account';
 
   return (
     <aside className="hidden lg:flex flex-col w-64 bg-[#102719] border-r border-[#264632] h-screen sticky top-0 shrink-0 select-none">
@@ -129,7 +147,7 @@ export function Sidebar() {
           <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-white shrink-0">
             <Shield className="w-3.5 h-3.5 text-slate-300" />
           </div>
-          <div className="font-medium text-slate-200 whitespace-nowrap">Owner Account</div>
+          <div className="font-medium text-slate-200 whitespace-nowrap">{roleLabel}</div>
         </div>
       </div>
     </aside>

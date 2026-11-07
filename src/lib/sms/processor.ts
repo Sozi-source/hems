@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { runDueRemindersCheck } from './reminder-engine';
 
 // Provider statuses that will never succeed for this recipient. Do not retry.
 const PERMANENT_BLOCK_STATUSES = ['blacklisted', 'optedout', 'invalid_number'];
@@ -25,6 +26,14 @@ export async function processSmsQueue() {
 
   try {
     const admin = createAdminClient();
+
+    // 1. Evaluate & queue overdue and almost-due reminders
+    try {
+      await runDueRemindersCheck();
+    } catch (remErr) {
+      console.error('runDueRemindersCheck warning (will continue queue claim):', remErr);
+    }
+
     const { data: claimed, error: claimError } = await admin.rpc('claim_sms_outbox', { p_limit: 20 });
     if (claimError) throw claimError;
 

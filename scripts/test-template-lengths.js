@@ -14,12 +14,16 @@ const candidateTemplates = {
   HARON_FASHION: {
     credit_sale_invoice: 'Dear {{first_name}}, goods {{amount}} on credit. Bal: {{balance}} due {{due_date}}. Pay Equity 247247/NCBA 880100 Acc 650166 (Ref: {{account}}). Haron fashio-0725499796',
     customer_reminder: 'Dear {{first_name}}, reminder: balance is {{balance}}. Pay Equity 247247/NCBA 880100 Acc 650166 (Ref: {{account}}). Haron fashio-0725499796',
+    customer_reminder_overdue: 'Dear {{first_name}}, reminder: bal {{balance}} is {{days_overdue}} days overdue. Pay Equity 247247/NCBA 880100 Acc 650166 (Ref: {{account}}). Haron fashio-0725499796',
+    customer_reminder_due_soon: 'Dear {{first_name}}, reminder: bal {{balance}} due in {{days_remaining}}d ({{due_date}}). Pay Equity 247247/NCBA 880100 Acc 650166 (Ref: {{account}}). Haron fashio-0725499796',
     payment_confirmation: 'Dear {{first_name}}, payment of {{amount}} received. Thank you. Balance: {{balance}}. Haron fashio-0725499796',
     payment_confirmation_paid_in_full: 'Dear {{first_name}}, payment of {{amount}} received. Thank you. Your account is PAID IN FULL. Haron fashio-0725499796',
   },
   ZENITH_PLAST: {
     credit_sale_invoice: 'Dear {{first_name}}, goods {{amount}} on credit. Bal: {{balance}} due {{due_date}}. Pay Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496',
     customer_reminder: 'Dear {{first_name}}, reminder: balance is {{balance}}. Pay via Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496',
+    customer_reminder_overdue: 'Dear {{first_name}}, reminder: bal {{balance}} is {{days_overdue}} days overdue. Pay Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496',
+    customer_reminder_due_soon: 'Dear {{first_name}}, reminder: bal {{balance}} due in {{days_remaining}}d ({{due_date}}). Pay Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496',
     payment_confirmation: 'Dear {{first_name}}, payment of {{amount}} received. Thank you. Balance: {{balance}}. Zenith- 0711377496',
     payment_confirmation_paid_in_full: 'Dear {{first_name}}, payment of {{amount}} received. Thank you. Your account is PAID IN FULL. Zenith- 0711377496',
   }
@@ -27,28 +31,34 @@ const candidateTemplates = {
 
 const stressTests = [
   {
-    label: 'Standard Customer (John, KSh 5,000, Bal KSh 12,000)',
+    label: 'Standard Customer (John, KSh 5,000, Bal KSh 12,000, 5 days overdue, 3 days left)',
     first_name: 'John',
     amount: 'KSh 5,000',
     balance: 'KSh 12,000',
     due_date: '15 Nov',
     account: 'C0012',
+    days_overdue: '5',
+    days_remaining: '3',
   },
   {
-    label: 'Long First Name (Christopher, KSh 150,000, Bal KSh 350,000)',
+    label: 'Long First Name (Christopher, KSh 150,000, Bal KSh 350,000, 14 days overdue, 1 day left)',
     first_name: 'Christopher',
     amount: 'KSh 150,000',
     balance: 'KSh 350,000',
     due_date: '30 Nov',
     account: 'C0123',
+    days_overdue: '14',
+    days_remaining: '1',
   },
   {
-    label: 'Extreme Edge Case (Bartholomew, KSh 1,500,000, Bal KSh 5,000,000)',
+    label: 'Extreme Edge Case (Bartholomew, KSh 1,500,000, Bal KSh 5,000,000, 99 days overdue, 3 days left)',
     first_name: 'Bartholomew',
     amount: 'KSh 1,500,000',
     balance: 'KSh 5,000,000',
     due_date: '31 Dec',
     account: 'C9999',
+    days_overdue: '99',
+    days_remaining: '3',
   },
 ];
 
@@ -74,7 +84,7 @@ for (const [bizCode, tpls] of Object.entries(candidateTemplates)) {
 
 console.log(`\nMax length seen across ALL stress tests: ${maxOverall} chars.`);
 if (fails === 0 && maxOverall <= 160) {
-  console.log('SUCCESS: Every single SMS is guaranteed <= 160 chars (well below 163 char limit)!');
+  console.log('SUCCESS: Every single SMS is guaranteed <= 160 chars (strictly within the 163 char limit to prevent double SMS charges)!');
 } else {
   console.error(`FAILED: ${fails} tests exceeded 160 chars.`);
   process.exit(1);

@@ -3,7 +3,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ArrowDownLeft, Receipt, Users, Ellipsis, BellRing, Settings, Truck } from 'lucide-react';
+import {
+  LayoutDashboard,
+  ArrowDownLeft,
+  Receipt,
+  Users,
+  Ellipsis,
+  BellRing,
+  Settings,
+  Truck,
+  UserCheck,
+  History,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const primaryItems = [
@@ -16,6 +27,8 @@ const primaryItems = [
 const moreItems = [
   { label: 'Suppliers', href: '/suppliers', icon: Truck },
   { label: 'Reminders', href: '/reminders', icon: BellRing },
+  { label: 'Team & Rights', href: '/team', icon: UserCheck },
+  { label: 'Audit Trail', href: '/audit', icon: History },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -51,7 +64,7 @@ export function MobileNav() {
         })}
         <div className="relative" ref={moreRef}>
           {isMoreOpen && (
-            <div className="absolute bottom-full right-0 mb-2 w-52 rounded-xl border border-[#365541] bg-[#173622] p-1.5 shadow-xl">
+            <div className="absolute bottom-full right-0 mb-2 w-56 rounded-xl border border-[#365541] bg-[#173622] p-1.5 shadow-xl">
               {moreItems.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;

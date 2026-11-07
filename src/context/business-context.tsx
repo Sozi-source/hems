@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Business, BusinessCode } from '@/lib/types';
+import { Business, BusinessCode, UserRole } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 
 interface BusinessContextType {
@@ -12,6 +12,10 @@ interface BusinessContextType {
   isMasterView: boolean;
   setBusiness: (code: BusinessCode) => void;
   isLoading: boolean;
+  currentRole: UserRole | null;
+  isOwner: boolean;
+  isAdmin: boolean;
+  isCashier: boolean;
 }
 
 const DEFAULT_BUSINESSES: Business[] = [
@@ -35,6 +39,7 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
   const [businesses, setBusinesses] = useState<Business[]>(DEFAULT_BUSINESSES);
   const [activeCode, setActiveCode] = useState<BusinessCode>('MASTER');
   const [isLoading, setIsLoading] = useState(true);
+  const [currentRole, setCurrentRole] = useState<UserRole | null>('owner');
 
   useEffect(() => {
     // 1. Restore saved choice
@@ -86,17 +91,62 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
     fetchRealBusinesses();
   }, []);
 
+  const isMasterView = activeCode === 'MASTER';
+  const activeBusiness = isMasterView
+    ? null
+    : businesses.find((b) => b.code === activeCode) || null;
+  const activeBusinessId = activeBusiness?.id || null;
+
+  // Fetch current user's role for this business
+  useEffect(() => {
+    async function fetchRole() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          setCurrentRole(null);
+          return;
+        }
+
+        let query = supabase
+          .from('business_members')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+
+        if (activeBusinessId) {
+          query = query.eq('business_id', activeBusinessId);
+        }
+
+        const { data: mem } = await query;
+        if (mem && mem.length > 0) {
+          const roles = mem.map((m) => m.role as UserRole);
+          if (roles.includes('owner')) setCurrentRole('owner');
+          else if (roles.includes('admin')) setCurrentRole('admin');
+          else if (roles.includes('accountant')) setCurrentRole('accountant');
+          else if (roles.includes('cashier')) setCurrentRole('cashier');
+          else setCurrentRole(roles[0]);
+        } else {
+          setCurrentRole('viewer');
+        }
+      } catch {
+        // Fallback default
+      }
+    }
+    fetchRole();
+  }, [activeBusinessId]);
+
   const setBusiness = (code: BusinessCode) => {
     setActiveCode(code);
     localStorage.setItem('hems_active_business', code);
     document.cookie = `hems_active_business=${code}; path=/; max-age=31536000; SameSite=Lax`;
   };
 
-  const isMasterView = activeCode === 'MASTER';
-  const activeBusiness = isMasterView
-    ? null
-    : businesses.find((b) => b.code === activeCode) || null;
-  const activeBusinessId = activeBusiness?.id || null;
+  const isOwner = currentRole === 'owner';
+  const isAdmin = currentRole === 'admin' || isOwner;
+  const isCashier = currentRole === 'cashier';
 
   return (
     <BusinessContext.Provider
@@ -108,6 +158,10 @@ export function BusinessProvider({ children }: { children: React.ReactNode }) {
         isMasterView,
         setBusiness,
         isLoading,
+        currentRole,
+        isOwner,
+        isAdmin,
+        isCashier,
       }}
     >
       {children}
