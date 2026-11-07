@@ -60,15 +60,6 @@ function getPresetDate(daysToAdd: number): string {
   return `${year}-${month}-${day}`;
 }
 
-function getEndOfMonthDate(): string {
-  const d = new Date();
-  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-  const year = lastDay.getFullYear();
-  const month = String(lastDay.getMonth() + 1).padStart(2, '0');
-  const day = String(lastDay.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 function getDaysDiffFromToday(dateStr: string): number | null {
   if (!dateStr) return null;
   try {
@@ -99,10 +90,8 @@ export function CreateObligationModal({
   const [payeeName, setPayeeName] = useState('');
   const [amount, setAmount] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [selectedPreset, setSelectedPreset] = useState<string>('14');
   const [customerDebtSummary, setCustomerDebtSummary] = useState<CustomerDebtSummary | null>(null);
   const [syncExistingDebts, setSyncExistingDebts] = useState<boolean>(false);
-  const [reference, setReference] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +103,6 @@ export function CreateObligationModal({
     if (isOpen) {
       setError(null);
       setAmount('');
-      setReference('');
       setDescription('');
       setPayeeName('');
       setCustomerSearch('');
@@ -122,7 +110,6 @@ export function CreateObligationModal({
 
       // Default to +14 days
       setDueDate(getPresetDate(14));
-      setSelectedPreset('14');
 
       if (preselectedCustomer) {
         setKind('customer_debt');
@@ -265,7 +252,6 @@ export function CreateObligationModal({
             setPayeeName(data[0].name);
             if (data[0].payment_terms_days > 0) {
               setDueDate(getPresetDate(data[0].payment_terms_days));
-              setSelectedPreset(String(data[0].payment_terms_days));
             }
           }
         }
@@ -338,7 +324,7 @@ export function CreateObligationModal({
         p_category: null,
         p_payee: kind !== 'customer_debt' ? effectivePayee : null,
         p_description: description.trim() || null,
-        p_reference: reference.trim() || null,
+        p_reference: null,
         p_issue_date: today,
         p_due_date: dueDate || null,
       });
@@ -578,7 +564,6 @@ export function CreateObligationModal({
                         setPayeeName(s.name);
                         if (s.payment_terms_days > 0) {
                           setDueDate(getPresetDate(s.payment_terms_days));
-                          setSelectedPreset(String(s.payment_terms_days));
                         }
                       }
                     }}
@@ -614,12 +599,12 @@ export function CreateObligationModal({
           required
         />
 
-        {/* Flexible Adjusted Due Date Controls */}
-        <div className="space-y-2 rounded-xl border border-slate-200/90 bg-slate-50/50 p-3">
-          <div className="flex items-center justify-between">
+        {/* Due Date */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
               <CalendarClock className="w-3.5 h-3.5 text-slate-500" />
-              Adjusted Payment Due Date *
+              Due Date *
             </label>
             {diffDays !== null && (
               <span
@@ -640,102 +625,26 @@ export function CreateObligationModal({
             )}
           </div>
 
-          {/* Quick preset pills */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {customerDebtSummary?.earliestDueDate && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDueDate(customerDebtSummary.earliestDueDate!);
-                  setSelectedPreset('existing');
-                }}
-                className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-colors ${
-                  selectedPreset === 'existing'
-                    ? 'bg-slate-900 text-white border-slate-900'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                Align Existing ({fmt_date(customerDebtSummary.earliestDueDate)})
-              </button>
-            )}
-
-            {[
-              { id: '7', label: '+7 Days', days: 7 },
-              { id: '14', label: '+14 Days', days: 14 },
-              { id: '21', label: '+21 Days', days: 21 },
-              { id: '30', label: '+30 Days', days: 30 },
-            ].map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => {
-                  setDueDate(getPresetDate(p.days));
-                  setSelectedPreset(p.id);
-                }}
-                className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-colors ${
-                  selectedPreset === p.id
-                    ? 'bg-slate-900 text-white border-slate-900'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => {
-                setDueDate(getEndOfMonthDate());
-                setSelectedPreset('month_end');
-              }}
-              className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-colors ${
-                selectedPreset === 'month_end'
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              End of Month
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <Input
-              label="Selected Due Date"
-              type="date"
-              value={dueDate}
-              onChange={(e) => {
-                setDueDate(e.target.value);
-                setSelectedPreset('custom');
-              }}
-              required
-            />
-
-            <Input
-              label="Invoice / Ref (Optional)"
-              type="text"
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-            />
-          </div>
+          <Input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            required
+          />
 
           {/* Synchronize existing customer open debts option */}
           {kind === 'customer_debt' && customerDebtSummary && customerDebtSummary.count > 0 && (
-            <label className="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200/90 bg-white hover:bg-slate-50 cursor-pointer transition-colors mt-2">
+            <label className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100/70 cursor-pointer transition-colors text-xs text-slate-700">
               <input
                 type="checkbox"
                 checked={syncExistingDebts}
                 onChange={(e) => setSyncExistingDebts(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/20"
+                className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900/20"
               />
-              <div className="flex-1">
-                <span className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                  <CalendarClock className="w-3.5 h-3.5 text-emerald-600" />
-                  Synchronize all {customerDebtSummary.count} open debts to this adjusted due date
-                </span>
-                <span className="text-[11px] text-slate-500 block mt-0.5">
-                  Aligns previous debts to {fmt_date(dueDate)} so the customer has a single common due date for their total balance ({fmt_kes(customerDebtSummary.totalBalanceMinor)} + new debt).
-                </span>
-              </div>
+              <span className="flex items-center gap-1.5">
+                <CalendarClock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                Synchronize all <strong>{customerDebtSummary.count}</strong> existing debts to this due date
+              </span>
             </label>
           )}
         </div>
