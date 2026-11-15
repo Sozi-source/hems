@@ -33,7 +33,7 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
   const [recentActivity, setRecentActivity] = useState<IngestLogItem[]>([]);
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
 
-  const productionDomain = 'https://hems-gamma.vercel.app';
+  const productionDomain = 'https://hems-ten.vercel.app';
 
   const fetchActivity = async () => {
     setIsLoadingActivity(true);
@@ -62,7 +62,7 @@ export function SmsReaderSetupModal({ isOpen, onClose }: SmsReaderSetupModalProp
     }
   }, [isOpen]);
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hems-gamma.vercel.app';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hems-ten.vercel.app';
   const activeBaseUrl = domainMode === 'production' ? productionDomain : origin;
   const webhookUrl = activeBusinessId
     ? `${activeBaseUrl}/api/payments/sms-forwarder?businessId=${activeBusinessId}`

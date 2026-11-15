@@ -1,4 +1,4 @@
-const HEMS_SMS_WORKER_URL = 'https://hems-gamma.vercel.app/api/sms/worker';
+const HEMS_SMS_WORKER_URL = 'https://hems-ten.vercel.app/api/sms/worker';
 
 export default {
   async fetch() {
