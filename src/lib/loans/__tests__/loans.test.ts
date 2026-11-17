@@ -11,6 +11,7 @@ import {
   buildLoanReminderMessage,
   evaluateLoanReminderSchedule,
 } from '../reminder-schedule.ts';
+import { parseLoanRepaymentSms } from '../repayment-sms-parser.ts';
 
 test('Amortization: reducing balance clears principal exactly to 0 on final instalment', () => {
   const schedule = generateAmortizationSchedule({
@@ -136,4 +137,25 @@ test('Payment allocation: splits interest first then principal, handles underpay
   assert.equal(over.total_interest_minor, 190000);
   assert.equal(over.total_principal_minor, 2310000);
   assert.equal(over.overpayment_to_principal_minor, 500000);
+});
+
+test('SMS Forwarder loan repayment parser: extracts M-Pesa Paybill & Bank loan debits', () => {
+  const mpesaSms =
+    'UA91BC23DE Confirmed. Ksh25,000.00 paid to Equity Bank. on 20/11/26 at 10:15 AM for account 650166 Paybill 247247.';
+  const parsedMpesa = parseLoanRepaymentSms(mpesaSms, 'MPESA');
+  assert.ok(parsedMpesa);
+  assert.equal(parsedMpesa.transactionRef, 'UA91BC23DE');
+  assert.equal(parsedMpesa.amountMinor, 2500000);
+  assert.equal(parsedMpesa.method, 'mpesa');
+  assert.equal(parsedMpesa.accountReference, '650166');
+  assert.equal(parsedMpesa.paybillOrTill, '247247');
+
+  const bankSms =
+    'Dear Customer, KES 40,500.00 has been debited from your account for loan repayment Loan A/C LN998811 Ref: EQ77889900.';
+  const parsedBank = parseLoanRepaymentSms(bankSms, 'EQUITY');
+  assert.ok(parsedBank);
+  assert.equal(parsedBank.transactionRef, 'EQ77889900');
+  assert.equal(parsedBank.amountMinor, 4050000);
+  assert.equal(parsedBank.method, 'bank_transfer');
+  assert.equal(parsedBank.accountReference, 'LN998811');
 });

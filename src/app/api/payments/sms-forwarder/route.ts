@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { matchPayment } from '@/lib/daraja/matcher';
 import { parsePaymentAlert } from '@/lib/reconciliation/sms-parser';
+import { parseLoanRepaymentSms } from '@/lib/loans/repayment-sms-parser';
+import { matchAndRecordLoanRepayment } from '@/lib/loans/repayment-matcher';
 
 /**
  * Default cutoff for historical SMS replays. Messages the device received before this instant are
@@ -205,6 +207,16 @@ export async function POST(request: Request) {
       parsed.amountMinor <= 0 ||
       parsed.detectedFormat === 'generic'
     ) {
+      // Check if this is an outgoing business loan repayment SMS (M-Pesa Paybill / Bank debit)
+      const parsedLoanRepay = parseLoanRepaymentSms(rawText, sender, deviceOccurredAt);
+      if (parsedLoanRepay) {
+        const loanMatch = await matchAndRecordLoanRepayment(admin, parsedLoanRepay, sender);
+        return NextResponse.json({
+          status: loanMatch.matched ? 'loan_repayment_recorded' : 'loan_repayment_unmatched',
+          loanMatch,
+        }, { status: 200 });
+      }
+
       await recordIngestFailure(
         admin,
         rawText,
