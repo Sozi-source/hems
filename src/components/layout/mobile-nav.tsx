@@ -14,6 +14,7 @@ import {
   Truck,
   UserCheck,
   History,
+  Landmark,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ const primaryItems = [
 ];
 
 const moreItems = [
+  { label: 'Loans', href: '/loans', icon: Landmark },
   { label: 'Suppliers', href: '/suppliers', icon: Truck },
   { label: 'Reminders', href: '/reminders', icon: BellRing },
   { label: 'Team & Rights', href: '/team', icon: UserCheck },

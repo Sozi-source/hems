@@ -6,6 +6,7 @@ import { useBusiness } from '@/context/business-context';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { BackupAndSecurityCards } from '@/components/settings/backup-and-security-cards';
 import { createClient } from '@/lib/supabase/client';
 import {
   Building2,
@@ -728,6 +729,8 @@ export default function SettingsPage() {
           </section>
         </div>
       )}
+
+      <BackupAndSecurityCards />
     </div>
   );
 }

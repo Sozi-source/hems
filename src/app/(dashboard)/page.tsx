@@ -199,14 +199,30 @@ export default function DashboardOverviewPage() {
           {isMasterView ? 'Overview' : activeBusiness?.name || activeBusinessCode}
         </h1>
 
-        <button
-          type="button"
-          onClick={() => setIsCreateModalOpen(true)}
-          className="inline-flex h-9 px-3.5 items-center justify-center rounded-lg bg-[#AEF359] hover:bg-[#9fe648] text-slate-950 font-semibold text-xs border border-[#9fe648] transition-colors shrink-0 shadow-2xs"
-        >
-          <Plus className="w-3.5 h-3.5 mr-1.5" />
-          <span>New Debt or Bill</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Link
+            href="/payments"
+            className="inline-flex h-9 px-3 items-center justify-center rounded-lg bg-white hover:bg-slate-50 text-slate-800 font-semibold text-xs border border-slate-300 transition-colors shadow-2xs"
+          >
+            <CreditCard className="w-3.5 h-3.5 mr-1.5 text-[#185D2D]" />
+            <span>Record payment</span>
+          </Link>
+          <Link
+            href="/loans"
+            className="inline-flex h-9 px-3 items-center justify-center rounded-lg bg-white hover:bg-slate-50 text-slate-800 font-semibold text-xs border border-slate-300 transition-colors shadow-2xs"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5 text-[#185D2D]" />
+            <span>Add loan</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="inline-flex h-9 px-3.5 items-center justify-center rounded-lg bg-[#AEF359] hover:bg-[#9fe648] text-slate-950 font-semibold text-xs border border-[#9fe648] transition-colors shadow-2xs"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            <span>New Debt or Bill</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary KPI Cards — 4 Clean White Cards with minimal lime accent */}

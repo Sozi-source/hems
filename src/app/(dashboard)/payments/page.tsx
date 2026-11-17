@@ -29,6 +29,7 @@ import { PasteAlertModal } from '@/components/payments/paste-alert-modal';
 import { SmsReaderSetupModal } from '@/components/payments/sms-reader-setup-modal';
 import { PayDebtModal } from '@/components/payments/pay-debt-modal';
 import { PaginationBar } from '@/components/ui/pagination-bar';
+import { CashbookExportButton } from '@/components/payments/cashbook-export-button';
 
 const PAGE_SIZE = 15;
 
@@ -178,6 +179,8 @@ export default function PaymentsPage() {
         </h1>
 
         <div className="flex items-center gap-2">
+          <CashbookExportButton />
+
           <Button
             variant="outline"
             size="sm"

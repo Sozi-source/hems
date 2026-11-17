@@ -14,6 +14,7 @@ import {
   Truck,
   UserCheck,
   History,
+  Landmark,
 } from 'lucide-react';
 import { BusinessSwitcher } from './business-switcher';
 import { cn } from '@/lib/utils';
@@ -50,6 +51,11 @@ export function Sidebar() {
       label: 'Debts & Invoices',
       href: '/obligations',
       icon: Receipt,
+    },
+    {
+      label: 'Loans',
+      href: '/loans',
+      icon: Landmark,
     },
     {
       label: 'Customers',

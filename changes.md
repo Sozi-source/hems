@@ -1,3 +1,15 @@
+# Business Loans Management, Loan Calculator, 8:00 AM Automated Reminders, Encrypted Backups & Biometric Security
+
+- **added** `supabase/migrations/20261117000021_loans_module.sql` — Non-destructively extended `loan_terms`, added `loan_instalments` amortization schedule table, RLS, audit triggers, and SQL RPCs (`create_loan`, `update_loan_terms`).
+- **added** `supabase/migrations/20261117000022_loan_payments.sql` — Added `loan_payments`, `loan_payment_allocations`, and SQL RPCs (`record_loan_payment`, `verify_loan_payment`, `reverse_loan_payment`).
+- **added** `supabase/migrations/20261117000023_loan_reminders_and_push.sql` — Added `loan_reminder_settings`, `loan_reminder_logs`, `cron_job_runs`, and `push_subscriptions`.
+- **added** `supabase/migrations/20261117000024_backups.sql` — Added `system_backups` for AES-256-GCM encrypted snapshots.
+- **added** `supabase/migrations/20261117000025_security_biometrics.sql` — Added `user_security_settings` (scrypt-hashed PIN + attempt lockout) and `user_webauthn_credentials`.
+- **added** `src/lib/loans/amortization.ts`, `payment-allocation.ts`, `reminder-schedule.ts`, `reminder-engine.ts`, and `src/lib/sms/providers/` (Mobiwaves default adapter + optional Africa's Talking adapter).
+- **added** `src/app/(dashboard)/loans/page.tsx` & `src/components/loans/*` (Loan Calculator, Add/Edit Loan, Loan Detail + Payment History/Verification/Reversal, Reminders & Cron Logs).
+- **added** `src/lib/backup/*`, `src/app/api/backups/*`, `src/app/api/security/*`, `src/components/security/app-lock-guard.tsx`, `src/components/settings/backup-and-security-cards.tsx`.
+- **changed** `src/app/(dashboard)/page.tsx`, `src/components/layout/sidebar.tsx`, `src/components/layout/mobile-nav.tsx`, `src/app/(dashboard)/layout.tsx`, `src/app/(dashboard)/settings/page.tsx`, `src/app/api/sms/worker/route.ts`, `public/sw.js`, `README.md`, `.env.example`.
+
 # Flexible Adjusted Due Dates, Merged Customer SMS Reminders, Daily Overdue Reminders (8:00 AM), Employee Rights & Audit Trail
 
 - **added** `src/app/api/obligations/due-date/route.ts` — Created authenticated endpoint (`PATCH`) allowing owners, admins, accountants, and cashiers to adjust debt due dates. Supports updating an individual obligation or batch synchronizing all active open debts for a client to a single common due date. Fully audited via `audit_log`.
