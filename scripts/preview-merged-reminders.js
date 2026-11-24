@@ -46,6 +46,14 @@ function formatDueDate(dueDateStr, todayStr) {
   }
 }
 
+function normalizeDueTodayTemplate(tpl) {
+  return tpl
+    .replace(/\bdue\s+in\s+\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)?(?=\s|\.|,|;|:|\(|$)/gi, 'due today')
+    .replace(/\bin\s+\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)(?=\s|\.|,|;|:|\(|$)/gi, 'today')
+    .replace(/\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)\s*left\b/gi, 'due today')
+    .replace(/\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)(?=\s|\.|,|;|:|\(|$)/gi, 'today');
+}
+
 function renderTemplate(tpl, vars) {
   let result = tpl;
   for (const [k, v] of Object.entries(vars)) {
@@ -192,6 +200,18 @@ async function run() {
         templatesMap.get(`${biz.id}:customer_reminder_overdue`) ||
         templatesMap.get(`${biz.id}:customer_reminder`) ||
         'Dear {{first_name}}, reminder: bal {{balance}} is {{days_overdue}} days overdue.';
+    } else if (daysValue === 0) {
+      const dueTodayTpl = templatesMap.get(`${biz.id}:customer_reminder_due_today`);
+      if (dueTodayTpl) {
+        tplBody = dueTodayTpl;
+      } else {
+        const dueSoonTpl =
+          templatesMap.get(`${biz.id}:customer_reminder_due_soon`) ||
+          templatesMap.get(`${biz.id}:customer_reminder`);
+        tplBody = dueSoonTpl
+          ? normalizeDueTodayTemplate(dueSoonTpl)
+          : 'Dear {{first_name}}, reminder: bal {{balance}} due today ({{due_date}}).';
+      }
     } else {
       tplBody =
         templatesMap.get(`${biz.id}:customer_reminder_due_soon`) ||
@@ -208,7 +228,7 @@ async function run() {
       reference: group.debts.length > 1 ? `${group.debts.length} debts` : (primaryDebt.reference_no || ''),
       due_date: formattedDue,
       days_overdue: String(daysValue),
-      days_remaining: String(daysValue),
+      days_remaining: daysValue === 0 ? 'today' : String(daysValue),
       paybill,
       account: cust.customer_no,
     });

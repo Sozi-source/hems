@@ -1,3 +1,10 @@
+# Due-Today Customer SMS Reminder Wording Fix
+
+- **added** `src/lib/sms/reminder-schedule.ts` — Extracted pure customer debt reminder evaluation (`evaluateCustomerDebtReminder`), due-today template normalization (`normalizeDueTodayTemplate`), and SMS rendering (`buildCustomerReminderSms`) from `src/lib/sms/reminder-engine.ts`. When the nearest due date is today (`daysValue === 0`), reminders now read `"due today"` instead of `"due in 0d"` / `"0 days"`, supporting optional `customer_reminder_due_today` templates as well as normalizing `customer_reminder_due_soon` templates and fallbacks.
+- **changed** `src/lib/sms/reminder-engine.ts` & `scripts/preview-merged-reminders.js` — Wired into the shared due-today wording fix while keeping `mode = 'due_soon'` daily deduplication and the `<= 160` character single-SMS limit intact.
+- **added** `src/lib/sms/__tests__/reminder-engine.test.ts` — Unit tests covering due-today evaluation, overdue priority over due-today, DB template normalization, fallback rendering, and positive days-remaining rendering.
+- **added** `supabase/migrations/20261124000026_reminder_due_today_text.sql` — Updated PostgreSQL `queue_due_reminders()` to mirror the due-today `"today"` wording fix.
+
 # Business Loans Management, Loan Calculator, 8:00 AM Automated Reminders, Encrypted Backups & Biometric Security
 
 - **added** `supabase/migrations/20261117000021_loans_module.sql` — Non-destructively extended `loan_terms`, added `loan_instalments` amortization schedule table, RLS, audit triggers, and SQL RPCs (`create_loan`, `update_loan_terms`).

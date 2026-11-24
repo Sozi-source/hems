@@ -1,5 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { fmt_kes } from '@/lib/format';
+import {
+  buildCustomerReminderSms,
+  evaluateCustomerDebtReminder,
+} from './reminder-schedule';
 
 interface ObligationRow {
   id: string;
@@ -41,31 +44,6 @@ interface CustomerDebtGroup {
   bizId: string;
   customerId: string;
   debts: ObligationRow[];
-}
-
-function renderTemplate(tpl: string, vars: Record<string, string>): string {
-  let result = tpl;
-  for (const [k, v] of Object.entries(vars)) {
-    result = result.replaceAll(`{{${k}}}`, v ?? '');
-  }
-  return result;
-}
-
-function formatDueDate(dueDateStr: string | null, todayStr: string): string {
-  if (!dueDateStr) return 'Not set';
-  try {
-    const d = new Date(dueDateStr + 'T00:00:00Z');
-    const today = new Date(todayStr + 'T00:00:00Z');
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const day = d.getUTCDate();
-    const month = months[d.getUTCMonth()];
-    if (d.getUTCFullYear() === today.getUTCFullYear()) {
-      return `${day} ${month}`;
-    }
-    return `${day} ${month} ${d.getUTCFullYear()}`;
-  } catch {
-    return dueDateStr;
-  }
 }
 
 function computeScheduledAt(now: Date, timeZone: string, targetHour: number = 8): string {
@@ -188,7 +166,6 @@ export async function runDueRemindersCheck(): Promise<{ queuedCount: number; che
     // Resolve current date in business local time (YYYY-MM-DD)
     const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
     const todayStr = formatter.format(now);
-    const todayDate = new Date(`${todayStr}T00:00:00Z`);
 
     // Fetch customer details
     const { data: cust } = await admin
@@ -208,55 +185,12 @@ export async function runDueRemindersCheck(): Promise<{ queuedCount: number; che
     }
     if (totalBalanceMinor <= 0) continue;
 
-    // Partition debts into overdue vs upcoming
-    const overdueDebts: Array<{ debt: ObligationRow; anchorStr: string; diffDays: number }> = [];
-    const upcomingDebts: Array<{ debt: ObligationRow; anchorStr: string; diffDays: number }> = [];
-
-    for (const d of group.debts) {
-      const anchorStr = d.due_date || d.issue_date;
-      if (!anchorStr) continue;
-      const anchorDate = new Date(`${anchorStr}T00:00:00Z`);
-      const diffDays = Math.round((todayDate.getTime() - anchorDate.getTime()) / (1000 * 60 * 60 * 24));
-      if (diffDays > 0) {
-        overdueDebts.push({ debt: d, anchorStr, diffDays });
-      } else {
-        upcomingDebts.push({ debt: d, anchorStr, diffDays });
-      }
-    }
-
-    let mode: 'overdue' | 'due_soon' | null = null;
-    let primaryDebt: ObligationRow;
-    let commonDueDateStr: string;
-    let daysValue: number;
-
-    // Priority 1: Customer has overdue debts -> Merged overdue reminder
-    if (overdueDebts.length > 0) {
-      // Sort ascending by anchorStr (earliest due date first = oldest overdue debt in FIFO)
-      overdueDebts.sort((a, b) => a.anchorStr.localeCompare(b.anchorStr));
-      const oldest = overdueDebts[0];
-      primaryDebt = oldest.debt;
-      commonDueDateStr = oldest.anchorStr;
-      daysValue = oldest.diffDays;
-      mode = 'overdue';
-    }
-    // Priority 2: Customer has upcoming debts -> Merged advance due soon reminder (<= 3 days)
-    else if (upcomingDebts.length > 0) {
-      // Sort ascending by anchorStr (nearest upcoming due date first)
-      upcomingDebts.sort((a, b) => a.anchorStr.localeCompare(b.anchorStr));
-      const nearest = upcomingDebts[0];
-      const daysRemaining = -nearest.diffDays;
-      if (daysRemaining <= 3) {
-        primaryDebt = nearest.debt;
-        commonDueDateStr = nearest.anchorStr;
-        daysValue = daysRemaining;
-        mode = 'due_soon';
-      } else {
-        // Not yet within 3 days notice window
-        continue;
-      }
-    } else {
+    const decision = evaluateCustomerDebtReminder(group.debts, todayStr);
+    if (!decision) {
       continue;
     }
+
+    const { mode, primaryDebt, commonDueDateStr, daysValue, offsetDays } = decision;
 
     // Deduplication key guarantees exactly 1 SMS per customer per day
     const dedupeKey = `reminder:merged:${biz.id}:${cust.id}:${todayStr}:${mode}`;
@@ -301,7 +235,6 @@ export async function runDueRemindersCheck(): Promise<{ queuedCount: number; che
     }
 
     // Record reminder run
-    const offsetDays = mode === 'overdue' ? daysValue : -daysValue;
     const { data: run } = await admin
       .from('reminder_runs')
       .insert({
@@ -317,45 +250,28 @@ export async function runDueRemindersCheck(): Promise<{ queuedCount: number; che
       .maybeSingle();
 
     // Render SMS text with concise single-SMS templates
-    const formattedDue = formatDueDate(commonDueDateStr, todayStr);
-    const firstName = (cust.full_name || 'Customer').trim().split(/\s+/)[0].slice(0, 12);
     const paybill = paybillByBiz.get(biz.id) || '';
-
-    let tplBody = '';
-    if (mode === 'overdue') {
-      tplBody =
-        templatesByBizKey.get(`${biz.id}:customer_reminder_overdue`) ||
-        templatesByBizKey.get(`${biz.id}:customer_reminder`) ||
-        (biz.code === 'ZENITH_PLAST'
-          ? 'Dear {{first_name}}, reminder: bal {{balance}} is {{days_overdue}} days overdue. Pay Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496'
-          : 'Dear {{first_name}}, reminder: bal {{balance}} is {{days_overdue}} days overdue. Pay Equity 247247/NCBA 880100 Acc 650166 (Ref: {{account}}). Haron fashio-0725499796');
-    } else {
-      tplBody =
-        templatesByBizKey.get(`${biz.id}:customer_reminder_due_soon`) ||
-        templatesByBizKey.get(`${biz.id}:customer_reminder`) ||
-        (biz.code === 'ZENITH_PLAST'
-          ? 'Dear {{first_name}}, reminder: bal {{balance}} due in {{days_remaining}}d ({{due_date}}). Pay Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496'
-          : 'Dear {{first_name}}, reminder: bal {{balance}} due in {{days_remaining}}d ({{due_date}}). Pay Equity 247247/NCBA 880100 Acc 650166 (Ref: {{account}}). Haron fashio-0725499796');
-    }
-
-    let smsText = renderTemplate(tplBody, {
-      first_name: firstName,
-      customer_name: cust.full_name,
-      business_name: biz.name,
-      balance: fmt_kes(totalBalanceMinor, { showCents: false }),
-      original: fmt_kes(totalOriginalMinor, { showCents: false }),
-      reference: group.debts.length > 1 ? `${group.debts.length} debts` : (primaryDebt.reference_no || ''),
-      due_date: formattedDue,
-      days_overdue: String(daysValue),
-      days_remaining: String(daysValue),
+    const { text: smsText } = buildCustomerReminderSms({
+      businessCode: biz.code,
+      businessName: biz.name,
+      customerFullName: cust.full_name,
+      customerNo: cust.customer_no,
+      totalBalanceMinor,
+      totalOriginalMinor,
+      debtCount: group.debts.length,
+      primaryReferenceNo: primaryDebt.reference_no,
+      commonDueDateStr,
+      todayStr,
+      mode,
+      daysValue,
       paybill,
-      account: cust.customer_no,
+      templates: {
+        overdue: templatesByBizKey.get(`${biz.id}:customer_reminder_overdue`),
+        dueToday: templatesByBizKey.get(`${biz.id}:customer_reminder_due_today`),
+        dueSoon: templatesByBizKey.get(`${biz.id}:customer_reminder_due_soon`),
+        fallback: templatesByBizKey.get(`${biz.id}:customer_reminder`),
+      },
     });
-
-    // Hard character guarantee: <= 160 characters (strictly avoiding 2 SMS carrier charges)
-    if (smsText.length > 160) {
-      smsText = smsText.slice(0, 160);
-    }
 
     // Schedule for 8:00 AM local business time
     const scheduledTime = computeScheduledAt(now, tz, bs.reminder_send_hour ?? 8);
