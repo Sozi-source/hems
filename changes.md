@@ -1,3 +1,10 @@
+# Due-Tomorrow Only Pre-Due Customer SMS Reminders
+
+- **changed** `src/lib/sms/reminder-schedule.ts` — Updated `evaluateCustomerDebtReminder` so pre-due reminders only fire `1` day before the due date (`due tomorrow`) and `0` days (`due today`), skipping reminders at 3 days and 2 days prior. Added `normalizeDueTomorrowTemplate` (shared with `normalizeDueTodayTemplate`) and `templates.dueTomorrow` support in `buildCustomerReminderSms` so 1-day-remaining reminders read `"due tomorrow"` instead of `"due in 1d"`.
+- **changed** `src/lib/sms/reminder-engine.ts` & `scripts/preview-merged-reminders.js` — Wired `customer_reminder_due_tomorrow` template lookup and `<= 1` day advance-notice window while preserving daily overdue reminders and the `<= 160` character limit.
+- **changed** `src/lib/sms/__tests__/reminder-engine.test.ts` — Added unit tests verifying 3-day/2-day suppression, 1-day `"due tomorrow"` evaluation/wording, and template normalization.
+- **added** `supabase/migrations/20261126000027_reminder_due_tomorrow_skip_3_days.sql` — Updated PostgreSQL `queue_due_reminders()` to mirror the `(1, 0)` pre-due window and `"due tomorrow"` wording.
+
 # Due-Today Customer SMS Reminder Wording Fix
 
 - **added** `src/lib/sms/reminder-schedule.ts` — Extracted pure customer debt reminder evaluation (`evaluateCustomerDebtReminder`), due-today template normalization (`normalizeDueTodayTemplate`), and SMS rendering (`buildCustomerReminderSms`) from `src/lib/sms/reminder-engine.ts`. When the nearest due date is today (`daysValue === 0`), reminders now read `"due today"` instead of `"due in 0d"` / `"0 days"`, supporting optional `customer_reminder_due_today` templates as well as normalizing `customer_reminder_due_soon` templates and fallbacks.

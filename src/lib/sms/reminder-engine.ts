@@ -79,7 +79,7 @@ function computeScheduledAt(now: Date, timeZone: string, targetHour: number = 8)
  * 2. Merges multi-debt balances into one total outstanding amount.
  * 3. Calculates a common due date:
  *    - If any debt is overdue: uses the oldest overdue debt due date (FIFO anchor).
- *    - Else if debts are upcoming: uses the nearest upcoming due date (advance notice if <= 3 days).
+ *    - Else if debts are upcoming: uses the nearest upcoming due date (advance notice if <= 1 day: tomorrow or today).
  * 4. Strictly generates 1 single SMS (<= 160 characters, safely under 163 threshold) per customer per day.
  * 5. Schedules delivery at 8:00 AM local business time.
  */
@@ -268,6 +268,7 @@ export async function runDueRemindersCheck(): Promise<{ queuedCount: number; che
       templates: {
         overdue: templatesByBizKey.get(`${biz.id}:customer_reminder_overdue`),
         dueToday: templatesByBizKey.get(`${biz.id}:customer_reminder_due_today`),
+        dueTomorrow: templatesByBizKey.get(`${biz.id}:customer_reminder_due_tomorrow`),
         dueSoon: templatesByBizKey.get(`${biz.id}:customer_reminder_due_soon`),
         fallback: templatesByBizKey.get(`${biz.id}:customer_reminder`),
       },

@@ -5,7 +5,28 @@ import {
   buildCustomerReminderSms,
   evaluateCustomerDebtReminder,
   normalizeDueTodayTemplate,
+  normalizeDueTomorrowTemplate,
 } from '../reminder-schedule.ts';
+
+test('evaluateCustomerDebtReminder: skips 3 days and 2 days before due date', () => {
+  const debts = [{ due_date: '2026-11-27', issue_date: '2026-11-10', reference_no: 'INV-1' }];
+
+  assert.equal(evaluateCustomerDebtReminder(debts, '2026-11-24'), null); // 3 days before
+  assert.equal(evaluateCustomerDebtReminder(debts, '2026-11-25'), null); // 2 days before
+});
+
+test('evaluateCustomerDebtReminder: 1 day before due date returns due_soon with daysValue 1 and offsetDays -1', () => {
+  const decision = evaluateCustomerDebtReminder(
+    [{ due_date: '2026-11-27', issue_date: '2026-11-10', reference_no: 'INV-1' }],
+    '2026-11-26'
+  );
+
+  assert.ok(decision);
+  assert.equal(decision.mode, 'due_soon');
+  assert.equal(decision.daysValue, 1);
+  assert.equal(decision.offsetDays, -1);
+  assert.equal(decision.commonDueDateStr, '2026-11-27');
+});
 
 test('evaluateCustomerDebtReminder: due today returns due_soon with daysValue 0 and offsetDays 0', () => {
   const decision = evaluateCustomerDebtReminder(
@@ -78,11 +99,11 @@ test('buildCustomerReminderSms: reads today (never 0d or 0 days) when due date i
   assert.ok(withFallback.length <= 160);
 });
 
-test('buildCustomerReminderSms: still counts positive days remaining when due in 1..3 days', () => {
+test('buildCustomerReminderSms: reads due tomorrow (never 1d or 1 day) when due date is tomorrow with DB templates or fallbacks', () => {
   const dbDueSoonTemplate =
     'Dear {{first_name}}, reminder: bal {{balance}} due in {{days_remaining}}d ({{due_date}}). Pay Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496';
 
-  const { text } = buildCustomerReminderSms({
+  const { text: withDbTpl } = buildCustomerReminderSms({
     businessCode: 'ZENITH_PLAST',
     businessName: 'Zenith Plast',
     customerFullName: 'Mary Wanjiru',
@@ -90,14 +111,49 @@ test('buildCustomerReminderSms: still counts positive days remaining when due in
     totalBalanceMinor: 500000,
     totalOriginalMinor: 500000,
     debtCount: 1,
-    commonDueDateStr: '2026-11-26',
-    todayStr: '2026-11-24',
+    commonDueDateStr: '2026-11-27',
+    todayStr: '2026-11-26',
     mode: 'due_soon',
-    daysValue: 2,
+    daysValue: 1,
     templates: { dueSoon: dbDueSoonTemplate },
   });
 
-  assert.match(text, /due in 2d \(26 Nov\)/);
+  assert.match(withDbTpl, /due tomorrow \(27 Nov\)/);
+  assert.doesNotMatch(withDbTpl, /\b1d\b|\b1 day/i);
+  assert.ok(withDbTpl.length <= 160);
+
+  const { text: withFallback } = buildCustomerReminderSms({
+    businessCode: 'HARON_FASHION',
+    businessName: 'Haron Fashion',
+    customerFullName: 'John Kamau',
+    customerNo: 'C0001',
+    totalBalanceMinor: 1200000,
+    totalOriginalMinor: 1500000,
+    debtCount: 1,
+    commonDueDateStr: '2026-11-27',
+    todayStr: '2026-11-26',
+    mode: 'due_soon',
+    daysValue: 1,
+  });
+
+  assert.match(withFallback, /due tomorrow \(27 Nov\)/);
+  assert.doesNotMatch(withFallback, /\b1d\b|\b1 day/i);
+  assert.ok(withFallback.length <= 160);
+});
+
+test('normalizeDueTomorrowTemplate: handles days, day(s), d, and bare placeholder variations', () => {
+  assert.equal(
+    normalizeDueTomorrowTemplate('bal {{balance}} due in {{days_remaining}} days ({{due_date}}).'),
+    'bal {{balance}} due tomorrow ({{due_date}}).'
+  );
+  assert.equal(
+    normalizeDueTomorrowTemplate('bal {{balance}} is due in {{days_remaining}} day(s).'),
+    'bal {{balance}} is due tomorrow.'
+  );
+  assert.equal(
+    normalizeDueTomorrowTemplate('bal {{balance}} ({{days_remaining}} days left).'),
+    'bal {{balance}} (due tomorrow).'
+  );
 });
 
 test('normalizeDueTodayTemplate: handles days, day(s), d, and bare placeholder variations', () => {

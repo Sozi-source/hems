@@ -46,12 +46,12 @@ function formatDueDate(dueDateStr, todayStr) {
   }
 }
 
-function normalizeDueTodayTemplate(tpl) {
+function normalizeDueRelativeTemplate(tpl, relativeDay) {
   return tpl
-    .replace(/\bdue\s+in\s+\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)?(?=\s|\.|,|;|:|\(|$)/gi, 'due today')
-    .replace(/\bin\s+\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)(?=\s|\.|,|;|:|\(|$)/gi, 'today')
-    .replace(/\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)\s*left\b/gi, 'due today')
-    .replace(/\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)(?=\s|\.|,|;|:|\(|$)/gi, 'today');
+    .replace(/\bdue\s+in\s+\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)?(?=\s|\.|,|;|:|\(|$)/gi, `due ${relativeDay}`)
+    .replace(/\bin\s+\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)(?=\s|\.|,|;|:|\(|$)/gi, relativeDay)
+    .replace(/\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)\s*left\b/gi, `due ${relativeDay}`)
+    .replace(/\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)(?=\s|\.|,|;|:|\(|$)/gi, relativeDay);
 }
 
 function renderTemplate(tpl, vars) {
@@ -175,7 +175,7 @@ async function run() {
       upcomingDebts.sort((a, b) => a.anchorStr.localeCompare(b.anchorStr));
       const nearest = upcomingDebts[0];
       const daysRemaining = -nearest.diffDays;
-      if (daysRemaining <= 3) {
+      if (daysRemaining <= 1) {
         primaryDebt = nearest.debt;
         commonDueDateStr = nearest.anchorStr;
         daysValue = daysRemaining;
@@ -200,17 +200,19 @@ async function run() {
         templatesMap.get(`${biz.id}:customer_reminder_overdue`) ||
         templatesMap.get(`${biz.id}:customer_reminder`) ||
         'Dear {{first_name}}, reminder: bal {{balance}} is {{days_overdue}} days overdue.';
-    } else if (daysValue === 0) {
-      const dueTodayTpl = templatesMap.get(`${biz.id}:customer_reminder_due_today`);
-      if (dueTodayTpl) {
-        tplBody = dueTodayTpl;
+    } else if (daysValue === 0 || daysValue === 1) {
+      const relativeDay = daysValue === 0 ? 'today' : 'tomorrow';
+      const specificKey = daysValue === 0 ? 'customer_reminder_due_today' : 'customer_reminder_due_tomorrow';
+      const specificTpl = templatesMap.get(`${biz.id}:${specificKey}`);
+      if (specificTpl) {
+        tplBody = specificTpl;
       } else {
         const dueSoonTpl =
           templatesMap.get(`${biz.id}:customer_reminder_due_soon`) ||
           templatesMap.get(`${biz.id}:customer_reminder`);
         tplBody = dueSoonTpl
-          ? normalizeDueTodayTemplate(dueSoonTpl)
-          : 'Dear {{first_name}}, reminder: bal {{balance}} due today ({{due_date}}).';
+          ? normalizeDueRelativeTemplate(dueSoonTpl, relativeDay)
+          : `Dear {{first_name}}, reminder: bal {{balance}} due ${relativeDay} ({{due_date}}).`;
       }
     } else {
       tplBody =
@@ -228,7 +230,7 @@ async function run() {
       reference: group.debts.length > 1 ? `${group.debts.length} debts` : (primaryDebt.reference_no || ''),
       due_date: formattedDue,
       days_overdue: String(daysValue),
-      days_remaining: daysValue === 0 ? 'today' : String(daysValue),
+      days_remaining: daysValue === 0 ? 'today' : daysValue === 1 ? 'tomorrow' : String(daysValue),
       paybill,
       account: cust.customer_no,
     });

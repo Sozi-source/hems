@@ -39,22 +39,34 @@ export function renderReminderTemplate(tpl: string, vars: Record<string, string>
   return result;
 }
 
+function normalizeDueRelativeTemplate(tpl: string, relativeDay: 'today' | 'tomorrow'): string {
+  return tpl
+    .replace(/\bdue\s+in\s+\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)?(?=\s|\.|,|;|:|\(|$)/gi, `due ${relativeDay}`)
+    .replace(/\bin\s+\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)(?=\s|\.|,|;|:|\(|$)/gi, relativeDay)
+    .replace(/\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)\s*left\b/gi, `due ${relativeDay}`)
+    .replace(/\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)(?=\s|\.|,|;|:|\(|$)/gi, relativeDay);
+}
+
 /**
  * Normalizes a due-soon template when daysValue === 0 (due today) so it reads
  * "today" instead of "0d" or "0 days".
  */
 export function normalizeDueTodayTemplate(tpl: string): string {
-  return tpl
-    .replace(/\bdue\s+in\s+\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)?(?=\s|\.|,|;|:|\(|$)/gi, 'due today')
-    .replace(/\bin\s+\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)(?=\s|\.|,|;|:|\(|$)/gi, 'today')
-    .replace(/\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)\s*left\b/gi, 'due today')
-    .replace(/\{\{days_remaining\}\}\s*(?:day\(s\)|days?|d)(?=\s|\.|,|;|:|\(|$)/gi, 'today');
+  return normalizeDueRelativeTemplate(tpl, 'today');
+}
+
+/**
+ * Normalizes a due-soon template when daysValue === 1 (due tomorrow) so it reads
+ * "tomorrow" instead of "1d" or "1 day".
+ */
+export function normalizeDueTomorrowTemplate(tpl: string): string {
+  return normalizeDueRelativeTemplate(tpl, 'tomorrow');
 }
 
 /**
  * Evaluates merged customer debt reminders using a common due date:
  * - Priority 1: Any overdue debt -> oldest overdue date (FIFO anchor), daily reminder.
- * - Priority 2: Upcoming debts -> nearest upcoming date if <= 3 days remaining (0 = due today).
+ * - Priority 2: Upcoming debts -> nearest upcoming date if <= 1 day remaining (1 = due tomorrow, 0 = due today).
  */
 export function evaluateCustomerDebtReminder<T extends ReminderDebtAnchor>(
   debts: T[],
@@ -95,7 +107,7 @@ export function evaluateCustomerDebtReminder<T extends ReminderDebtAnchor>(
     upcomingDebts.sort((a, b) => a.anchorStr.localeCompare(b.anchorStr));
     const nearest = upcomingDebts[0];
     const daysRemaining = nearest.diffDays === 0 ? 0 : -nearest.diffDays;
-    if (daysRemaining <= 3) {
+    if (daysRemaining <= 1) {
       return {
         mode: 'due_soon',
         primaryDebt: nearest.debt,
@@ -126,6 +138,7 @@ export function buildCustomerReminderSms(params: {
   templates?: {
     overdue?: string;
     dueToday?: string;
+    dueTomorrow?: string;
     dueSoon?: string;
     fallback?: string;
   };
@@ -150,32 +163,31 @@ export function buildCustomerReminderSms(params: {
   const formattedDue = formatReminderDueDate(commonDueDateStr, todayStr);
   const firstName = (customerFullName || 'Customer').trim().split(/\s+/)[0].slice(0, 12);
   const isZenith = businessCode === 'ZENITH_PLAST';
+  const paySuffix = isZenith
+    ? 'Pay Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496'
+    : 'Pay Equity 247247/NCBA 880100 Acc 650166 (Ref: {{account}}). Haron fashio-0725499796';
 
   let tplBody = '';
   if (mode === 'overdue') {
     tplBody =
       templates.overdue ||
       templates.fallback ||
-      (isZenith
-        ? 'Dear {{first_name}}, reminder: bal {{balance}} is {{days_overdue}} days overdue. Pay Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496'
-        : 'Dear {{first_name}}, reminder: bal {{balance}} is {{days_overdue}} days overdue. Pay Equity 247247/NCBA 880100 Acc 650166 (Ref: {{account}}). Haron fashio-0725499796');
-  } else if (daysValue === 0) {
-    if (templates.dueToday) {
-      tplBody = templates.dueToday;
+      `Dear {{first_name}}, reminder: bal {{balance}} is {{days_overdue}} days overdue. ${paySuffix}`;
+  } else if (daysValue === 0 || daysValue === 1) {
+    const relativeDay = daysValue === 0 ? 'today' : 'tomorrow';
+    const specificTpl = daysValue === 0 ? templates.dueToday : templates.dueTomorrow;
+    if (specificTpl) {
+      tplBody = specificTpl;
     } else if (templates.dueSoon || templates.fallback) {
-      tplBody = normalizeDueTodayTemplate(templates.dueSoon || templates.fallback || '');
+      tplBody = normalizeDueRelativeTemplate(templates.dueSoon || templates.fallback || '', relativeDay);
     } else {
-      tplBody = isZenith
-        ? 'Dear {{first_name}}, reminder: bal {{balance}} due today ({{due_date}}). Pay Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496'
-        : 'Dear {{first_name}}, reminder: bal {{balance}} due today ({{due_date}}). Pay Equity 247247/NCBA 880100 Acc 650166 (Ref: {{account}}). Haron fashio-0725499796';
+      tplBody = `Dear {{first_name}}, reminder: bal {{balance}} due ${relativeDay} ({{due_date}}). ${paySuffix}`;
     }
   } else {
     tplBody =
       templates.dueSoon ||
       templates.fallback ||
-      (isZenith
-        ? 'Dear {{first_name}}, reminder: bal {{balance}} due in {{days_remaining}}d ({{due_date}}). Pay Absa Paybill 303030 Acc 1398# (Ref: {{account}}). Zenith- 0711377496'
-        : 'Dear {{first_name}}, reminder: bal {{balance}} due in {{days_remaining}}d ({{due_date}}). Pay Equity 247247/NCBA 880100 Acc 650166 (Ref: {{account}}). Haron fashio-0725499796');
+      `Dear {{first_name}}, reminder: bal {{balance}} due in {{days_remaining}}d ({{due_date}}). ${paySuffix}`;
   }
 
   let text = renderReminderTemplate(tplBody, {
@@ -187,7 +199,7 @@ export function buildCustomerReminderSms(params: {
     reference: debtCount > 1 ? `${debtCount} debts` : (primaryReferenceNo || ''),
     due_date: formattedDue,
     days_overdue: String(daysValue),
-    days_remaining: daysValue === 0 ? 'today' : String(daysValue),
+    days_remaining: daysValue === 0 ? 'today' : daysValue === 1 ? 'tomorrow' : String(daysValue),
     paybill,
     account: customerNo,
   });
